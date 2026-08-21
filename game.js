@@ -443,6 +443,11 @@ var CURRENT_PUZZLE = {
   ],
 };
 
+/* file:// cannot fetch the authored JSON. index.html loads this local-only
+   mirror before game.js so the desktop file preview uses the exact same
+   payload as the published puzzle. */
+if (window.DP2D_LOCAL_PUZZLE) CURRENT_PUZZLE = window.DP2D_LOCAL_PUZZLE;
+
 var CURRENT_INDEX = {
   current: 'starry-sky-society-2026-08-21',
   puzzles: [
@@ -461,7 +466,6 @@ var CURRENT_INDEX = {
 
 var SAVE_PREFIX = 'dp2d:';
 var SETTINGS_KEY = SAVE_PREFIX + 'settings';
-var SEEN_HELP_KEY = SAVE_PREFIX + 'seen-help';
 var LAYOUT_KEY = SAVE_PREFIX + 'layout';
 var EDITOR_DRAFT_KEY = SAVE_PREFIX + 'editor-draft';
 /* v3 namespace: earlier layouts' saves must never half-restore here. */
@@ -1504,20 +1508,18 @@ function showScreen(name) {
 function showOverlay(el) { el.hidden = false; }
 function hideOverlay(el) { el.hidden = true; }
 
-/** First-run help: auto-open the Help overlay the first time a player
- * opens a puzzle, then never again. Skipped entirely in the ?preview
- * iframe and the ?editor/?layout dev pages — those aren't a player's
- * first real puzzle. The flag is written the moment we decide to show
- * it (not on dismiss), so a reload mid-overlay can't re-trigger it. */
-function maybeShowFirstRunHelp() {
+/** Give every new game a short orientation, while leaving editor and preview
+    surfaces uncluttered. The primary button receives focus so the modal is
+    immediately usable by keyboard. */
+function showClueGuide() {
   if (state.previewMode || state.editorMode || state.layoutMode) return;
-  try {
-    if (localStorage.getItem(SEEN_HELP_KEY)) return;
-    localStorage.setItem(SEEN_HELP_KEY, '1');
-  } catch (e) {
-    return; // storage unavailable — don't risk showing it every load
-  }
   showOverlay(els.overlayHelp);
+  requestAnimationFrame(function () { els.btnCloseHelp.focus(); });
+}
+
+function closeClueGuide() {
+  hideOverlay(els.overlayHelp);
+  if (state.game) els.btnHelp.focus();
 }
 
 function showErrorScreen(message) {
@@ -1645,7 +1647,7 @@ function openPuzzle(puzzleData) {
 
   persistGame();
   if (game.phase === 'won' || game.phase === 'lost') showResults();
-  else maybeShowFirstRunHelp();
+  else showClueGuide();
 }
 
 function onEngineChange() {
@@ -2572,7 +2574,7 @@ function settleOnWall(id, x, wallRect) {
 
 function onKeyDown(ev) {
   if (ev.key === 'Escape' && !els.overlayHelp.hidden) {
-    hideOverlay(els.overlayHelp);
+    closeClueGuide();
     return;
   }
   if (ev.key === 'Escape' && !els.overlaySettings.hidden) {
@@ -4734,8 +4736,8 @@ async function init() {
   // Play header.
   els.btnShuffle.addEventListener('click', onShuffle);
   els.btnReset.addEventListener('click', onResetPuzzle);
-  els.btnHelp.addEventListener('click', function () { showOverlay(els.overlayHelp); });
-  els.btnCloseHelp.addEventListener('click', function () { hideOverlay(els.overlayHelp); });
+  els.btnHelp.addEventListener('click', showClueGuide);
+  els.btnCloseHelp.addEventListener('click', closeClueGuide);
   els.btnMenu.addEventListener('click', backToMenu);
 
   // Trays (lock buttons via delegation).

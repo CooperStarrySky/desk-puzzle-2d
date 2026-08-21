@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort sixteen pathology clues into four hidden groups." />
   <meta name="twitter:image" content="https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="styles.css?v=15" />
 </head>
 <body>
   <div id="app">
@@ -172,31 +172,45 @@
 
     <!-- ═══════════════════ HELP OVERLAY ═══════════════════ -->
     <div id="overlay-help" class="overlay" hidden>
-      <div class="overlay-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
-        <h2 id="help-title">How to play</h2>
-        <ol class="howto-grid">
-          <li class="howto-card">
-            <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="15" rx="1.6"/><rect x="8" y="3" width="13" height="15" rx="1.6"/><line x1="11" y1="8" x2="18" y2="8"/><line x1="11" y1="11.5" x2="18" y2="11.5"/><line x1="11" y1="15" x2="16" y2="15"/></svg></span>
-            <span class="howto-text"><strong>Read the clues.</strong> Sixteen pieces lie strewn across the desk. Drag them around to spread out the pile and read what each one says.</span>
-          </li>
-          <li class="howto-card">
-            <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></span>
-            <span class="howto-text"><strong>Some clues hide.</strong> Slides read on the microscope stage (each carries a letter, so you can tell them apart). Films read on the light box, wherever the film overlaps the glass.</span>
-          </li>
-          <li class="howto-card">
-            <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-5.5L21 9"/><rect x="3" y="9" width="18" height="11" rx="2"/><path d="M8.5 14l2.7 2.7L16 12"/></svg></span>
-            <span class="howto-text"><strong>Lock in a group of four.</strong> Drag four pieces that belong together into a tray, then press Lock In. It locks with the group's name, colored by how tricky it was.</span>
-          </li>
-          <li class="howto-card">
-            <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.5" cy="12" r="2.1" fill="currentColor" stroke="none"/><circle cx="10" cy="12" r="2.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="12" r="2.1" fill="currentColor" stroke="none"/><circle cx="21" cy="12" r="2.1"/><path d="M19.7 10.7l2.6 2.6M22.3 10.7l-2.6 2.6"/></svg></span>
-            <span class="howto-text"><strong>Four mistakes.</strong> A wrong guess costs one of four tries, unlimited in Casual mode. "One away!" means three of the four belonged together.</span>
-          </li>
-          <li class="howto-card">
-            <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-1.05 5.6"/><path d="M20 5.5V11h-5.5"/></svg></span>
-            <span class="howto-text"><strong>Scatter or reset.</strong> Scatter re-spreads the pile if it's gotten cluttered. Reset clears your progress and starts the puzzle over.</span>
-          </li>
-        </ol>
-        <p class="howto-keys">Keyboard: Tab to a piece, 1 to 4 sends it to a tray, 0 or Backspace returns it to the desk, V views a slide or film on its machine, arrow keys nudge it.</p>
+      <div class="overlay-card clue-guide-card" role="dialog" aria-modal="true" aria-labelledby="help-title" tabindex="-1">
+        <p class="clue-guide-kicker">Quick guide</p>
+        <h2 id="help-title">How to use clues</h2>
+        <div class="clue-guide-grid">
+          <section class="clue-guide-step" aria-labelledby="guide-scope-title">
+            <svg class="clue-guide-visual" viewBox="0 0 240 120" aria-hidden="true">
+              <rect x="30" y="68" width="180" height="31" rx="7" fill="#4a463e"/>
+              <rect x="45" y="58" width="150" height="30" rx="5" fill="#24211d"/>
+              <rect x="64" y="48" width="112" height="25" rx="4" fill="#e8becf" stroke="#9d5875" stroke-width="3"/>
+              <circle cx="119" cy="60" r="9" fill="#9d5875" opacity=".72"/>
+              <path d="M101 22h38v26h-38z" fill="#dcd7bc" stroke="#5b574c" stroke-width="4"/>
+              <path d="M120 22v-12" stroke="#5b574c" stroke-width="7" stroke-linecap="round"/>
+            </svg>
+            <h3 id="guide-scope-title">Microscope slides</h3>
+            <p>Drag a slide onto the microscope stage to reveal its clue.</p>
+          </section>
+          <section class="clue-guide-step" aria-labelledby="guide-lightbox-title">
+            <svg class="clue-guide-visual" viewBox="0 0 240 120" aria-hidden="true">
+              <rect x="42" y="16" width="156" height="88" rx="8" fill="#38352d"/>
+              <rect x="52" y="26" width="136" height="68" rx="4" fill="#f3e6a5"/>
+              <rect x="72" y="13" width="94" height="94" rx="4" fill="#4d5b66" opacity=".88"/>
+              <path d="M112 32c-13 16-9 40 0 53m17-53c13 16 9 40 0 53" fill="none" stroke="#eff4dc" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+            <h3 id="guide-lightbox-title">X-ray films</h3>
+            <p>Drag an X-ray over the lightbox to see the image.</p>
+          </section>
+          <section class="clue-guide-step" aria-labelledby="guide-groups-title">
+            <svg class="clue-guide-visual" viewBox="0 0 240 120" aria-hidden="true">
+              <rect x="43" y="23" width="41" height="30" rx="4" fill="#f3c45b"/>
+              <rect x="91" y="23" width="41" height="30" rx="4" fill="#a9d2a7"/>
+              <rect x="139" y="23" width="41" height="30" rx="4" fill="#d5b2df"/>
+              <rect x="91" y="58" width="41" height="30" rx="4" fill="#efaeb0"/>
+              <path d="M31 97h178v-18H31z" fill="#645d4e"/>
+              <path d="M52 98v12h136V98" fill="none" stroke="#645d4e" stroke-width="8" stroke-linecap="round"/>
+            </svg>
+            <h3 id="guide-groups-title">Hidden groups</h3>
+            <p>Find four clues that belong together, place them in a tray, then lock in the group.</p>
+          </section>
+        </div>
         <div class="overlay-actions">
           <button id="btn-close-help" class="btn btn-primary" type="button">Got it</button>
         </div>
@@ -232,6 +246,11 @@
     <div id="layout-panel" class="layout-panel" hidden></div>
   </div>
 
-  <script src="game.js?v=14" defer></script>
+  <script>
+    if (window.location.protocol === 'file:') {
+      document.write('<script src="puzzles/.local-puzzle-fallback.js"><\\/script>');
+    }
+  </script>
+  <script src="game.js?v=15" defer></script>
 </body>
 </html>

@@ -1263,6 +1263,46 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
 }
 .overlay-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
 
+/* ── Start-of-game clue guide ────────────────────────────────────── */
+.clue-guide-card { max-width: min(790px, 100%); }
+.clue-guide-kicker {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font: 800 0.7rem/1 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.clue-guide-card h2 { margin-bottom: 16px; }
+.clue-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.clue-guide-step {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-m);
+  background: var(--card);
+}
+.clue-guide-visual {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 9px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent-soft) 72%, var(--panel));
+}
+.clue-guide-step h3 {
+  margin: 0 0 4px;
+  font: 700 0.92rem/1.2 var(--sans);
+}
+.clue-guide-step p {
+  margin: 0;
+  color: var(--ink-soft);
+  font: 0.84rem/1.35 var(--sans);
+}
+
 .results-card {
   max-width: min(960px, 94vw);
   max-height: 90vh;
@@ -1850,6 +1890,14 @@ body.preview-mode .play-header-title p { display: none; }
 }
 
 @media (max-width: 760px) {
+  .clue-guide-grid { grid-template-columns: 1fr; }
+  .clue-guide-step {
+    display: grid;
+    grid-template-columns: minmax(118px, 0.8fr) 1.2fr;
+    column-gap: 12px;
+    align-items: center;
+  }
+  .clue-guide-visual { grid-row: span 2; margin: 0; }
   .trays { grid-template-columns: repeat(2, 1fr); }
   .scope-stage { width: 92px; height: 92px; }
   .scope-stage-glass { width: 62px; height: 62px; }

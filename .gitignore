@@ -4,3 +4,7 @@ assets/textures/*.png
 assets/textures/*.jpg
 assets/textures/originals/
 assets/textures/overlays/
+
+# Generated from the authored puzzle for file:// previews; never publish a
+# duplicate of the embedded image payload.
+puzzles/.local-puzzle-fallback.js
