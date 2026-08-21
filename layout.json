@@ -4,30 +4,24 @@
     "fy": 0.014466443924870558
   },
   "lightbox": {
-    "fx": 0.72,
-    "fy": 0.03,
-    "w": 250,
+    "w": 220,
     "h": 240
-  },
-  "printer": {
-    "fx": 0.85,
-    "fy": 0.82
   },
   "scatter": {
     "lo": 0.3,
     "hi": 0.68
   },
   "pieceScale": {
-    "sticky": 1.04,
-    "paper": 1.5,
-    "slide": 0.92,
-    "film": 1.6,
-    "photo": 1.6,
-    "rx": 1.12
+    "sticky": 1.25,
+    "paper": 1.6,
+    "slide": 1.2,
+    "film": 1.45,
+    "photo": 1.75,
+    "rx": 1.35
   },
   "scopePanel": {
-    "w": 300,
-    "h": 240
+    "w": 452,
+    "h": 322
   },
   "sound": {
     "master": 0.5,
@@ -40,7 +34,6 @@
       "film-rustle": 0.22,
       "dial-tick": 0.2,
       "pan-tick": 0.1,
-      "print": 0.16,
       "shuffle": 0.13,
       "correct": 0.2,
       "wrong": 0.34,

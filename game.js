@@ -63,7 +63,7 @@ function normalizeKinds(c) {
 }
 
 /* Machines a puzzle may declare. Absent `machines` field = all three. */
-var ALL_MACHINES = ['scope', 'lightbox', 'printer'];
+var ALL_MACHINES = ['scope', 'lightbox'];
 
 /** The machine set a puzzle declares (back-compat: absent = everything). */
 function puzzleMachines(c) {
@@ -123,7 +123,7 @@ function caseProblems(c) {
   // Machines cross-check: a slide with no microscope (or a film with no
   // light box) would be an unreadable clue — that's an invalid puzzle.
   if (c.machines !== undefined && !Array.isArray(c.machines)) {
-    problems.push('"machines" must be a list (e.g. ["scope","lightbox","printer"])');
+    problems.push('"machines" must be a list (e.g. ["scope","lightbox"])');
   }
   var machines = puzzleMachines(c);
   var hasSlides = c.items.some(function (i) { return i.zone === 'rack'; });
@@ -384,69 +384,69 @@ DeskPuzzleGame.prototype.touch = function () {
 };
 
 /* ════════════════════════════════════════════════════════════════════
- * EMBEDDED FALLBACK PUZZLE — verbatim copy of puzzles/sample-001.json +
- * puzzles/index.json so the game still works when fetch() fails (e.g.
- * file://).
+ * EMBEDDED FALLBACK PUZZLE — content-equivalent copy of the current puzzle
+ * and index so the game still works when fetch() fails (e.g. file://).
  * ════════════════════════════════════════════════════════════════════ */
 
-var SAMPLE_PUZZLE = {
-  id: 'sample-001',
-  title: 'The Daily Desk',
-  date: '2026-07-07',
+var CURRENT_PUZZLE = {
+  id: 'starry-sky-society-2026-08-21',
+  title: 'Starry Sky Society Puzzle',
+  date: '2026-08-21',
+  machines: ['scope', 'lightbox'],
   groups: [
     {
-      id: 'g-colors',
-      name: 'Colors',
+      id: 'g-staph-aureus',
+      name: 'Manifestations of Staph aureus',
       tier: 1,
-      explanation: 'Red, blue, yellow, and green are all colors.',
-      itemIds: ['red', 'blue', 'yellow', 'green'],
+      explanation: 'Bullous impetigo, tricuspid valve endocarditis, osteomyelitis, and a gram stain can all point to Staphylococcus aureus.',
+      itemIds: ['bullous-impetigo', 'tricuspid-valve-endocarditis', 'osteomyelitis', 'gram-stain'],
     },
     {
-      id: 'g-chess',
-      name: 'Chess pieces',
+      id: 'g-simple-columnar',
+      name: 'Simple columnar epithelium',
       tier: 2,
-      explanation: 'King, queen, rook, and bishop all move on a chessboard.',
-      itemIds: ['king', 'queen', 'rook', 'bishop'],
+      explanation: 'The four clues point toward simple columnar epithelium in histology, organ identification, or gross anatomy.',
+      itemIds: ['excretory-ducts', 'cholecystectomy-organ', 'small-bowel', 'stomach'],
     },
     {
-      id: 'g-time',
-      name: 'Units of time',
+      id: 'g-multiple-myeloma',
+      name: 'Multiple myeloma CRAB symptoms',
       tier: 3,
-      explanation: 'A second, a minute, an hour, and a week all measure time.',
-      itemIds: ['second', 'minute', 'hour', 'week'],
+      explanation: 'CRAB points to hyperCalcemia, Renal involvement, Anemia, and Bone lesions. Apple-green birefringence adds the amyloid clue associated with renal disease.',
+      itemIds: ['anemia-blood-smear', 'hypercalcemia', 'apple-green-birefringence', 'lytic-bone-lesions'],
     },
     {
-      id: 'g-board',
-      name: '___ board',
+      id: 'g-angelman-syndrome',
+      name: 'Angelman syndrome',
       tier: 4,
-      explanation: 'Key, cork, score, and surf can each come before "board".',
-      itemIds: ['key', 'cork', 'score', 'surf'],
+      explanation: 'These written clues point to Angelman syndrome: a neurodevelopmental disorder associated with maternal UBE3A dysfunction on chromosome 15.',
+      itemIds: ['fascination-with-water', 'ube3a-mutation', 'chromosome-15', 'wide-spaced-teeth'],
     },
   ],
   items: [
-    { id: 'red', label: 'Red', zone: 'corkboard', appearance: { color: '#f6d64a' }, info: { title: 'Red', text: 'A primary color.' } },
-    { id: 'king', label: 'King', zone: 'corkboard', appearance: { color: '#f28ab2' }, info: { title: 'King' } },
-    { id: 'hour', label: 'Hour', zone: 'corkboard', appearance: { color: '#7fc6e8' }, info: { title: 'Hour', text: 'Sixty minutes.' } },
-    { id: 'surf', label: 'Surf', zone: 'corkboard', appearance: { color: '#9bd67d' }, info: { title: 'Surf' } },
-    { id: 'minute', label: 'Minute', zone: 'corkboard', appearance: { color: '#f4a259' }, info: { title: 'Minute' } },
-    { id: 'blue', label: 'Blue', zone: 'folder', info: { title: 'Blue', text: 'A primary color.' } },
-    { id: 'queen', label: 'Queen', zone: 'folder', info: { title: 'Queen' } },
-    { id: 'score', label: 'Score', zone: 'folder', info: { title: 'Score', text: 'Twenty.' } },
-    { id: 'week', label: 'Week', zone: 'folder', info: { title: 'Week' } },
-    { id: 'yellow', label: 'Yellow', zone: 'rack', info: { title: 'Yellow' } },
-    { id: 'rook', label: 'Rook', zone: 'rack', info: { title: 'Rook' } },
-    { id: 'second', label: 'Second', zone: 'rack', info: { title: 'Second' } },
-    { id: 'key', label: 'Key', zone: 'rack', info: { title: 'Key' } },
-    { id: 'green', label: 'Green', zone: 'tubes', info: { title: 'Green', text: 'A secondary color.' } },
-    { id: 'cork', label: 'Cork', zone: 'tubes', info: { title: 'Cork' } },
-    { id: 'bishop', label: 'Bishop', zone: 'folder', info: { title: 'Bishop' } },
+    { id: 'bullous-impetigo', label: 'Bullous impetigo', zone: 'rack', info: { title: 'Bullous impetigo', text: 'Histology clue: a superficial intraepidermal blister.' } },
+    { id: 'tricuspid-valve-endocarditis', label: 'Tricuspid valve endocarditis', zone: 'tubes', info: { title: 'Tricuspid valve endocarditis', text: 'Echocardiogram clue: a vegetation on the tricuspid valve.' } },
+    { id: 'osteomyelitis', label: 'Osteomyelitis', zone: 'photo', info: { title: 'Osteomyelitis', text: 'Gross pathology clue: infected bone.' } },
+    { id: 'gram-stain', label: 'Gram stain', zone: 'rack', info: { title: 'Gram stain', text: 'Microscopy clue: gram-positive cocci in clusters.' } },
+    { id: 'excretory-ducts', label: 'Excretory ducts', zone: 'rack', info: { title: 'Excretory ducts', text: 'Histology clue: simple columnar epithelium in an excretory duct.' } },
+    { id: 'cholecystectomy-organ', label: 'Organ removed in a cholecystectomy', zone: 'folder', info: { title: 'Gallbladder', text: 'The gallbladder is removed during a cholecystectomy.' } },
+    { id: 'small-bowel', label: 'Small bowel', zone: 'rack', info: { title: 'Small bowel', text: 'Histology clue: simple columnar epithelium in the small bowel.' } },
+    { id: 'stomach', label: 'Stomach', zone: 'photo', info: { title: 'Stomach', text: 'Gross anatomy clue: stomach.' } },
+    { id: 'anemia-blood-smear', label: 'Blood smear of anemia', zone: 'rack', info: { title: 'Blood smear of anemia', text: 'The A in the CRAB mnemonic: anemia.' } },
+    { id: 'hypercalcemia', label: 'Hypercalcemia', zone: 'folder', info: { title: 'Hypercalcemia', text: 'The C in the CRAB mnemonic.' } },
+    { id: 'apple-green-birefringence', label: 'Apple Green Birefringence', zone: 'rack', info: { title: 'Apple Green Birefringence', text: 'Congo red amyloid under polarized light, associated here with renal involvement.' } },
+    { id: 'lytic-bone-lesions', label: 'Lytic Bone Lesions', zone: 'tubes', info: { title: 'Lytic Bone Lesions', text: 'X-ray clue: lytic bone lesions, the B in CRAB.' } },
+    { id: 'fascination-with-water', label: 'Fascination with water', zone: 'corkboard', info: { title: 'Fascination with water', text: 'Behavioral clue associated with Angelman syndrome.' } },
+    { id: 'ube3a-mutation', label: 'UBE3A mutation', zone: 'corkboard', info: { title: 'UBE3A mutation', text: 'Genetic clue associated with Angelman syndrome.' } },
+    { id: 'chromosome-15', label: 'Chromosome 15', zone: 'corkboard', info: { title: 'Chromosome 15', text: 'Chromosomal clue associated with Angelman syndrome.' } },
+    { id: 'wide-spaced-teeth', label: 'Wide spaced teeth', zone: 'corkboard', info: { title: 'Wide spaced teeth', text: 'Physical finding associated with Angelman syndrome.' } },
   ],
 };
 
-var SAMPLE_INDEX = {
-  current: 'sample-001',
+var CURRENT_INDEX = {
+  current: 'starry-sky-society-2026-08-21',
   puzzles: [
-    { id: 'sample-001', title: 'The Daily Desk', date: '2026-07-07', file: 'sample-001.json' },
+    { id: 'starry-sky-society-2026-08-21', title: 'Starry Sky Society Puzzle', date: '2026-08-21', file: 'starry-sky-society-2026-08-21.json' },
   ],
 };
 
@@ -468,7 +468,6 @@ var EDITOR_DRAFT_KEY = SAVE_PREFIX + 'editor-draft';
 var SAVE_NS = SAVE_PREFIX + 'save3:';
 var LEGACY_SAVE_NS = [SAVE_PREFIX + 'save:', SAVE_PREFIX + 'save2:'];
 
-var HINTS_MAX = 3;
 var TIER_EMOJI = { 1: '🟨', 2: '🟩', 3: '🟪', 4: '🟧' };
 
 var PIECE_CLASS = {
@@ -497,17 +496,13 @@ var PAPER_FAMILY = { corkboard: 1, folder: 1, rx: 1 };
 
 var TRAY_NAMES = ['tray A', 'tray B', 'tray C', 'tray D'];
 
-/* Objective stops: displayed name → zoom factor over the base cover fit. */
-var OBJECTIVES = { '4': 1, '10': 2.5, '40': 10 };
-
 /* Dev layout knobs (?layout). Machine anchors are desk-fraction positions. */
 var LAYOUT_DEFAULTS = {
   scope: { fx: 0.015, fy: 0.03 },
-  lightbox: { fx: 0.72, fy: 0.03, w: 250, h: 150 },
-  printer: { fx: 0.85, fy: 0.82 },
+  lightbox: { w: 220, h: 240 },
   scatter: { lo: 0.36, hi: 0.92 },
-  pieceScale: { sticky: 1, paper: 1, slide: 1, film: 1, photo: 1, rx: 1 },
-  scopePanel: { w: 300, h: 240 },
+  pieceScale: { sticky: 1.25, paper: 1.6, slide: 1.2, film: 1.45, photo: 1.75, rx: 1.35 },
+  scopePanel: { w: 452, h: 322 },
 };
 
 var els = {};
@@ -520,13 +515,10 @@ var state = {
   settings: { casual: false, sound: true, theme: 'system', dragAudioWip: false },
   game: null,
   pieceEls: {},
-  desk: null, // { pos, rot, z, zTop, scope, labels, hintsUsed }
+  desk: null, // { pos, rot, z, zTop, scope }
   drag: null,
   toastTimer: null,
-  scopeView: { obj: '4', panX: 0.5, panY: 0.5 },
   scopeSources: {},   // itemId -> canvas | HTMLImageElement (loaded)
-  scopePanning: null,
-  scopeResizing: null,
   layout: null,
   layoutMode: false,
   layoutDrag: null,
@@ -593,18 +585,16 @@ function downloadJson(filename, data) {
 function cacheEls() {
   [
     'screen-menu', 'screen-play', 'screen-error', 'screen-editor', 'live-region', 'toast',
-    'btn-play-today', 'archive-list', 'toggle-casual', 'toggle-sound',
+    'btn-play-today', 'toggle-casual', 'toggle-sound',
     'puzzle-title', 'puzzle-date', 'mistake-tracker', 'btn-shuffle', 'btn-help', 'btn-menu',
-    'play-area', 'desk-surface', 'piece-layer', 'trays',
+    'play-area', 'wall-area', 'xray-rack', 'xray-rail', 'desk-surface', 'piece-layer', 'trays',
     'machine-scope', 'scope-stage', 'machine-lightbox', 'lightbox-screen',
-    'machine-printer', 'printer-body', 'printer-count',
-    'scope-panel', 'scope-display-wrap', 'scope-canvas',
-    'zoom-track', 'zoom-knob', 'zoom-label', 'tray-hud',
+    'scope-panel', 'scope-display-wrap', 'scope-canvas', 'tray-hud',
     'btn-reset',
-    'btn-settings', 'btn-settings-menu', 'overlay-settings',
+    'btn-settings', 'overlay-settings',
     'btn-close-settings',
     'overlay-help', 'btn-close-help',
-    'overlay-results', 'results-title', 'results-sub', 'results-hints', 'results-groups',
+    'overlay-results', 'results-title', 'results-sub', 'results-groups',
     'btn-share', 'btn-play-again', 'btn-back-menu', 'share-fallback',
     'error-message', 'btn-error-menu', 'layout-panel',
   ].forEach(function (id) {
@@ -678,7 +668,7 @@ function syncSettingsUi() {
   });
 }
 
-var LAYOUT_MERGE_KEYS = ['scope', 'lightbox', 'printer', 'scatter', 'pieceScale', 'scopePanel'];
+var LAYOUT_MERGE_KEYS = ['scope', 'lightbox', 'scatter', 'pieceScale', 'scopePanel'];
 
 function mergeLayoutLayer(base, layer) {
   if (!layer || typeof layer !== 'object') return;
@@ -722,15 +712,8 @@ function applyLayout() {
   els.machineScope.style.left = (L.scope.fx * 100) + '%';
   els.machineScope.style.top = (L.scope.fy * 100) + '%';
   els.machineScope.style.right = 'auto';
-  els.machineLightbox.style.left = (L.lightbox.fx * 100) + '%';
-  els.machineLightbox.style.top = (L.lightbox.fy * 100) + '%';
-  els.machineLightbox.style.right = 'auto';
   els.lightboxScreen.style.width = L.lightbox.w + 'px';
   els.lightboxScreen.style.height = L.lightbox.h + 'px';
-  els.machinePrinter.style.left = (L.printer.fx * 100) + '%';
-  els.machinePrinter.style.top = (L.printer.fy * 100) + '%';
-  els.machinePrinter.style.right = 'auto';
-  els.machinePrinter.style.bottom = 'auto';
   Object.keys(L.pieceScale).forEach(function (t) {
     root.style.setProperty('--scale-' + t, String(L.pieceScale[t]));
   });
@@ -829,9 +812,14 @@ function scatterSpot(rng) {
 
 function freshDeskState(puzzle) {
   var rng = mulberry32(hashString(puzzle.id));
-  var desk = { pos: {}, rot: {}, z: {}, zTop: 0, scope: null, labels: {}, hintsUsed: 0 };
+  var desk = { pos: {}, rot: {}, z: {}, zTop: 0, scope: null };
+  var filmIndex = 0;
   puzzle.items.forEach(function (item) {
-    desk.pos[item.id] = scatterSpot(rng);
+    if (item.zone === 'tubes') {
+      desk.pos[item.id] = { fx: 0.12 + (filmIndex++ * 0.16), fy: 0.5 };
+    } else {
+      desk.pos[item.id] = scatterSpot(rng);
+    }
     desk.rot[item.id] = item.zone === 'tubes' ? 0 : -15 + 30 * rng();
     desk.z[item.id] = ++desk.zTop;
   });
@@ -843,29 +831,24 @@ function restoreDeskState(saved, puzzle, game) {
   var fresh = freshDeskState(puzzle);
   var d = saved && saved.desk;
   if (!d || typeof d !== 'object') return fresh;
-  var desk = { pos: {}, rot: {}, z: {}, zTop: 0, scope: null, labels: {}, hintsUsed: 0 };
+  var desk = { pos: {}, rot: {}, z: {}, zTop: 0, scope: null };
   puzzle.items.forEach(function (item) {
     var p = d.pos && d.pos[item.id];
     desk.pos[item.id] = (p && isFinite(p.fx) && isFinite(p.fy))
       ? { fx: clamp(p.fx, 0, 1), fy: clamp(p.fy, 0, 1) }
       : fresh.pos[item.id];
+    if (item.zone === 'tubes') desk.pos[item.id].fy = 0.5;
     var r = d.rot && d.rot[item.id];
     desk.rot[item.id] = item.zone === 'tubes' ? 0 : (isFinite(r) ? r : fresh.rot[item.id]);
     var z = d.z && d.z[item.id];
     desk.z[item.id] = isFinite(z) && z > 0 ? Math.floor(z) : fresh.z[item.id];
     desk.zTop = Math.max(desk.zTop, desk.z[item.id]);
-    if (d.labels && d.labels[item.id] === true) desk.labels[item.id] = true;
   });
   // The scope may only hold an undocked rack item.
   if (typeof d.scope === 'string') {
     var it = puzzle.items.find(function (i) { return i.id === d.scope; });
     if (it && it.zone === 'rack' && !game.isStaged(d.scope)) desk.scope = d.scope;
   }
-  var labelCount = Object.keys(desk.labels).length;
-  desk.hintsUsed = Math.max(
-    labelCount,
-    (typeof d.hintsUsed === 'number' && d.hintsUsed >= 0) ? Math.floor(d.hintsUsed) : 0
-  );
   return desk;
 }
 
@@ -887,7 +870,6 @@ var SOUND_TUNING = {
   'dock-glass':   { synth: 'partials', freqs: [1370, 2060], dur: 0.1, gain: 0.17 },
   'dial-tick':    { synth: 'tick', freq: 1800, dur: 0.028, gain: 0.2 },
   'pan-tick':     { synth: 'tick', freq: 1250, dur: 0.02, gain: 0.1 },
-  'print':        { synth: 'print', dur: 0.45, gain: 0.16 },
   /* "Scatter" cue — one smooth continuous whoosh, like a sheet of paper
      moving through air: a single noise source through a bandpass whose
      center sweeps 400→1200→600 Hz, with a gently ramped attack and a
@@ -1038,25 +1020,6 @@ function synthThud(ctx, t, o) {
   synthNoise(ctx, t, { hp: 80, lp: 500, gain: o.gain * 0.4, attack: 0.004, dur: o.dur * 0.5 });
 }
 
-function synthPrint(ctx, t, o) {
-  // whirr: band-limited noise with a 30Hz amplitude wobble
-  var src = ctx.createBufferSource();
-  src.buffer = noiseBuffer(ctx);
-  var bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass'; bp.frequency.value = 1900; bp.Q.value = 2.2;
-  var g = envGain(ctx, t, o.gain, 0.02, o.dur);
-  var lfo = ctx.createOscillator();
-  lfo.frequency.value = 30;
-  var lfoGain = ctx.createGain();
-  lfoGain.gain.value = o.gain * 0.5;
-  lfo.connect(lfoGain).connect(g.gain);
-  lfo.start(t); lfo.stop(t + o.dur);
-  src.connect(bp).connect(g);
-  src.start(t, 0.1, o.dur);
-  // paper-out flick at the end
-  synthNoise(ctx, t, { hp: 1800, lp: 7000, gain: o.gain * 0.9, attack: 0.003, dur: 0.05 }, t + o.dur * 0.92);
-}
-
 /** "Scatter" cue: one smooth continuous whoosh — a single noise source
  *  through a bandpass whose center sweeps up then down (paper moving
  *  through air), with a gently ramped attack and a smooth decay to
@@ -1137,7 +1100,6 @@ function playSound(name) {
     case 'tick': synthTick(ctx, t, o); break;
     case 'notes': synthNotes(ctx, t, o); break;
     case 'thud': synthThud(ctx, t, o); break;
-    case 'print': synthPrint(ctx, t, o); break;
     case 'shuffle': synthShuffle(ctx, t, o); break;
   }
 }
@@ -1149,20 +1111,11 @@ function pieceSound(zone, kind) {
   else playSound(kind === 'pickup' ? 'pickup-paper' : 'drop-paper');
 }
 
-/* ── Drag sound dispatch: default = scrape grains; WIP toggle = bed ── */
-
-function startPieceDrag(zone, x, y) {
-  if (state.settings.dragAudioWip) startDragAudio(zone, x, y);
-  else startScrape(zone, x, y);
-}
-function movePieceDrag(x, y) {
-  if (state.settings.dragAudioWip) dragAudioMove(x, y);
-  else scrapeMove(x, y);
-}
-function stopPieceDrag() {
-  stopDragAudio();
-  stopScrape();
-}
+/* Dragging is intentionally silent. Pickup/drop cues remain available, but
+   moving a clue across the desk must not generate a continuous sound. */
+function startPieceDrag() {}
+function movePieceDrag() {}
+function stopPieceDrag() {}
 
 /* ── DEFAULT: distance-quantized scrape grains with hysteresis gate ── */
 
@@ -1582,48 +1535,19 @@ function fetchJson(url) {
 }
 
 function loadRegistry() {
-  return fetchJson('puzzles/index.json').catch(function () { return SAMPLE_INDEX; });
+  return fetchJson('puzzles/index.json').catch(function () { return CURRENT_INDEX; });
 }
 
 function loadPuzzleByEntry(entry) {
   return fetchJson('puzzles/' + entry.file).catch(function () {
-    if (entry.id === SAMPLE_PUZZLE.id) return SAMPLE_PUZZLE;
+    if (entry.id === CURRENT_PUZZLE.id) return CURRENT_PUZZLE;
     throw new Error('Could not load puzzle "' + entry.id + '" (fetch failed and no embedded fallback matches).');
   });
 }
 
 /* ── Menu rendering (archive uses delegation — no per-item binds) ── */
 
-function renderMenu(registry) {
-  els.archiveList.innerHTML = '';
-  var puzzles = (registry.puzzles || []).slice().sort(function (a, b) {
-    return (b.date || '').localeCompare(a.date || '');
-  });
-  if (!puzzles.length) {
-    var empty = document.createElement('p');
-    empty.className = 'archive-empty';
-    empty.textContent = 'No archived puzzles yet.';
-    els.archiveList.appendChild(empty);
-    return;
-  }
-  puzzles.forEach(function (entry) {
-    var li = document.createElement('li');
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'archive-item-btn' + (entry.id === registry.current ? ' current' : '');
-    btn.dataset.puzzleId = entry.id;
-    btn.dataset.puzzleFile = entry.file;
-    var titleSpan = document.createElement('span');
-    titleSpan.textContent = entry.title;
-    var dateSpan = document.createElement('span');
-    dateSpan.className = 'archive-date';
-    dateSpan.textContent = entry.date || '';
-    btn.appendChild(titleSpan);
-    btn.appendChild(dateSpan);
-    li.appendChild(btn);
-    els.archiveList.appendChild(li);
-  });
-}
+function renderMenu() {}
 
 /* ── Geometry ────────────────────────────────────────────────────── */
 
@@ -1682,7 +1606,7 @@ function openPuzzle(puzzleData) {
 
   if (game.phase === 'intro') game.setPhase('playing');
 
-  // Anonymous slide letters (A, B, C… in item order — ids, not hints).
+  // Anonymous slide letters (A, B, C… in item order — identifiers, not clue text).
   state.slideLetters = {};
   (function () {
     var n = 0;
@@ -1696,14 +1620,10 @@ function openPuzzle(puzzleData) {
   els.machineScope.hidden = !hasMachine('scope');
   els.scopePanel.hidden = !hasMachine('scope');
   els.machineLightbox.hidden = !hasMachine('lightbox');
-  els.machinePrinter.hidden = !hasMachine('printer');
   if (!hasMachine('scope')) state.desk.scope = null;
-  syncZoomControl();
-
   game.events.on('change', onEngineChange);
   game.events.on('phase', onPhaseChange);
 
-  state.scopeView = { obj: '4', panX: 0.5, panY: 0.5 };
   state.scopeSources = {};
 
   buildPieces();
@@ -1757,7 +1677,7 @@ function buildPieces() {
     b.type = 'button';
     b.className = 'piece ' + PIECE_CLASS[item.zone];
     b.dataset.itemId = item.id;
-    b.setAttribute('aria-describedby', 'piece-hint');
+    b.setAttribute('aria-describedby', 'piece-instructions');
 
     // Deterministic per-piece seed: handwriting jitter + visual variety.
     var rng = mulberry32(hashString(item.id));
@@ -1774,7 +1694,7 @@ function buildPieces() {
 
     if (item.zone === 'rack') {
       // Slide: anonymous letter on the frosted end (A, B, C… — an
-      // identifier, never a hint). The clue itself needs the microscope.
+      // identifier, never the readable clue). The clue itself needs the microscope.
       var frost = document.createElement('span');
       frost.className = 'piece-frost';
       var letter = document.createElement('span');
@@ -1873,6 +1793,7 @@ function pieceLocation(id) {
   var cell = game.cellOfItem(id);
   if (cell) return { kind: 'tray', box: cell.box, slot: cell.slot, locked: game.isBoxLocked(cell.box) };
   if (state.desk.scope === id) return { kind: 'scope' };
+  if (itemById(id).zone === 'tubes') return { kind: 'wall' };
   return { kind: 'desk' };
 }
 
@@ -1884,16 +1805,10 @@ function pieceLocation(id) {
 function sizeViewer() {
   if (!els.screenPlay || els.screenPlay.hidden) return;
 
-  // Machines: the ?layout-authored fx/fy + pixel sizes assume a wide
-  // desktop desk (the light box in particular gets an inline px width/
-  // height from state.layout, which otherwise permanently beats the
-  // CSS media query meant to shrink it on phones — inline style always
-  // wins). Below the light box's own CSS breakpoint, clear the inline
-  // override so CSS's smaller size applies; above it, restore the
-  // authored size. Then clamp every machine's rendered position against
-  // the desk's ACTUAL box so nothing can ever render off-canvas — this
-  // is what used to force the whole phone-width page wider (and get
-  // auto-zoomed out by the browser) when a machine hung off the edge.
+  // The lightbox gets an inline size from layout.json, which otherwise
+  // permanently beats the CSS media query meant to shrink it on phones.
+  // Below the lightbox breakpoint, clear the inline override so CSS can
+  // provide the responsive size.
   if (window.innerWidth <= 760) {
     els.lightboxScreen.style.width = '';
     els.lightboxScreen.style.height = '';
@@ -1909,41 +1824,26 @@ function sizeViewer() {
     els.scopeDisplayWrap.style.height = '';
     return;
   }
-  // The panel is stretched by the play-main flex row to that row's height.
-  // Size the square display off the panel's REAL available inner height
-  // (row height minus the controls row and the panel's own padding/gap/
-  // borders) so the zoom + pan controls always sit INSIDE the panel rather
-  // than spilling out the bottom. Measuring beats a fudged chrome estimate.
+  // The panel is an overlay on wide screens. Keep it inset on the left and
+  // give the microscope feed a wider-than-tall viewing window.
   var mainH = els.scopePanel.parentElement.getBoundingClientRect().height;
-  var controlsEl = els.scopePanel.querySelector('.scope-controls');
-  var controlsH = controlsEl ? controlsEl.getBoundingClientRect().height : 40;
-  var panelChromeV = 10 * 2 + 10 + 2; // padding top+bottom + column gap + borders
-  var availH = mainH - controlsH - panelChromeV;
-  var side = clamp(Math.min(availH, window.innerWidth * 0.42), 180, 680);
-  els.scopeDisplayWrap.style.width = side + 'px';
-  els.scopeDisplayWrap.style.height = side + 'px';
-  els.scopePanel.style.width = (side + 22) + 'px';
+  var panelChromeV = 10 * 2 + 2; // padding top+bottom + border
+  var availH = mainH - panelChromeV;
+  var displayH = clamp(availH, 220, 300);
+  var displayW = clamp(Math.min(window.innerWidth * 0.32, displayH * 1.45), 320, 430);
+  els.scopeDisplayWrap.style.width = displayW + 'px';
+  els.scopeDisplayWrap.style.height = displayH + 'px';
+  els.scopePanel.style.width = (displayW + 22) + 'px';
   renderScopeView();
 }
 
-/** Every desk machine is positioned by fx/fy — a fraction of the desk's
-    width/height, authored in ?layout for a roomy desktop desk (e.g. the
-    printer defaults to fx:0.85). On a narrow phone-width desk that same
-    fraction, combined with the machine's own (often fixed-pixel) size,
-    can push it clean past the desk's right/bottom edge — and since the
-    desk has no overflow:hidden, that doesn't just clip, it makes the
-    whole page wider than the viewport, which mobile browsers "fix" by
-    zooming the entire page out to fit (the real cause of round-10's
-    horizontal-scroll bug). Re-clamp every machine's rendered left/top
-    against the desk's ACTUAL measured box, in pixels, after every
-    layout pass — works for any fx/fy/size combination, including
-    whatever a hand-authored layout.json throws at it. */
+/** Keep the microscope stage inside the tabletop after every layout pass. */
 function clampMachinesToDesk() {
   if (!els.deskSurface) return;
   var deskRect = els.deskSurface.getBoundingClientRect();
   if (!deskRect.width || !deskRect.height) return;
-  var margin = 8;
-  [els.machineScope, els.machineLightbox, els.machinePrinter].forEach(function (el) {
+  var margin = 0;
+  [els.machineScope].forEach(function (el) {
     if (!el || el.hidden) return;
     var r = el.getBoundingClientRect();
     if (!r.width || !r.height) return;
@@ -2109,30 +2009,10 @@ function syncTrays() {
   }
 }
 
-/* ── Machines sync: scope display + printer counter ──────────────── */
-
-function hintsLeft() {
-  if (!hasMachine('printer')) return 0;
-  return state.settings.casual ? Infinity : Math.max(0, HINTS_MAX - state.desk.hintsUsed);
-}
+/* ── Machines ────────────────────────────────────────────────────── */
 
 function syncMachines() {
   if (hasMachine('scope')) renderScopeView();
-  if (!hasMachine('printer')) { els.printerCount.innerHTML = ''; return; }
-  // Printer counter: three blank chips that deplete (∞ in casual mode).
-  els.printerCount.innerHTML = '';
-  if (state.settings.casual) {
-    els.printerCount.textContent = '∞';
-  } else {
-    var left = hintsLeft();
-    for (var i = 0; i < HINTS_MAX; i++) {
-      var chip = document.createElement('span');
-      chip.className = 'label-chip' + (i < HINTS_MAX - left ? ' spent' : '');
-      els.printerCount.appendChild(chip);
-    }
-  }
-  els.printerCount.setAttribute('aria-label',
-    state.settings.casual ? 'Unlimited blank labels' : hintsLeft() + ' blank labels left');
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -2265,17 +2145,9 @@ function renderScopeView() {
 
   var sw = src.width, sh = src.height;
   var cover = Math.max(cw / sw, ch / sh);
-  var scale = cover * OBJECTIVES[state.scopeView.obj];
-  var vw = cw / scale, vh = ch / scale;
-
-  // clamp pan so the view window stays inside the specimen
-  var minX = vw / 2 / sw, maxX = 1 - minX;
-  var minY = vh / 2 / sh, maxY = 1 - minY;
-  state.scopeView.panX = vw >= sw ? 0.5 : clamp(state.scopeView.panX, minX, maxX);
-  state.scopeView.panY = vh >= sh ? 0.5 : clamp(state.scopeView.panY, minY, maxY);
-
-  var sx = state.scopeView.panX * sw - vw / 2;
-  var sy = state.scopeView.panY * sh - vh / 2;
+  var vw = cw / cover, vh = ch / cover;
+  var sx = (sw - vw) / 2;
+  var sy = (sh - vh) / 2;
   ctx.imageSmoothingEnabled = true;
   ctx.drawImage(src, sx, sy, vw, vh, 0, 0, cw, ch);
 
@@ -2285,42 +2157,6 @@ function renderScopeView() {
   vg.addColorStop(1, 'rgba(40, 30, 16, 0.35)');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, cw, ch);
-}
-
-var OBJ_STOPS = ['4', '10', '40'];
-var ZOOM_KNOB_POS = [12, 50, 88]; // % along the track, matching the detents
-
-function objStopIndex() {
-  var i = OBJ_STOPS.indexOf(state.scopeView.obj);
-  return i < 0 ? 0 : i;
-}
-
-function syncZoomControl() {
-  var i = objStopIndex();
-  els.zoomKnob.style.left = ZOOM_KNOB_POS[i] + '%';
-  els.zoomLabel.textContent = OBJ_STOPS[i] + '×';
-  els.zoomTrack.setAttribute('aria-valuenow', String(i));
-  els.zoomTrack.setAttribute('aria-valuetext', OBJ_STOPS[i] + ' times');
-}
-
-function setObjective(obj) {
-  if (!OBJECTIVES[obj] || state.scopeView.obj === obj) return;
-  state.scopeView.obj = obj;
-  syncZoomControl();
-  playSound('dial-tick');
-  renderScopeView();
-  announce('Objective ' + obj + ' times.');
-}
-
-function panScope(dir) {
-  var v = state.scopeView;
-  var step = 0.12 / OBJECTIVES[v.obj]; // finer steps when zoomed in
-  if (dir === 'up') v.panY -= step;
-  if (dir === 'down') v.panY += step;
-  if (dir === 'left') v.panX -= step;
-  if (dir === 'right') v.panX += step;
-  playSound('pan-tick');
-  renderScopeView();
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -2364,6 +2200,7 @@ function scheduleFilmLighting() {
 function syncPieces() {
   var game = state.game;
   var deskRect = rectRel(els.deskSurface);
+  var wallRect = rectRel(els.xrayRail);
   var stageRect = rectRel(els.scopeStage);
 
   game.puzzle.items.forEach(function (item) {
@@ -2384,15 +2221,6 @@ function syncPieces() {
       el.classList.toggle('textured', !!hasType);
     }
 
-    // Printed hint label (idempotent).
-    if (state.desk.labels[id] && !el.querySelector('.hint-label')) {
-      var tag = document.createElement('span');
-      tag.className = 'hint-label';
-      tag.setAttribute('aria-hidden', 'true');
-      tag.textContent = item.label;
-      el.appendChild(tag);
-    }
-
     if (state.drag && state.drag.id === id) return; // never fight an active drag
 
     var loc = pieceLocation(id);
@@ -2407,6 +2235,13 @@ function syncPieces() {
     } else if (loc.kind === 'scope') {
       x = stageRect.cx;
       y = stageRect.cy - 4;
+      rot = 0;
+    } else if (loc.kind === 'wall') {
+      var wp = state.desk.pos[id];
+      x = wallRect.left + wp.fx * wallRect.width;
+      // The rail's top edge is the hanging line. Use the rendered film
+      // height so this remains aligned after narrow-screen scaling too.
+      y = wallRect.top + el.getBoundingClientRect().height / 2;
       rot = 0;
     } else {
       var p = state.desk.pos[id];
@@ -2434,6 +2269,7 @@ function syncPieces() {
 
     el.classList.toggle('in-tray', loc.kind === 'tray');
     el.classList.toggle('on-machine', loc.kind === 'scope');
+    el.classList.toggle('on-wall', loc.kind === 'wall');
     el.classList.toggle('is-locked', frozen);
     el.tabIndex = frozen ? -1 : 0;
 
@@ -2448,48 +2284,16 @@ function syncPieces() {
       }
     } else if (loc.kind === 'scope') {
       where = 'on the microscope stage';
+    } else if (loc.kind === 'wall') {
+      where = 'on the wall X-ray rail';
     } else {
       where = 'on the desk';
     }
-    var labeled = state.desk.labels[id] ? ', labeled' : '';
     var spoken = item.zone === 'rack' ? 'Slide ' + (state.slideLetters[id] || '?') : item.label;
-    el.setAttribute('aria-label', spoken + ', ' + noun + labeled + ', ' + where);
+    el.setAttribute('aria-label', spoken + ', ' + noun + ', ' + where);
   });
 
   scheduleFilmLighting();
-}
-
-/* ── The label printer ───────────────────────────────────────────── */
-
-function printLabel(id) {
-  var item = itemById(id);
-  if (state.desk.labels[id]) {
-    toast('That piece already has a label.');
-    announce(item.label + ' already has a label.');
-    return false;
-  }
-  if (!hasMachine('printer')) {
-    toast('This puzzle has no label printer.');
-    announce('This puzzle has no label printer.');
-    return false;
-  }
-  if (hintsLeft() <= 0) {
-    toast('Out of blank labels.');
-    announce('No blank labels left.');
-    return false;
-  }
-  state.desk.labels[id] = true;
-  state.desk.hintsUsed += 1;
-  // Bring the labeled piece to the front of the desk z-order so its
-  // printed label (which now overflows the piece's own box — see the
-  // .hint-label rule in styles.css) can't be covered by a neighboring
-  // piece that happens to sit on top of it.
-  state.desk.z[id] = ++state.desk.zTop;
-  playSound('print');
-  announce('Label printed: ' + item.label + '.');
-  syncAll();
-  persistGame();
-  return true;
 }
 
 /* ── Dragging (Pointer Events, handlers bound ONCE in init) ─────── */
@@ -2501,7 +2305,8 @@ function forceEndStaleDrag() {
   d.el.classList.remove('is-dragging');
   state.drag = null;
   stopPieceDrag();
-  settleOnDesk(d.id, null, null, null);
+  if (d.isFilm) settleOnWall(d.id, null, d.wallRect);
+  else settleOnDesk(d.id, null, null, null);
   syncAll();
   persistGame();
 }
@@ -2535,6 +2340,8 @@ function onPointerDown(ev) {
   var item = itemById(id);
   var wasStaged = loc.kind === 'tray';
   var wasDocked = loc.kind === 'scope';
+  var wasWall = loc.kind === 'wall';
+  var wallRect = rectRel(els.xrayRail);
   state.desk.z[id] = ++state.desk.zTop;
 
   state.drag = {
@@ -2546,11 +2353,14 @@ function onPointerDown(ev) {
     playRect: playRect,
     wasStaged: wasStaged,
     wasDocked: wasDocked,
+    wasWall: wasWall,
     isFilm: item.zone === 'tubes',
+    wallRect: wallRect,
+    wallY: wallRect.top + r.height / 2,
+    filmHalfW: r.width / 2,
     rects: {
       desk: rectRel(els.deskSurface),
       stage: hasMachine('scope') ? rectRel(els.scopeStage) : NEVER_RECT,
-      printer: hasMachine('printer') ? rectRel(els.printerBody) : NEVER_RECT,
       trays: trayEls.map(function (t) { return rectRel(t); }),
       slots: slotEls.map(function (row) { return row.map(function (s) { return rectRel(s); }); }),
     },
@@ -2568,7 +2378,6 @@ function onPointerDown(ev) {
   if (wasStaged) state.game.unstage(id);
   if (wasDocked) { state.desk.scope = null; renderScopeView(); }
 
-  pieceSound(item.zone, 'pickup');
   startPieceDrag(item.zone, ev.clientX, ev.clientY);
 }
 
@@ -2582,12 +2391,17 @@ function dragPoint(ev) {
 
 function onPointerMove(ev) {
   if (state.layoutDrag) { layoutPointerMove(ev); return; }
-  if (state.zoomDrag) { zoomDragMove(ev); return; }
-  if (state.scopePanning) { scopePanMove(ev); return; }
   var d = state.drag;
   if (!d || ev.pointerId !== d.pointerId) return;
   ev.preventDefault();
   var p = dragPoint(ev);
+  if (d.isFilm) {
+    var overTray = d.rects.trays.some(function (tray) { return pointIn(tray, p.x, p.y); });
+    if (!overTray) {
+      p.y = d.wallY;
+      p.x = clamp(p.x, d.wallRect.left + d.filmHalfW, d.wallRect.right - d.filmHalfW);
+    }
+  }
   d.el.style.left = p.x + 'px';
   d.el.style.top = p.y + 'px';
   updateDropHot(p.x, p.y);
@@ -2601,7 +2415,6 @@ function updateDropHot(x, y) {
   var hot = null;
   if (c.kind === 'slot' || c.kind === 'tray-full') hot = trayEls[c.box];
   else if (c.kind === 'scope') hot = els.scopeStage;
-  else if (c.kind === 'printer') hot = els.machinePrinter;
   if (d.hotEl && d.hotEl !== hot) d.hotEl.classList.remove('drop-hot');
   if (hot && d.hotEl !== hot) hot.classList.add('drop-hot');
   d.hotEl = hot;
@@ -2609,8 +2422,6 @@ function updateDropHot(x, y) {
 
 function onPointerUp(ev) {
   if (state.layoutDrag) { state.layoutDrag = null; return; }
-  if (state.zoomDrag) { zoomDragEnd(); return; }
-  if (state.scopePanning) { scopePanEnd(); return; }
   var d = state.drag;
   if (!d || ev.pointerId !== d.pointerId) return;
   var p = dragPoint(ev);
@@ -2625,15 +2436,14 @@ function onPointerUp(ev) {
 
 function onPointerCancel(ev) {
   if (state.layoutDrag) { state.layoutDrag = null; return; }
-  if (state.zoomDrag) { zoomDragEnd(); return; }
-  if (state.scopePanning) { scopePanEnd(); return; }
   var d = state.drag;
   if (!d || ev.pointerId !== d.pointerId) return;
   if (d.hotEl) d.hotEl.classList.remove('drop-hot');
   d.el.classList.remove('is-dragging');
   state.drag = null;
   stopPieceDrag();
-  settleOnDesk(d.id, null, null, d.rects.desk);
+  if (d.isFilm) settleOnWall(d.id, null, d.wallRect);
+  else settleOnDesk(d.id, null, null, d.rects.desk);
   syncAll();
   persistGame();
 }
@@ -2643,7 +2453,7 @@ function onPointerCancel(ev) {
  * cached target rects, and current occupancy, decide what a drop means.
  * returns: {kind:'slot',box,slot} | {kind:'tray-locked'|'tray-full',box}
  *   | {kind:'scope'|'scope-wrong'|'scope-occupied'}
- *   | {kind:'printer'|'printer-labeled'|'printer-empty'} | {kind:'desk'}
+ *   | {kind:'desk'}
  */
 function classifyDrop(input) {
   for (var b = 0; b < input.rects.trays.length; b++) {
@@ -2665,11 +2475,6 @@ function classifyDrop(input) {
     if (input.scope && input.scope !== input.itemId) return { kind: 'scope-occupied' };
     return { kind: 'scope' };
   }
-  if (pointIn(input.rects.printer, input.x, input.y)) {
-    if (input.labeled) return { kind: 'printer-labeled' };
-    if (input.hintsLeft <= 0) return { kind: 'printer-empty' };
-    return { kind: 'printer' };
-  }
   return { kind: 'desk' };
 }
 
@@ -2685,8 +2490,6 @@ function classifyInput(d, x, y) {
     lockedBoxes: [0, 1, 2, 3].map(function (b) { return game.isBoxLocked(b); }),
     staging: game.staging,
     scope: state.desk.scope,
-    labeled: !!state.desk.labels[d.id],
-    hintsLeft: hintsLeft(),
   };
 }
 
@@ -2716,8 +2519,6 @@ function applyDrop(d, x, y) {
       break;
     case 'scope':
       state.desk.scope = id;
-      state.scopeView = { obj: '4', panX: 0.5, panY: 0.5 }; // fresh slide, fresh view
-      syncZoomControl();
       playSound('dock-glass');
       announce('On the microscope: ' + revealText(item));
       return;
@@ -2727,21 +2528,12 @@ function applyDrop(d, x, y) {
     case 'scope-occupied':
       toast('The stage already holds a slide.');
       break;
-    case 'printer':
-      printLabel(id);
-      settleOnDesk(id, x, y, d.rects.desk);
-      return;
-    case 'printer-labeled':
-      toast('That piece already has a label.');
-      break;
-    case 'printer-empty':
-      toast('Out of blank labels.');
-      break;
     case 'desk':
-      settleOnDesk(id, x, y, d.rects.desk);
+      if (item.zone === 'tubes') settleOnWall(id, x, d.wallRect);
+      else settleOnDesk(id, x, y, d.rects.desk);
       pieceSound(item.zone, 'drop');
       if (d.wasStaged || d.wasDocked) {
-        announce(item.label + ' returned to the desk.');
+        announce(item.zone === 'tubes' ? item.label + ' returned to the X-ray rail.' : item.label + ' returned to the desk.');
       }
       return;
   }
@@ -2752,6 +2544,10 @@ function applyDrop(d, x, y) {
 
 /** Park a piece on the desk. Pass x/y = null to keep its stored spot. */
 function settleOnDesk(id, x, y, deskRect) {
+  if (itemById(id).zone === 'tubes') {
+    settleOnWall(id, x, rectRel(els.xrayRail));
+    return;
+  }
   if (x !== null && y !== null && deskRect) {
     var fx = clamp((x - deskRect.left) / deskRect.width, 0.04, 0.96);
     var fy = clamp((y - deskRect.top) / deskRect.height, 0.06, 0.94);
@@ -2761,79 +2557,15 @@ function settleOnDesk(id, x, y, deskRect) {
   state.desk.rot[id] = item.zone === 'tubes' ? 0 : -7 + Math.random() * 14;
 }
 
-/* ── Viewer input: zoom drag + pan (bound once). The viewer is permanent
-   — no dock, no collapse. ── */
-
-/* Zoom drag: the knob follows the pointer; the objective switches (with a
-   dial tick) whenever the nearest detent changes; release snaps the knob. */
-function zoomTrackDown(ev) {
-  ev.preventDefault();
-  try { els.zoomTrack.setPointerCapture(ev.pointerId); } catch (e) { /* ok */ }
-  els.zoomTrack.classList.add('is-dragging');
-  state.zoomDrag = { pointerId: ev.pointerId };
-  els.zoomTrack.focus({ preventScroll: true });
-  zoomDragMove(ev);
-}
-
-function zoomDragMove(ev) {
-  var zd = state.zoomDrag;
-  if (!zd || ev.pointerId !== zd.pointerId) return;
-  ev.preventDefault();
-  var r = els.zoomTrack.getBoundingClientRect();
-  var f = clamp((ev.clientX - r.left) / r.width, 0, 1) * 100;
-  els.zoomKnob.style.left = f + '%';
-  var best = 0;
-  for (var i = 1; i < ZOOM_KNOB_POS.length; i++) {
-    if (Math.abs(f - ZOOM_KNOB_POS[i]) < Math.abs(f - ZOOM_KNOB_POS[best])) best = i;
-  }
-  setObjective(OBJ_STOPS[best]); // no-op (no tick) while the detent is unchanged
-  els.zoomKnob.style.left = f + '%'; // keep following the finger — snap happens on release
-}
-
-function zoomDragEnd() {
-  if (!state.zoomDrag) return;
-  state.zoomDrag = null;
-  els.zoomTrack.classList.remove('is-dragging');
-  syncZoomControl(); // snap to the detent
-}
-
-function onZoomTrackKey(ev) {
-  var i = objStopIndex();
-  if (ev.key === 'ArrowRight' || ev.key === 'ArrowUp') { ev.preventDefault(); setObjective(OBJ_STOPS[Math.min(OBJ_STOPS.length - 1, i + 1)]); }
-  else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowDown') { ev.preventDefault(); setObjective(OBJ_STOPS[Math.max(0, i - 1)]); }
-  else if (ev.key === 'Home') { ev.preventDefault(); setObjective(OBJ_STOPS[0]); }
-  else if (ev.key === 'End') { ev.preventDefault(); setObjective(OBJ_STOPS[OBJ_STOPS.length - 1]); }
-}
-
-
-function scopeCanvasDown(ev) {
-  if (!state.desk || !state.desk.scope) return;
-  ev.preventDefault();
-  try { els.scopeCanvas.setPointerCapture(ev.pointerId); } catch (e) { /* ok */ }
-  state.scopePanning = { pointerId: ev.pointerId, lastX: ev.clientX, lastY: ev.clientY };
-  els.scopeCanvas.classList.add('is-panning');
-}
-
-function scopePanMove(ev) {
-  var p = state.scopePanning;
-  if (!p || ev.pointerId !== p.pointerId) return;
-  ev.preventDefault();
-  var item = itemById(state.desk.scope);
-  var src = item && scopeSource(item);
-  if (!src) return;
-  var cw = els.scopeDisplayWrap.clientWidth;
-  var cover = Math.max(cw / src.width, els.scopeDisplayWrap.clientHeight / src.height);
-  var scale = cover * OBJECTIVES[state.scopeView.obj];
-  state.scopeView.panX -= (ev.clientX - p.lastX) / (scale * src.width);
-  state.scopeView.panY -= (ev.clientY - p.lastY) / (scale * src.height);
-  p.lastX = ev.clientX;
-  p.lastY = ev.clientY;
-  renderScopeView();
-}
-
-function scopePanEnd() {
-  state.scopePanning = null;
-  els.scopeCanvas.classList.remove('is-panning');
+function settleOnWall(id, x, wallRect) {
+  var rect = wallRect || rectRel(els.xrayRail);
+  var p = state.desk.pos[id] || { fx: 0.2, fy: 0.5 };
+  var nextX = x === null || x === undefined ? rect.left + p.fx * rect.width : x;
+  state.desk.pos[id] = {
+    fx: clamp((nextX - rect.left) / rect.width, 0.08, 0.92),
+    fy: 0.5,
+  };
+  state.desk.rot[id] = 0;
 }
 
 /* ── Keyboard controls (bound ONCE on document) ─────────────────── */
@@ -2866,18 +2598,21 @@ function onKeyDown(ev) {
   } else if (ev.key === 'v' || ev.key === 'V') {
     ev.preventDefault();
     viewOnMachine(id, item);
-  } else if (ev.key === 'l' || ev.key === 'L') {
-    ev.preventDefault();
-    printLabel(id);
-    state.pieceEls[id].focus({ preventScroll: true });
   } else if (ev.key.indexOf('Arrow') === 0) {
-    if (loc.kind !== 'desk') return;
     ev.preventDefault();
     var p = state.desk.pos[id];
-    if (ev.key === 'ArrowLeft') p.fx = clamp(p.fx - 0.025, 0.04, 0.96);
-    if (ev.key === 'ArrowRight') p.fx = clamp(p.fx + 0.025, 0.04, 0.96);
-    if (ev.key === 'ArrowUp') p.fy = clamp(p.fy - 0.035, 0.06, 0.94);
-    if (ev.key === 'ArrowDown') p.fy = clamp(p.fy + 0.035, 0.06, 0.94);
+    if (loc.kind === 'wall') {
+      if (ev.key === 'ArrowLeft') p.fx = clamp(p.fx - 0.025, 0.08, 0.92);
+      if (ev.key === 'ArrowRight') p.fx = clamp(p.fx + 0.025, 0.08, 0.92);
+      if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') return;
+    } else if (loc.kind === 'desk') {
+      if (ev.key === 'ArrowLeft') p.fx = clamp(p.fx - 0.025, 0.04, 0.96);
+      if (ev.key === 'ArrowRight') p.fx = clamp(p.fx + 0.025, 0.04, 0.96);
+      if (ev.key === 'ArrowUp') p.fy = clamp(p.fy - 0.035, 0.06, 0.94);
+      if (ev.key === 'ArrowDown') p.fy = clamp(p.fy + 0.035, 0.06, 0.94);
+    } else {
+      return;
+    }
     syncPieces();
     persistGame();
   }
@@ -2917,6 +2652,13 @@ function returnToDesk(id) {
   } else if (loc.kind === 'scope') {
     state.desk.scope = null;
     renderScopeView();
+  } else if (loc.kind === 'wall') {
+    settleOnWall(id, null, rectRel(els.xrayRail));
+    announce(item.label + ' is on the X-ray rail.');
+    state.pieceEls[id].focus({ preventScroll: true });
+    syncAll();
+    persistGame();
+    return;
   } else {
     return;
   }
@@ -2933,19 +2675,14 @@ function viewOnMachine(id, item) {
   if (item.zone === 'rack') {
     if (state.game.isStaged(id)) state.game.unstage(id);
     state.desk.scope = id; // replaces any current slide (it returns to its desk spot)
-    state.scopeView = { obj: '4', panX: 0.5, panY: 0.5 };
-    syncZoomControl();
     playSound('dock-glass');
     announce('On the microscope: ' + revealText(item));
   } else if (item.zone === 'tubes') {
-    // Films don't dock — V slides the film onto the light box glass.
+    // Films stay on the wall rail; V slides the film to the lightbox center.
     if (state.game.isStaged(id)) state.game.unstage(id);
     var lr = rectRel(els.lightboxScreen);
-    var dr = rectRel(els.deskSurface);
-    state.desk.pos[id] = {
-      fx: clamp((lr.cx - dr.left) / dr.width, 0.04, 0.96),
-      fy: clamp((lr.cy - dr.top) / dr.height, 0.06, 0.94),
-    };
+    var wr = rectRel(els.xrayRail);
+    state.desk.pos[id] = { fx: clamp((lr.cx - wr.left) / wr.width, 0.08, 0.92), fy: 0.5 };
     state.desk.rot[id] = 0;
     state.desk.z[id] = ++state.desk.zTop;
     playSound('film-rustle');
@@ -3169,8 +2906,6 @@ function showResultsForPuzzle(puzzle, opts) {
   opts = opts || {};
   els.resultsTitle.textContent = opts.title || 'Solved!';
   els.resultsSub.textContent = opts.sub || '';
-  els.resultsHints.textContent = 'Hints used: ' + (opts.hintsUsed || 0);
-
   els.resultsGroups.innerHTML = '';
   var solvedGroupIds = opts.solvedGroupIds || new Set();
   var ordered = puzzle.groups.slice().sort(function (a, b) { return a.tier - b.tier; });
@@ -3191,7 +2926,6 @@ function showResults() {
     sub: won
       ? 'Solved with ' + game.mistakes + ' mistake' + (game.mistakes === 1 ? '' : 's') + '.'
       : 'Here is how the groups fit together.',
-    hintsUsed: state.desk.hintsUsed,
     solvedGroupIds: solvedGroupIds,
   });
 }
@@ -3206,7 +2940,6 @@ function showPreviewResultsFromDraft() {
   showResultsForPuzzle(puzzle, {
     title: 'Solved!',
     sub: 'Solved with 0 mistakes.',
-    hintsUsed: 0,
     solvedGroupIds: new Set(puzzle.groups.map(function (g) { return g.id; })),
   });
 }
@@ -3215,10 +2948,9 @@ function buildShareText() {
   var game = state.game;
   var puzzle = game.puzzle;
   var lines = [];
-  lines.push('Desk Puzzle: Paper Edition');
+  lines.push('Starry Sky Society Puzzle');
   lines.push(puzzle.title + (puzzle.date ? ', ' + puzzle.date : ''));
   lines.push('Mistakes: ' + game.mistakes + (state.settings.casual ? ' (casual)' : '/' + MAX_MISTAKES));
-  if (state.desk.hintsUsed > 0) lines.push('Hints: ' + state.desk.hintsUsed);
   lines.push('');
   game.attempts.forEach(function (attempt) {
     var row = attempt.itemIds.map(function (id) {
@@ -3296,10 +3028,10 @@ function onPlayAgain() {
 function onResetPuzzle() {
   var game = state.game;
   if (!game) return;
-  var hasProgress = game.mistakes > 0 || state.desk.hintsUsed > 0
+  var hasProgress = game.mistakes > 0
     || game.puzzle.items.some(function (i) { return pieceLocation(i.id).kind === 'tray'; });
   if (game.phase === 'playing' && hasProgress
-    && !window.confirm('Reset this puzzle? Staged pieces, mistakes, and hints used will all be cleared.')) {
+    && !window.confirm('Reset this puzzle? Staged pieces and mistakes will be cleared.')) {
     return;
   }
   var puzzle = game.puzzle;
@@ -3317,8 +3049,8 @@ function tryDeepLink() {
   loadRegistry().then(function (registry) {
     var entry = (registry.puzzles || []).find(function (p) { return p.id === puzzleId; });
     if (!entry) {
-      if (puzzleId === SAMPLE_PUZZLE.id) {
-        openPuzzle(SAMPLE_PUZZLE);
+      if (puzzleId === CURRENT_PUZZLE.id) {
+        openPuzzle(CURRENT_PUZZLE);
         return;
       }
       showErrorScreen('No puzzle found for id "' + puzzleId + '".');
@@ -3336,7 +3068,7 @@ function tryDeepLink() {
 
 /* Live sound overrides: a `sound` block persisted with the layout. */
 var EDITABLE_CUES = ['pickup-paper', 'drop-paper', 'pickup-glass', 'drop-glass', 'dock-glass',
-  'film-rustle', 'dial-tick', 'pan-tick', 'print', 'shuffle', 'correct', 'wrong', 'wrong-crack',
+  'film-rustle', 'dial-tick', 'pan-tick', 'shuffle', 'correct', 'wrong', 'wrong-crack',
   'one-away', 'win', 'lose'];
 
 /* Cue keys stay internal ids (also the manifest.json override names) —
@@ -3399,7 +3131,7 @@ function resetSoundLayer() {
 
 function layoutPointerDown(ev) {
   var machine = ev.target.closest ? ev.target.closest('.machine') : null;
-  if (!machine) return false;
+  if (!machine || machine !== els.machineScope) return false;
   ev.preventDefault();
   var deskRect = els.deskSurface.getBoundingClientRect();
   state.layoutDrag = { el: machine, deskRect: deskRect };
@@ -3412,7 +3144,7 @@ function layoutPointerMove(ev) {
   ev.preventDefault();
   var fx = clamp((ev.clientX - ld.deskRect.left) / ld.deskRect.width, 0, 0.97);
   var fy = clamp((ev.clientY - ld.deskRect.top) / ld.deskRect.height, 0, 0.95);
-  var key = ld.el === els.machineScope ? 'scope' : ld.el === els.machineLightbox ? 'lightbox' : 'printer';
+  var key = 'scope';
   state.layout[key].fx = fx;
   state.layout[key].fy = fy;
   applyLayout();
@@ -3491,14 +3223,14 @@ function buildLayoutPanel() {
   h.textContent = 'Layout mode';
   var note = document.createElement('p');
   note.className = 'lp-note';
-  note.textContent = 'Drag the machines on the desk directly. Everything saves as you go; use the side tab to get the panel out of the way.';
+  note.textContent = 'The wall lightbox is fixed. Drag the microscope stage on the desk directly; everything saves as you go.';
   panel.appendChild(h);
   panel.appendChild(note);
 
   // ── Desk & machines ──
-  var secDesk = devSection(panel, 'Light box & scatter', true);
+  var secDesk = devSection(panel, 'Wall lightbox & scatter', true);
   devSlider(secDesk, 'Light box width (px)', 160, 380, 2, function () { return L.lightbox.w; }, function (v) { L.lightbox.w = v; });
-  devSlider(secDesk, 'Light box height (px)', 90, 240, 2, function () { return L.lightbox.h; }, function (v) { L.lightbox.h = v; });
+  devSlider(secDesk, 'Light box height (px)', 90, 320, 2, function () { return L.lightbox.h; }, function (v) { L.lightbox.h = v; });
   devSlider(secDesk, 'Scatter band top', 0.15, 0.6, 0.01, function () { return L.scatter.lo; }, function (v) { L.scatter.lo = Math.min(v, L.scatter.hi - 0.05); });
   devSlider(secDesk, 'Scatter band bottom', 0.5, 0.98, 0.01, function () { return L.scatter.hi; }, function (v) { L.scatter.hi = Math.max(v, L.scatter.lo + 0.05); });
 
@@ -3634,7 +3366,7 @@ function loadEditorDraft() {
     var raw = localStorage.getItem(EDITOR_DRAFT_KEY);
     if (raw) return normalizeDraft(JSON.parse(raw));
   } catch (e) { /* fall through */ }
-  return normalizeDraft(JSON.parse(JSON.stringify(SAMPLE_PUZZLE)));
+  return normalizeDraft(JSON.parse(JSON.stringify(CURRENT_PUZZLE)));
 }
 
 function saveEditorDraft() {
@@ -3701,7 +3433,7 @@ function normalizeDraft(d) {
     moment ago) prompts a confirm before being overwritten. */
 function draftIsPristine(d) {
   try {
-    var fresh = normalizeDraft(JSON.parse(JSON.stringify(SAMPLE_PUZZLE)));
+    var fresh = normalizeDraft(JSON.parse(JSON.stringify(CURRENT_PUZZLE)));
     return JSON.stringify(fresh) === JSON.stringify(d);
   } catch (e) { return false; }
 }
@@ -4003,11 +3735,11 @@ function renderGroupCard(g) {
   row.appendChild(tier);
   card.appendChild(row);
 
-  var nameHint = document.createElement('p');
-  nameHint.className = 'field-hint';
-  nameHint.dataset.hintFor = 'gname-' + g;
-  nameHint.hidden = true;
-  card.appendChild(nameHint);
+  var nameFeedback = document.createElement('p');
+  nameFeedback.className = 'field-feedback';
+  nameFeedback.dataset.feedbackFor = 'gname-' + g;
+  nameFeedback.hidden = true;
+  card.appendChild(nameFeedback);
 
   var expl = document.createElement('input');
   expl.type = 'text';
@@ -4216,11 +3948,11 @@ function renderItemEditor(g, m) {
   row.appendChild(color);
   box.appendChild(row);
 
-  var hint = document.createElement('p');
-  hint.className = 'field-hint';
-  hint.dataset.hintFor = 'label-' + g + '-' + m;
-  hint.hidden = true;
-  box.appendChild(hint);
+  var feedback = document.createElement('p');
+  feedback.className = 'field-feedback';
+  feedback.dataset.feedbackFor = 'label-' + g + '-' + m;
+  feedback.hidden = true;
+  box.appendChild(feedback);
 
   var chips = document.createElement('div');
   chips.className = 'kind-chips';
@@ -4288,7 +4020,7 @@ function renderItemEditor(g, m) {
   advRow.appendChild(infoTitle);
   var infoText = document.createElement('input');
   infoText.type = 'text';
-  infoText.placeholder = 'spoken hint text';
+  infoText.placeholder = 'spoken clue text';
   infoText.dataset.g = String(g);
   infoText.dataset.m = String(m);
   infoText.dataset.ifield = 'infoText';
@@ -4357,7 +4089,7 @@ function renderMachineToggles() {
   var wrap = document.getElementById('machine-toggles');
   if (!wrap) return;
   wrap.innerHTML = '';
-  var NAMES = { scope: 'Microscope', lightbox: 'Light box', printer: 'Label printer' };
+  var NAMES = { scope: 'Microscope', lightbox: 'Wall lightbox' };
   var WARNS = {
     scope: 'This puzzle has slides; they need the microscope.',
     lightbox: 'This puzzle has X-ray films; they need the light box.',
@@ -4365,7 +4097,6 @@ function renderMachineToggles() {
   var needs = {
     scope: d.items.some(function (i) { return i.zone === 'rack'; }),
     lightbox: d.items.some(function (i) { return i.zone === 'tubes'; }),
-    printer: false,
   };
   ALL_MACHINES.forEach(function (mch) {
     var div = document.createElement('div');
@@ -4441,10 +4172,10 @@ function buildCropModal() {
   controls.appendChild(zoomLabel);
   card.appendChild(controls);
 
-  var hint = document.createElement('p');
-  hint.className = 'crop-hint';
-  hint.textContent = 'Drag to reposition. Scroll, pinch, or use the slider to zoom.';
-  card.appendChild(hint);
+  var instructions = document.createElement('p');
+  instructions.className = 'crop-instructions';
+  instructions.textContent = 'Drag to reposition. Scroll, pinch, or use the slider to zoom.';
+  card.appendChild(instructions);
 
   var actions = document.createElement('div');
   actions.className = 'overlay-actions';
@@ -4813,7 +4544,7 @@ function onEditorChange(ev) {
   }
 }
 
-/* ── Validation + status chip + inline hints ─────────────────────── */
+/* ── Validation + status chip + inline feedback ──────────────────── */
 
 function refreshEditorStatus() {
   var d = state.editorDraft;
@@ -4822,21 +4553,21 @@ function refreshEditorStatus() {
 
   var issues = caseProblems(d).length;
   for (var g = 0; g < 4; g++) {
-    var nameHint = document.querySelector('[data-hint-for="gname-' + g + '"]');
+    var nameFeedback = document.querySelector('[data-feedback-for="gname-' + g + '"]');
     var emptyName = !d.groups[g].name;
     if (emptyName) issues++;
-    if (nameHint) {
-      nameHint.hidden = !emptyName;
-      nameHint.textContent = 'Give this group a name.';
+    if (nameFeedback) {
+      nameFeedback.hidden = !emptyName;
+      nameFeedback.textContent = 'Give this group a name.';
     }
     for (var m = 0; m < 4; m++) {
       var item = draftItem(g, m);
-      var hint = document.querySelector('[data-hint-for="label-' + g + '-' + m + '"]');
+      var feedback = document.querySelector('[data-feedback-for="label-' + g + '-' + m + '"]');
       var empty = !item.label;
       if (empty) issues++;
-      if (hint) {
-        hint.hidden = !empty;
-        hint.textContent = 'Give this piece a label.';
+      if (feedback) {
+        feedback.hidden = !empty;
+        feedback.textContent = 'Give this piece a label.';
       }
     }
   }
@@ -4882,7 +4613,7 @@ function flushPreviewQueue() {
 function bootPreviewDraft() {
   var draft = null;
   try { draft = JSON.parse(localStorage.getItem(SAVE_PREFIX + 'preview-draft')); } catch (e) { /* ignore */ }
-  openPuzzle(draft && typeof draft === 'object' ? draft : JSON.parse(JSON.stringify(SAMPLE_PUZZLE)));
+  openPuzzle(draft && typeof draft === 'object' ? draft : JSON.parse(JSON.stringify(CURRENT_PUZZLE)));
 }
 
 /* ── Editor UI persistence (drawer width) ────────────────────────── */
@@ -4976,8 +4707,6 @@ async function init() {
 
   // Menu + settings overlay.
   els.btnPlayToday.addEventListener('click', playToday);
-  els.archiveList.addEventListener('click', onArchiveClick);
-  els.btnSettingsMenu.addEventListener('click', function () { showOverlay(els.overlaySettings); });
   els.btnSettings.addEventListener('click', function () { showOverlay(els.overlaySettings); });
   els.btnCloseSettings.addEventListener('click', function () { hideOverlay(els.overlaySettings); });
   document.querySelectorAll('input[name="theme"]').forEach(function (r) {
@@ -5011,15 +4740,6 @@ async function init() {
 
   // Trays (lock buttons via delegation).
   els.trays.addEventListener('click', onTraysClick);
-
-  // Scope dock controls (static elements — direct binds, once).
-  els.scopePanel.addEventListener('click', function (ev) {
-    var pan = ev.target.closest ? ev.target.closest('.pan-btn') : null;
-    if (pan) panScope(pan.dataset.pan);
-  });
-  els.scopeCanvas.addEventListener('pointerdown', scopeCanvasDown);
-  els.zoomTrack.addEventListener('pointerdown', zoomTrackDown);
-  els.zoomTrack.addEventListener('keydown', onZoomTrackKey);
 
   // Results.
   els.btnShare.addEventListener('click', onShare);

@@ -1,11 +1,7 @@
-> **Desk Puzzle — a 2D pathology desk sorting game.**
-> Play: https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/
-> Built with Claude Code.
+# Starry Sky Society Puzzle
 
-# Desk Puzzle — Paper Edition
-
-A calm grouping puzzle played on a desk seen from above: sixteen physical
-clues, four hidden groups, no timer, no pressure.
+A calm pathology grouping puzzle played on a desk seen from above: sixteen
+physical clues, four hidden groups, no timer, no pressure.
 
 ## The game
 
@@ -26,45 +22,38 @@ Each item's `zone` field decides what kind of physical piece it becomes:
 | `photo`     | photograph       | yes — its image (or captioned print) is the clue |
 | `rx`        | prescription     | yes, on its face                             |
 | `rack`      | microscope slide | no — put it on the **microscope stage** (each slide carries an anonymous letter A, B, C…) |
-| `tubes`     | X-ray film       | no — lay it over the **light box**           |
+| `tubes`     | X-ray film       | no — slide it along the wall rail and over the **light box** |
 
 (The retired index-card kind, `deskCards`, still loads from old files and is
 shown as a paper sheet.)
 
-**Microscope.** The stage sits on the desk; the viewer is a permanent
-square panel on the left of the play screen, sized to match the desk.
-Drag the zoom knob between the 4×, 10×, and 40× detents (it clicks at
-each stop; arrow keys step too) and pan with the buttons or by dragging
-inside the view. Slides with a `scope.image` show that image; slides
+**Microscope.** The stage sits on the desk; the viewer is a permanent,
+static wide panel on the left of the play screen, sized to match the desk.
+Slides with a `scope.image` show that image; slides
 without one show their label as an etched-glass specimen, so text-only
 puzzles stay solvable.
 
 **Settings.** The gear (menu or play header) opens Settings: theme
 (Light / Dark / System, persisted; the dark theme is a warm walnut room
-under the same plum accent), sound, Casual mode, and a developer toggle
-for the experimental drag-audio bed. A quick Mute lives in the play
-header. The default drag sound is a gated scrape: silent at rest and
-during small adjustments, sparse ticks on slow drags, a fused slide on
-fast ones (all tunable in the `?layout` Sound section).
+under the same plum accent), sound, and Casual mode. Moving pieces is silent;
+sound remains optional for the rest of the game feedback.
 
-**Light box.** Always lit, and films never attach to it — light simply
-shines through whatever part of a film physically lies on the glass. Half
-on, half lit. A film's lit content is its `info.image` if the puzzle has
-one, otherwise its label in glowing bone-white lettering.
-
-**Label printer** (the hint system). Drop any piece on the printer (or focus
-it and press L) and it prints the piece's name on a small stuck-on label —
-permanent for the rest of that puzzle. Three blank labels per puzzle,
-unlimited in Casual mode. The results screen counts the hints you used.
+**Wall lightbox.** The lightbox is fixed above the desk, with a horizontal
+X-ray rail running across the wall to its left. Films slide along the rail;
+the light shines through whatever part of a film physically overlaps the
+glass, so partial overlap gives a partial reveal. A film's lit content is its
+`info.image` if the puzzle has one, otherwise its label in glowing bone-white
+lettering.
 
 ## Puzzle format
 
-Plain JSON in `puzzles/` (see `sample-001.json`): 16 `items` in 4 `groups`
+Plain JSON in `puzzles/` (see `starry-sky-society-2026-08-21.json`): 16 `items` in 4 `groups`
 of 4, each item typed by its piece kind. A per-puzzle `machines` list
 (e.g. `"machines": ["scope", "lightbox"]`) declares which desk machines the
 puzzle uses — only those render, and validation refuses combinations that
 would leave clues unreadable (slides with no microscope, films with no
-light box). Older files without a `machines` field get all three machines;
+light box). Older files without a `machines` field get the microscope and
+wall lightbox;
 legacy piece-kind ids (`corkboard`/`folder`/`rack`/`tubes`/`deskCards`) are
 still read but never shown — the UI always says sticky note, paper sheet,
 index card, slide, X-ray film.
@@ -84,13 +73,12 @@ Every piece is focusable:
 - **1–4** sends the focused piece to that tray (first empty slot)
 - **0** or **Backspace** returns it to the desk
 - **V** puts a slide on the microscope, or slides a film onto the light box
-- **L** prints a name label on it (spends a hint)
-- **Arrow keys** nudge a desk piece around
+- **Arrow keys** nudge a desk piece; left/right moves an X-ray along its rail
 
 ## How to run
 
 No build step — plain HTML/CSS/JS. Either double-click `index.html` (an
-embedded copy of the sample puzzle covers `file://` fetch limits), or serve
+embedded copy of the current puzzle covers `file://` fetch limits), or serve
 it:
 
 ```
@@ -110,6 +98,14 @@ as layout JSON.
 chips, machine toggles (with inline warnings when a piece kind needs a
 machine you turned off), field-level validation as you type, draft
 autosave, and export of both the puzzle JSON and an updated `index.json`.
+Two ways to pull an existing puzzle back in to edit and re-export it:
+**Load puzzle file** (any `.json` from disk) and **Load from library** (a
+dropdown of everything currently in `puzzles/index.json` — pick a title and
+it's fetched and loaded). Both run the file through the same structural
+check the status chip uses, so a malformed or incomplete puzzle is rejected
+with a toast naming the problem and the draft you were working on is left
+untouched. Loading over a draft you've actually edited asks for
+confirmation first; the untouched starter puzzle gets replaced silently.
 Each group also has a collapsible **Article** section: an ordered list of
 heading/paragraph/image blocks (reorder or remove any block, add more with
 the buttons underneath) that becomes the group's full write-up on the
@@ -160,8 +156,7 @@ join the per-piece variety pool when present. Piece variety otherwise comes
 from a seeded flip/hue-brightness jitter per piece (the corner-fold and tape
 overlay decorations were removed in round 9 — they read as clutter, not
 realism; `assets/textures/overlays/` is retired, see `CHATGPT_PROMPTS.md`).
-When textures are on, clue labels render in a handwritten style over them;
-printed hint labels stay machine-set so hints never read like clues.
+When textures are on, clue labels render in a handwritten style over them.
 `CHATGPT_PROMPTS.md` in that folder has copy-paste-ready generation
 prompts (mostly retired now, kept for reference).
 
@@ -169,7 +164,7 @@ prompts (mostly retired now, kept for reference).
 files needed). To replace one, list it in `assets/sounds/manifest.json`
 (`{"present": ["correct.mp3", …]}`) and drop the file in. Cue names:
 `pickup-paper, drop-paper, pickup-glass, drop-glass, dock-glass,
-film-rustle, dial-tick, pan-tick, print, shuffle, correct, wrong, one-away,
+film-rustle, dial-tick, pan-tick, shuffle, correct, wrong, one-away,
 win, lose`.
 
 ## How to add a puzzle
@@ -181,14 +176,35 @@ win, lose`.
    point `current` at it — or use the editor's exported `index.json`.
 4. Reload. Invalid puzzles fail loudly with a readable error screen.
 
+To edit a puzzle that's already live instead of starting from scratch, open
+`?editor` and use **Load from library** (pick it by title) or **Load puzzle
+file** (any exported `.json`) — see the `?editor` section above — then
+export again over the old file.
+
 ## Persistence
 
 Progress saves to `localStorage` under `dp2d:save3:<puzzle-id>` after every
-move — tray contents, locked groups, mistakes, attempt history, printed
-labels and hints used, plus the exact desk: every piece's position,
+move — tray contents, locked groups, mistakes, attempt history, plus the
+exact desk and wall rail: every piece's position,
 rotation, and stacking order, and what's on the microscope stage. Reloading
 restores the desk exactly; a finished puzzle reopens on its results. Saves
-are healed on load (staging, solved groups, machines, and hint counts are
-cross-checked), so a stale or hand-edited save can't restore an impossible
+are healed on load (staging, solved groups, and machines are cross-checked),
+so a stale or hand-edited save can't restore an impossible
 game. Settings (Casual mode, sound, display size) live under
 `dp2d:settings`; dev layout overrides under `dp2d:layout`.
+
+## Publishing builds
+
+The public build lives in a separate sibling repo (never the AnkiCards
+workspace): `../../../Desk-Puzzle-2D-site/` → GitHub repo `desk-puzzle-2d`
+(public, Pages from `main` root) → https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/
+
+To republish after changes here:
+
+1. Copy the changed files across (everything except `.gitignore`,
+   `assets/textures/originals/`, and `.DS_Store` — the site repo tracks the
+   texture/sound binaries the game needs, only `originals/` stays private):
+   `rsync -av --exclude .git --exclude .gitignore --exclude 'assets/textures/originals' --exclude '.DS_Store' ./ ../../../Desk-Puzzle-2D-site/`
+   (keep the site README's intro line at the top if README.md changed).
+2. In `Desk-Puzzle-2D-site/`: `git add -A && git commit -m "build: <what changed>" && git push`.
+3. Pages redeploys automatically from `main` in about a minute.

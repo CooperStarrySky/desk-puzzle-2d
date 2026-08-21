@@ -1,17 +1,11 @@
 {
-  "current": "path-connections-01",
+  "current": "starry-sky-society-2026-08-21",
   "puzzles": [
     {
-      "id": "path-connections-01",
-      "title": "Four Rooms, Four Diagnoses",
-      "date": "2026-07-19",
-      "file": "path-connections-01.json"
-    },
-    {
-      "id": "sample-001",
-      "title": "The Daily Desk",
-      "date": "2026-07-07",
-      "file": "sample-001.json"
+      "id": "starry-sky-society-2026-08-21",
+      "title": "Starry Sky Society Puzzle",
+      "date": "2026-08-21",
+      "file": "starry-sky-society-2026-08-21.json"
     }
   ]
 }

@@ -1,1 +1,6 @@
-.DS_Store
+# Generated texture binaries — kept out of git per workspace rule (big binaries never enter git).
+# manifest.json and CHATGPT_PROMPTS.md stay tracked.
+assets/textures/*.png
+assets/textures/*.jpg
+assets/textures/originals/
+assets/textures/overlays/

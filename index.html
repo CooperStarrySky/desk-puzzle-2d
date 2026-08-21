@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Desk Puzzle: Paper Edition — a cozy pathology sorting game</title>
-  <meta name="description" content="A cozy pathology sorting puzzle: find the four hidden diagnoses on a doctor's desk. Sixteen clues, no timer, no pressure." />
+  <title>Starry Sky Society Puzzle</title>
+  <meta name="description" content="Starry Sky Society Puzzle: sort sixteen pathology clues into four hidden groups. No timer, no pressure." />
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 
-  <meta property="og:title" content="Desk Puzzle: Paper Edition" />
-  <meta property="og:description" content="A cozy pathology sorting puzzle — find the four hidden diagnoses on a doctor's desk." />
+  <meta property="og:title" content="Starry Sky Society Puzzle" />
+  <meta property="og:description" content="Sort sixteen pathology clues into four hidden groups." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/og-image.png" />
   <meta property="og:url" content="https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Desk Puzzle: Paper Edition" />
-  <meta name="twitter:description" content="A cozy pathology sorting puzzle — find the four hidden diagnoses on a doctor's desk." />
+  <meta name="twitter:title" content="Starry Sky Society Puzzle" />
+  <meta name="twitter:description" content="Sort sixteen pathology clues into four hidden groups." />
   <meta name="twitter:image" content="https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/og-image.png" />
 
   <link rel="stylesheet" href="styles.css?v=14" />
@@ -25,59 +25,18 @@
 <body>
   <div id="app">
     <div id="live-region" class="sr-only" aria-live="polite" role="status"></div>
-    <p id="piece-hint" class="sr-only">Drag with a pointer, or use keys: 1 to 4 sends this piece to a tray, 0 or Backspace returns it to the desk, V views a slide or film on its machine, L prints a name label, arrow keys nudge it.</p>
+    <p id="piece-instructions" class="sr-only">Drag with a pointer, or use keys: 1 to 4 sends this piece to a tray, 0 or Backspace returns it to the desk, V views a slide or film on its machine, and arrow keys nudge it.</p>
     <div id="toast" class="toast" hidden></div>
 
     <!-- ═══════════════════ MENU SCREEN ═══════════════════ -->
     <section id="screen-menu" class="screen screen-menu">
       <header class="menu-header">
-        <h1 class="game-title">Desk&nbsp;Puzzle <span class="game-title-sub">Paper Edition</span></h1>
-        <p class="game-tagline">Sixteen clues strewn across a desk. Four hidden groups. Take your time.</p>
+        <h1 class="game-title">Starry&nbsp;Sky&nbsp;Society <span class="game-title-sub">Puzzle</span></h1>
+        <p class="game-tagline">Sixteen pathology clues strewn across a desk. Four hidden groups. Take your time.</p>
       </header>
 
-      <div class="menu-panel">
-        <button id="btn-play-today" class="btn btn-primary btn-play-today" type="button">Play today's puzzle</button>
-
-        <section class="menu-section archive-section">
-          <h2>Archive</h2>
-          <ul id="archive-list" class="archive-list"></ul>
-        </section>
-
-        <section class="menu-section how-to-play">
-          <h2>How to play</h2>
-          <ol class="howto-grid">
-            <li class="howto-card">
-              <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="15" rx="1.6"/><rect x="8" y="3" width="13" height="15" rx="1.6"/><line x1="11" y1="8" x2="18" y2="8"/><line x1="11" y1="11.5" x2="18" y2="11.5"/><line x1="11" y1="15" x2="16" y2="15"/></svg></span>
-              <span class="howto-text"><strong>Read the clues.</strong> Drag pieces around the desk to spread out the pile and read what each one says.</span>
-            </li>
-            <li class="howto-card">
-              <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></span>
-              <span class="howto-text"><strong>Some clues hide.</strong> Put a slide on the microscope stage, or lay a film across the light box, to see what's on it.</span>
-            </li>
-            <li class="howto-card">
-              <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-5.5L21 9"/><rect x="3" y="9" width="18" height="11" rx="2"/><path d="M8.5 14l2.7 2.7L16 12"/></svg></span>
-              <span class="howto-text"><strong>Lock in a group of four.</strong> Drag four pieces that belong together into a tray, then press Lock In.</span>
-            </li>
-            <li class="howto-card">
-              <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.5" cy="12" r="2.1" fill="currentColor" stroke="none"/><circle cx="10" cy="12" r="2.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="12" r="2.1" fill="currentColor" stroke="none"/><circle cx="21" cy="12" r="2.1"/><path d="M19.7 10.7l2.6 2.6M22.3 10.7l-2.6 2.6"/></svg></span>
-              <span class="howto-text"><strong>Four mistakes.</strong> A wrong guess costs one of four tries, unlimited in Casual mode. "One away!" means three of the four belonged together.</span>
-            </li>
-            <li class="howto-card">
-              <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 3h6.5a2 2 0 0 1 2 2v6.5a2 2 0 0 1-.6 1.4l-9 9a2 2 0 0 1-2.8 0l-6.5-6.5a2 2 0 0 1 0-2.8l9-9a2 2 0 0 1 1.4-.6z"/><circle cx="17" cy="8" r="1.3" fill="currentColor" stroke="none"/></svg></span>
-              <span class="howto-text"><strong>Stuck? Print a label.</strong> Drop a piece on the label printer and it prints the piece's name. Three per puzzle, unlimited in Casual mode.</span>
-            </li>
-            <li class="howto-card">
-              <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-1.05 5.6"/><path d="M20 5.5V11h-5.5"/></svg></span>
-              <span class="howto-text"><strong>Scatter or reset.</strong> Scatter re-spreads the pile if it's gotten cluttered. Reset clears your progress and starts over.</span>
-            </li>
-          </ol>
-        </section>
-
-        <section class="menu-section menu-settings">
-          <h2>Settings</h2>
-          <p class="menu-settings-note">Theme, sound, and Casual mode (unlimited mistakes and labels) live in the settings panel.</p>
-          <button id="btn-settings-menu" class="btn" type="button">Open settings</button>
-        </section>
+      <div class="menu-panel menu-panel-simple">
+        <button id="btn-play-today" class="btn btn-primary btn-play-today" type="button">Play puzzle</button>
       </div>
     </section>
 
@@ -104,28 +63,20 @@
             <span id="scope-slide-title" class="scope-slide-title"></span>
             <canvas id="scope-canvas" class="scope-canvas" aria-label="Microscope view"></canvas>
           </div>
-          <div class="scope-controls">
-            <div class="zoom-control">
-              <span class="zoom-current" id="zoom-label" aria-hidden="true">4×</span>
-              <div class="zoom-track" id="zoom-track" role="slider" tabindex="0"
-                   aria-label="Objective magnification" aria-valuemin="0" aria-valuemax="2"
-                   aria-valuenow="0" aria-valuetext="4 times">
-                <span class="zoom-detent" data-stop="0" aria-hidden="true">4×</span>
-                <span class="zoom-detent" data-stop="1" aria-hidden="true">10×</span>
-                <span class="zoom-detent" data-stop="2" aria-hidden="true">40×</span>
-                <span class="zoom-knob" id="zoom-knob" aria-hidden="true"></span>
-              </div>
-            </div>
-            <div class="scope-pan" role="group" aria-label="Pan the view">
-              <button type="button" class="pan-btn pan-up" data-pan="up" aria-label="Pan up">▲</button>
-              <button type="button" class="pan-btn pan-left" data-pan="left" aria-label="Pan left">◀</button>
-              <button type="button" class="pan-btn pan-right" data-pan="right" aria-label="Pan right">▶</button>
-              <button type="button" class="pan-btn pan-down" data-pan="down" aria-label="Pan down">▼</button>
-            </div>
-          </div>
         </aside>
 
       <div class="play-area" id="play-area">
+        <div class="wall-area" id="wall-area" aria-label="Wall imaging area">
+          <div class="wall-title" aria-hidden="true">Imaging wall</div>
+          <div class="xray-rack" id="xray-rack">
+            <span class="xray-rack-label" aria-hidden="true">X-ray rail</span>
+            <div class="xray-rail" id="xray-rail" aria-hidden="true"></div>
+          </div>
+          <div class="machine machine-lightbox" id="machine-lightbox">
+            <div class="lightbox-screen" id="lightbox-screen"></div>
+          </div>
+        </div>
+
         <div class="desk-surface" id="desk-surface">
           <div class="machine machine-scope" id="machine-scope">
             <div class="scope-stage" id="scope-stage">
@@ -133,19 +84,6 @@
               <span class="machine-caption" aria-hidden="true">Stage</span>
             </div>
             <p class="machine-label">Microscope stage</p>
-          </div>
-
-          <div class="machine machine-lightbox" id="machine-lightbox">
-            <div class="lightbox-screen" id="lightbox-screen"></div>
-            <p class="machine-label">Light box</p>
-          </div>
-
-          <div class="machine machine-printer" id="machine-printer">
-            <div class="printer-body" id="printer-body">
-              <span class="printer-slit" aria-hidden="true"></span>
-              <span class="printer-count" id="printer-count"></span>
-            </div>
-            <p class="machine-label">Label printer</p>
           </div>
         </div>
 
@@ -222,7 +160,7 @@
           </label>
           <label class="toggle-row">
             <input type="checkbox" id="toggle-casual" />
-            <span>Casual mode: unlimited mistakes and labels, still counted</span>
+            <span>Casual mode: unlimited mistakes, still counted</span>
           </label>
         </div>
 
@@ -243,7 +181,7 @@
           </li>
           <li class="howto-card">
             <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg></span>
-            <span class="howto-text"><strong>Some clues hide.</strong> Slides read on the microscope stage (each carries a letter, so you can tell them apart), zoom 4&times;/10&times;/40&times; and pan to look around. Films read on the light box, wherever the film overlaps the glass.</span>
+            <span class="howto-text"><strong>Some clues hide.</strong> Slides read on the microscope stage (each carries a letter, so you can tell them apart). Films read on the light box, wherever the film overlaps the glass.</span>
           </li>
           <li class="howto-card">
             <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-5.5L21 9"/><rect x="3" y="9" width="18" height="11" rx="2"/><path d="M8.5 14l2.7 2.7L16 12"/></svg></span>
@@ -254,15 +192,11 @@
             <span class="howto-text"><strong>Four mistakes.</strong> A wrong guess costs one of four tries, unlimited in Casual mode. "One away!" means three of the four belonged together.</span>
           </li>
           <li class="howto-card">
-            <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 3h6.5a2 2 0 0 1 2 2v6.5a2 2 0 0 1-.6 1.4l-9 9a2 2 0 0 1-2.8 0l-6.5-6.5a2 2 0 0 1 0-2.8l9-9a2 2 0 0 1 1.4-.6z"/><circle cx="17" cy="8" r="1.3" fill="currentColor" stroke="none"/></svg></span>
-            <span class="howto-text"><strong>Stuck? Print a label.</strong> Drop any piece on the label printer and it prints the piece's name on a small stuck-on label. Three per puzzle, unlimited in Casual mode.</span>
-          </li>
-          <li class="howto-card">
             <span class="howto-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-1.05 5.6"/><path d="M20 5.5V11h-5.5"/></svg></span>
             <span class="howto-text"><strong>Scatter or reset.</strong> Scatter re-spreads the pile if it's gotten cluttered. Reset clears your progress and starts the puzzle over.</span>
           </li>
         </ol>
-        <p class="howto-keys">Keyboard: Tab to a piece, 1 to 4 sends it to a tray, 0 or Backspace returns it to the desk, V views a slide or film on its machine, L prints a label, arrow keys nudge it.</p>
+        <p class="howto-keys">Keyboard: Tab to a piece, 1 to 4 sends it to a tray, 0 or Backspace returns it to the desk, V views a slide or film on its machine, arrow keys nudge it.</p>
         <div class="overlay-actions">
           <button id="btn-close-help" class="btn btn-primary" type="button">Got it</button>
         </div>
@@ -274,7 +208,6 @@
       <div class="overlay-card results-card" role="dialog" aria-modal="true" aria-labelledby="results-title">
         <h2 id="results-title"></h2>
         <p id="results-sub"></p>
-        <p id="results-hints" class="results-hints"></p>
         <div id="results-groups" class="results-groups"></div>
         <div class="results-actions">
           <button id="btn-share" class="btn btn-primary" type="button">Share</button>

@@ -3,9 +3,9 @@
    anywhere, serif display type, museum-placard chrome. Light theme only.
 
    Play screen: a top-down desk. Pieces are freely draggable physical
-   objects; the microscope stage, light box, and label printer are fixed
-   desk furniture; the microscope DISPLAY is a resizable panel to the
-   left of the desk; four group trays run along the bottom. Motion is
+   objects; the microscope stage stays on the desk while the wall lightbox
+   and X-ray rail sit above it; the microscope DISPLAY is a resizable panel
+   to the left of the desk; four group trays run along the bottom. Motion is
    drag feedback + short settle transitions only, and fully collapses
    under prefers-reduced-motion (bottom of this file).
 
@@ -353,12 +353,15 @@ img { max-width: 100%; display: block; }
   overflow: hidden;
 }
 
-/* viewer left, desk right, equal vertical height */
+/* The desk fills the play area; the microscope viewer overlays its left edge
+   on wide screens so it does not consume tabletop width. */
 .play-main {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   gap: 14px;
+  position: relative;
+  z-index: 2;
 }
 
 /* full-width tray HUD bar pinned at the bottom of the play column */
@@ -367,6 +370,8 @@ img { max-width: 100%; display: block; }
   margin-top: 12px;
   padding-top: 10px;
   border-top: 2px solid var(--panel-edge);
+  position: relative;
+  z-index: 1;
 }
 
 .play-header {
@@ -403,13 +408,16 @@ img { max-width: 100%; display: block; }
 .play-actions { display: flex; gap: 8px; }
 .play-actions .btn { padding: 0.5em 0.9em; font-size: 0.88rem; }
 
-/* ══════════ MICROSCOPE VIEWER (permanent, square, left) ══════════ */
+/* ══════════ MICROSCOPE VIEWER (permanent, wide, left) ════════════ */
 
 .scope-panel {
+  position: absolute;
+  top: 0;
+  left: 4%;
+  z-index: 90 !important;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: var(--r-l);
@@ -420,7 +428,7 @@ img { max-width: 100%; display: block; }
 .scope-display-wrap {
   position: relative;
   flex: 0 0 auto;
-  /* square dimensions set by game.js sizeViewer(); CSS handles <900px */
+  /* dimensions set by game.js sizeViewer(); CSS handles <900px */
   border-radius: var(--r-s);
   overflow: hidden;
   border: 3px solid #4d4437;
@@ -431,92 +439,9 @@ img { max-width: 100%; display: block; }
   display: block;
   width: 100%;
   height: 100%;
-  cursor: grab;
-  touch-action: none;
+  cursor: default;
+  touch-action: auto;
 }
-.scope-canvas.is-panning { cursor: grabbing; }
-
-.scope-controls {
-  flex: 0 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-/* ── Zoom: a drag control with three detents (4x / 10x / 40x) ────── */
-.zoom-control {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1 1 auto;
-  max-width: 340px;
-}
-.zoom-current {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--accent);
-  min-width: 36px;
-  text-align: right;
-}
-.zoom-track {
-  position: relative;
-  flex: 1;
-  height: 30px;
-  background: var(--control-bg);
-  border: 1px solid var(--panel-edge);
-  border-radius: 999px; /* physical slider: the one intentional pill */
-  touch-action: none;
-  cursor: grab;
-}
-.zoom-track:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.zoom-detent {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: var(--ink-soft);
-  pointer-events: none;
-}
-.zoom-detent[data-stop="0"] { left: 12%; }
-.zoom-detent[data-stop="1"] { left: 50%; }
-.zoom-detent[data-stop="2"] { left: 88%; }
-.zoom-knob {
-  position: absolute;
-  top: 50%;
-  left: 12%;
-  width: 24px; height: 24px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--accent);
-  box-shadow: 0 2px 5px rgba(36, 31, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: left 0.12s var(--ease);
-  pointer-events: none;
-}
-.zoom-track.is-dragging { cursor: grabbing; }
-.zoom-track.is-dragging .zoom-knob { transition: none; }
-
-.scope-pan {
-  display: grid;
-  grid-template-areas: ". up ." "left down right";
-  gap: 3px;
-}
-.pan-btn {
-  width: 26px; height: 24px;
-  border: 1px solid var(--panel-edge);
-  background: var(--control-bg);
-  border-radius: var(--r-s);
-  font-size: 0.6rem;
-  color: var(--ink-soft);
-  line-height: 1;
-  padding: 0;
-}
-.pan-btn:hover { background: var(--accent-soft); }
-.pan-up { grid-area: up; }
-.pan-left { grid-area: left; }
-.pan-right { grid-area: right; }
-.pan-down { grid-area: down; }
 
 /* ══════════════════════ THE DESK (top-down) ══════════════════════ */
 
@@ -528,7 +453,84 @@ img { max-width: 100%; display: block; }
   user-select: none;
 }
 
-.play-area { display: flex; flex: 1 1 auto; min-width: 0; }
+.play-area {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  /* Pieces can be deliberately dragged down toward the tray HUD. Let the
+     piece layer paint into that gap instead of clipping at the desk edge. */
+  overflow: visible;
+  width: 100%;
+}
+.wall-area {
+  position: relative;
+  flex: 0 0 clamp(260px, 34vh, 320px);
+  min-height: 260px;
+  overflow: hidden;
+  border: 1px solid rgba(60, 40, 18, 0.24);
+  border-radius: 16px 16px 8px 8px;
+  background:
+    repeating-linear-gradient(0deg, rgba(100, 74, 45, 0.035) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, #d8c8aa, #c7b28d);
+  box-shadow: inset 0 -6px 14px rgba(70, 45, 22, 0.12), 0 2px 7px rgba(36, 31, 20, 0.12);
+}
+:root[data-theme="dark"] .wall-area {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 240, 200, 0.025) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, #4e3c2b, #3c2c20);
+}
+.wall-title {
+  position: absolute;
+  left: 16px;
+  top: 12px;
+  color: rgba(60, 40, 18, 0.5);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.xray-rack {
+  position: absolute;
+  left: 48%;
+  right: 6%;
+  top: 20px;
+  /* The film center is the rack center. The rack's top edge is therefore
+     exactly the top edge of every hanging film. */
+  height: 148px;
+  z-index: 1;
+}
+.xray-rack::before,
+.xray-rack::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #5f4630, #2f241a);
+  box-shadow: 0 2px 3px rgba(36, 24, 10, 0.25);
+}
+.xray-rack::before { top: 0; }
+.xray-rack::after { top: 7px; height: 2px; opacity: 0.75; }
+.xray-rack-label {
+  position: absolute;
+  left: 5px;
+  top: -17px;
+  color: rgba(60, 40, 18, 0.66);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.xray-rail {
+  position: absolute;
+  inset: 0;
+  border-top: 1px solid rgba(255, 244, 220, 0.3);
+  border-bottom: 1px solid rgba(60, 40, 18, 0.16);
+}
+:root[data-theme="dark"] .xray-rack-label { color: rgba(255, 239, 203, 0.58); }
 .desk-surface {
   position: relative;
   flex: 1 1 auto;
@@ -559,7 +561,7 @@ img { max-width: 100%; display: block; }
   background-repeat: no-repeat;
 }
 
-/* ── Machines (fixed desk furniture) ────────────────────────────── */
+/* ── Machines and wall furniture ────────────────────────────────── */
 
 .machine {
   position: absolute;
@@ -593,7 +595,7 @@ img { max-width: 100%; display: block; }
 }
 
 /* Microscope stage (drop target; the display lives in the left panel). */
-.machine-scope { left: 16px; }
+.machine-scope { left: 0; }
 .scope-stage {
   position: relative;
   width: 116px;
@@ -614,56 +616,45 @@ img { max-width: 100%; display: block; }
 }
 .scope-stage.drop-hot { outline: 3px dashed var(--accent-soft); outline-offset: 3px; }
 
-/* Light box: an always-lit warm glass panel. Films reveal their content
-   only where they physically overlap it (clip-path on .film-lit). */
-.machine-lightbox { right: 16px; }
+/* Wall lightbox: fixed above the desk. Films reveal their content only
+   where they physically overlap it (clip-path on .film-lit). */
+.machine-lightbox {
+  top: 20px;
+  right: 5%;
+  z-index: 2;
+}
 .lightbox-screen {
-  width: 250px;
-  height: 150px;
+  position: relative;
+  width: 220px;
+  height: 240px;
   border-radius: 10px;
-  border: 3px solid #57503f;
+  border: 7px solid #57503f;
   /* Warm white/amber glow — deliberately NOT blue. */
   background: radial-gradient(ellipse at 50% 40%, var(--lightbox-a), var(--lightbox-b) 70%, var(--lightbox-c));
-  box-shadow: 0 0 22px var(--lightbox-glow), inset 0 0 10px rgba(120, 96, 50, 0.3);
+  box-shadow:
+    0 0 22px var(--lightbox-glow),
+    0 4px 0 #33291f,
+    0 7px 10px rgba(36, 24, 10, 0.35),
+    inset 0 0 10px rgba(120, 96, 50, 0.3);
 }
-
-/* Label printer: bottom-right of the desk. */
-.machine-printer { top: auto; bottom: 24px; right: 24px; }
-.printer-body {
-  position: relative;
-  width: 118px;
-  height: 62px;
-  border-radius: 10px 10px 6px 6px;
-  background: linear-gradient(170deg, var(--machine-shell-a), var(--machine-shell-b));
-  border: 1px solid rgba(60, 40, 18, 0.45);
-  box-shadow: 0 3px 8px rgba(36, 31, 20, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-}
-.printer-slit {
+.lightbox-screen::before {
+  content: "";
   position: absolute;
-  top: 14px; left: 12px; right: 12px;
-  height: 6px;
-  border-radius: 3px;
-  background: #2c2820;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
+  inset: 7px;
+  border: 1px solid rgba(92, 67, 35, 0.42);
+  box-shadow: inset 0 0 0 2px rgba(255, 248, 222, 0.25);
+  pointer-events: none;
 }
-.printer-count {
+.lightbox-screen::after {
+  content: "•   •";
   position: absolute;
-  bottom: 8px; left: 0; right: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.8rem;
-  color: var(--ink-soft);
+  right: 9px;
+  bottom: -22px;
+  color: #4a3929;
+  font: 700 11px/1 var(--mono);
+  letter-spacing: 0.25em;
+  pointer-events: none;
 }
-.printer-count .label-chip {
-  width: 16px; height: 10px;
-  border-radius: 2px;
-  background: #fff;
-  border: 1px solid rgba(36, 31, 20, 0.35);
-}
-.printer-count .label-chip.spent { background: transparent; border-style: dashed; opacity: 0.5; }
-.machine-printer.drop-hot .printer-body { outline: 3px dashed var(--accent-soft); outline-offset: 3px; }
 
 /* ── Group trays ─────────────────────────────────────────────────── */
 
@@ -740,7 +731,7 @@ img { max-width: 100%; display: block; }
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: 40;
 }
 .piece-layer.no-anim .piece { transition: none !important; }
 
@@ -754,7 +745,9 @@ img { max-width: 100%; display: block; }
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(calc(var(--pc-scale, 1) * var(--type-scale, 1)));
+  --responsive-scale: 1;
+  max-width: calc(100% - 12px);
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(calc(var(--pc-scale, 1) * var(--type-scale, 1) * var(--responsive-scale)));
   transition:
     left var(--dur) var(--ease),
     top var(--dur) var(--ease),
@@ -799,9 +792,28 @@ img { max-width: 100%; display: block; }
 body.has-textures .piece-label {
   font-family: var(--hand);
   color: #2b2b33;
-  display: inline-block;
+  display: block;
+  width: 100%;
+  max-width: 100%;
   transform: rotate(var(--ink-rot, 0deg));
   font-size: calc(1em * var(--ink-size, 1) * var(--fit-scale, 1));
+}
+
+/* Written clues are flex children inside their paper faces. Give the text a
+   real containing width; otherwise an inline/handwritten label can size
+   itself to its longest line and paint outside the card. */
+.piece .piece-label,
+.piece .rx-line {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: auto;
+  text-align: center;
 }
 
 /* Generated object textures include transparent padding and irregular edges.
@@ -823,13 +835,13 @@ body.has-textures .piece.textured.is-dragging {
 /* Sticky note (corkboard items). */
 .piece-sticky {
   --type-scale: var(--scale-sticky, 1);
-  width: 86px;
-  min-height: 74px;
-  padding: 8px;
+  width: 96px;
+  min-height: 88px;
+  padding: 10px;
   background: var(--pc-color, #f6e58d);
   box-shadow: 0 3px 7px rgba(36, 31, 20, 0.28), inset 0 0 0 1px rgba(36, 31, 20, 0.06);
-  font-size: 0.8rem;
-  line-height: 1.2;
+  font-size: 1.02rem;
+  line-height: 1.24;
   text-align: center;
   display: flex;
   align-items: center;
@@ -845,6 +857,7 @@ body.has-textures .piece.textured.is-dragging {
   transform: rotate(-4deg);
 }
 .piece-sticky.textured::after { content: none; }
+.piece-sticky .piece-skin { background-size: 100% 100%; }
 
 /* Paper sheet (folder items). */
 .piece-paper {
@@ -855,7 +868,8 @@ body.has-textures .piece.textured.is-dragging {
   background: #fbf6e9;
   border: 1px solid rgba(36, 31, 20, 0.18);
   box-shadow: 0 3px 7px rgba(36, 31, 20, 0.25);
-  font-size: 0.78rem;
+  font-size: 0.92rem;
+  line-height: 1.24;
   text-align: center;
   display: flex;
   align-items: center;
@@ -877,7 +891,8 @@ body.has-textures .piece.textured.is-dragging {
   background: #f8f2e0;
   border: 1px solid rgba(36, 31, 20, 0.18);
   box-shadow: 0 3px 7px rgba(36, 31, 20, 0.25);
-  font-size: 0.8rem;
+  font-size: 0.94rem;
+  line-height: 1.24;
   text-align: center;
   display: flex;
   align-items: center;
@@ -953,8 +968,7 @@ body.has-textures .piece.textured.is-dragging {
 }
 /* film-lit fills the same box as .piece-film and needs its own corner
    rounding + edge clip now that overflow:hidden moved off the piece
-   itself (that used to clip the printed hint label too — see .hint-label
-   below). */
+   itself, so the light-through layer can clip cleanly to the overlap. */
 .film-lit { border-radius: 4px; overflow: hidden; }
 .piece-film.textured { background-image: var(--tex-film); }
 /* Light must only shine through the actual film cutout, not the box
@@ -1029,34 +1043,6 @@ body.has-textures .piece.textured.is-dragging {
     8px 48px 0 -1px rgba(253, 243, 216, 0.12);
 }
 
-/* Printed hint label — deliberately machine-set (mono small caps), so a
-   printed name never reads like the handwritten clue itself. Sits on TOP
-   of the piece: allowed to overflow the piece's own box (no ancestor here
-   clips it — .piece-film's old overflow:hidden was removed, see above)
-   and z-index'd above the piece's own decorative children. Cross-piece
-   stacking (so a neighboring piece can't cover a printed label) is
-   handled in JS: printLabel() brings the labeled piece to the front of
-   the desk z-order. */
-.hint-label {
-  position: absolute;
-  left: 50%;
-  bottom: -7px;
-  transform: translateX(-50%) rotate(-2deg);
-  background: #fffdf5;
-  border: 1px solid rgba(36, 31, 20, 0.4);
-  border-radius: 2px;
-  padding: 1px 6px;
-  font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: #2b2b33;
-  box-shadow: 0 1px 3px rgba(36, 31, 20, 0.35);
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 5;
-}
-
 /* ── Seeded per-piece variety (paper family) ─────────────────────── */
 
 .piece-skin {
@@ -1090,15 +1076,22 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
 }
 .photo-window {
   position: absolute;
-  top: 6px; left: 6px; right: 6px; bottom: 26px;
+  top: 3px; left: 3px; right: 3px; bottom: 3px;
   background: linear-gradient(150deg, #b7b1a3, #a49e8f);
   background-size: cover;
   background-position: center;
+  border-radius: 2px;
+  overflow: hidden;
   z-index: 1;
 }
 .photo-caption {
   position: absolute;
-  left: 4px; right: 4px; bottom: 4px;
+  left: 5px; right: 5px; bottom: 5px;
+  width: auto;
+  max-width: calc(100% - 10px);
+  padding: 3px 4px;
+  background: rgba(253, 252, 246, 0.86);
+  border-radius: 2px;
   text-align: center;
   z-index: 1;
 }
@@ -1108,13 +1101,15 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
 .piece-rx {
   --type-scale: var(--scale-rx, 1);
   width: 86px;
-  height: 106px;
+  min-height: 106px;
+  height: auto;
   background: #fcfaf2;
   border: 1px solid rgba(36, 31, 20, 0.22);
   border-top: 4px solid rgba(122, 79, 192, 0.45);
   box-shadow: 0 3px 7px rgba(36, 31, 20, 0.26);
   color: var(--ink);
-  font-size: 0.78rem;
+  font-size: 0.92rem;
+  line-height: 1.24;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1136,7 +1131,7 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
    Texture absent (no .textured class) keeps the drawn glyph. */
 .piece-rx.textured .rx-glyph { display: none; }
 
-/* ── Slide letters (A, B, C… — identifiers, not hints) ───────────── */
+/* ── Slide letters (A, B, C… — identifiers, not clue text) ──────── */
 
 .slide-letter {
   font-family: var(--mono);
@@ -1274,7 +1269,6 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
 }
 .results-card h2 { font-size: 1.5rem; }
 #results-sub { color: var(--ink-soft); margin-bottom: 0.2em; }
-.results-hints { color: var(--ink-soft); font-size: 0.9rem; }
 .results-groups {
   display: flex;
   flex-direction: column;
@@ -1610,7 +1604,7 @@ body.layout-mode .machine { cursor: move; outline: 2px dashed rgba(122, 79, 192,
 .label-scale-row input[type="range"] { flex: 1 1 100px; min-width: 80px; }
 .label-scale-readout { font-size: 0.72rem; color: var(--ink-soft); min-width: 32px; text-align: right; }
 .label-scale-row .btn { padding: 0.15em 0.6em; font-size: 0.7rem; }
-.field-hint { color: var(--danger); font-size: 0.72rem; margin: 3px 0 0; }
+.field-feedback { color: var(--danger); font-size: 0.72rem; margin: 3px 0 0; }
 
 /* ── Article authoring (group-card's collapsible "Article" section) ── */
 .article-section {
@@ -1743,7 +1737,7 @@ body.layout-mode .machine { cursor: move; outline: 2px dashed rgba(122, 79, 192,
 .crop-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .crop-controls label { display: flex; align-items: center; gap: 8px; width: 100%; font-size: 0.85rem; color: var(--ink-soft); }
 .crop-controls input[type="range"] { flex: 1; }
-.crop-hint { font-size: 0.78rem; color: var(--ink-soft); margin: 0 0 4px; }
+.crop-instructions { font-size: 0.78rem; color: var(--ink-soft); margin: 0 0 4px; }
 
 /* the game embedded as a live preview strips its chrome */
 body.preview-mode .play-actions,
@@ -1836,27 +1830,35 @@ body.preview-mode .play-header-title p { display: none; }
 
 /* ══════════════════════ RESPONSIVE ══════════════════════ */
 
-@media (max-width: 1100px) {
-  /* squarish laptops: viewer yields width to the desk */
-  .zoom-control { max-width: 240px; }
-}
-
 @media (max-width: 900px) {
   /* stack: smaller viewer square above the desk; page may scroll */
   .screen-play { height: auto; overflow: visible; }
   .play-main { flex-direction: column; }
-  .scope-panel { width: 100%; }
+  .scope-panel {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+    z-index: auto !important;
+  }
   .scope-display-wrap { flex: 0 0 auto; aspect-ratio: auto; height: 34vh; max-height: 320px; }
-  .play-area { min-height: 46vh; }
-  .lightbox-screen { width: 200px; height: 130px; }
+  .play-area { min-height: 46vh; overflow: visible; }
+  .wall-area { flex-basis: 230px; min-height: 224px; }
+  .xray-rack { left: 3%; right: 3%; top: 18px; height: 132px; }
+  .machine-lightbox { top: 18px; }
+  .lightbox-screen { width: 180px; height: 210px; }
 }
 
 @media (max-width: 760px) {
   .trays { grid-template-columns: repeat(2, 1fr); }
   .scope-stage { width: 92px; height: 92px; }
   .scope-stage-glass { width: 62px; height: 62px; }
-  .lightbox-screen { width: 150px; height: 105px; }
-  .printer-body { width: 96px; height: 54px; }
+  .lightbox-screen { width: 140px; height: 180px; }
+  .wall-area { flex-basis: 190px; min-height: 184px; }
+  .xray-rack { top: 16px; height: 112px; }
+  .xray-rack { left: 3%; right: 3%; }
+  .machine-lightbox { top: 16px; right: 3%; }
+  .piece { --responsive-scale: clamp(0.72, calc(100vw / 760px), 1); }
   .play-header { gap: 10px; }
   .mistake-tracker { margin-left: 0; order: 3; width: 100%; }
   /* Toolbar (Scatter/Reset/Help/Settings/Menu): wrap onto a second row
@@ -1873,11 +1875,13 @@ body.preview-mode .play-header-title p { display: none; }
   /* Two-up so five buttons read as tidy rows instead of a ragged wrap. */
   .play-actions { justify-content: flex-start; gap: 8px; }
   .play-actions .btn { flex: 1 1 calc(50% - 8px); text-align: center; }
-  .zoom-control { max-width: none; }
-  .printer-count { font-size: 0.72rem; }
   .trays { gap: 8px; }
   .tray { padding: 8px; }
   .tray-slot { min-height: 40px; }
+  .lightbox-screen { width: 124px; height: 160px; }
+  .wall-area { flex-basis: 170px; min-height: 164px; }
+  .xray-rack { top: 14px; }
+  .machine-lightbox { top: 14px; }
 }
 
 /* ══════════════════════ REDUCED MOTION ══════════════════════ */
