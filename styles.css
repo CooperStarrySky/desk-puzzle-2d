@@ -1294,66 +1294,47 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   border-radius: 7px;
   background: color-mix(in srgb, var(--accent-soft) 72%, var(--panel));
 }
-.clue-guide-scope-visual {
-  position: relative;
+.guide-prop-demo {
   height: 120px;
-  overflow: hidden;
-  background: #504c42;
-}
-.guide-scope-optic {
-  position: absolute;
-  top: 12px;
-  left: calc(50% - 22px);
-  width: 44px;
-  height: 47px;
-  border: 6px solid #dcd7bc;
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  box-shadow: inset 0 -14px 0 #5b574c;
-}
-.guide-scope-stage {
-  position: absolute;
-  right: 9%;
-  bottom: 16px;
-  left: 9%;
-  height: 42px;
-  padding: 3px;
-  border: 7px solid #28251f;
-  border-radius: 7px;
-  background: #171613;
-  overflow: hidden;
-}
-.guide-scope-stage::after {
-  content: "";
-  position: absolute;
-  right: -14px;
-  bottom: -21px;
-  left: -14px;
-  height: 17px;
-  border-radius: 0 0 7px 7px;
-  background: #4a463e;
-}
-.guide-scope-stage img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 2px;
-}
-.guide-scope-stage img[hidden] { display: none; }
-.guide-scope-fallback {
   display: grid;
-  width: 100%;
-  height: 100%;
   place-items: center;
-  border-radius: 2px;
-  background: #e8becf;
-  color: #6d3552;
-  font: 700 0.67rem/1 var(--sans);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  overflow: visible;
 }
-.guide-scope-fallback[hidden] { display: none; }
+.guide-demo-stage {
+  width: 106px;
+  height: 106px;
+}
+.guide-demo-stage .scope-stage-glass { width: 70px; height: 70px; }
+.guide-slide-asset {
+  position: absolute;
+  z-index: 2;
+  top: 39px;
+  left: 8px;
+  width: 90px;
+  height: 29px;
+  border-radius: 2px;
+  background: url("assets/textures/slide.png") center / 100% 100% no-repeat;
+  box-shadow: 0 2px 4px rgba(20, 14, 6, 0.35);
+  transform: rotate(-2deg);
+}
+.guide-demo-lightbox {
+  width: 132px;
+  height: 108px;
+  border-width: 4px;
+}
+.guide-demo-lightbox::before { inset: 4px; }
+.guide-demo-lightbox::after { display: none; }
+.guide-film-asset {
+  position: absolute;
+  z-index: 2;
+  top: -8px;
+  left: calc(50% - 34px);
+  width: 68px;
+  height: 116px;
+  border-radius: 3px;
+  background: url("assets/textures/film.png") center / 100% 100% no-repeat;
+  box-shadow: 0 3px 6px rgba(20, 14, 6, 0.38);
+}
 .clue-guide-step h3 {
   margin: 0 0 4px;
   font: 700 0.92rem/1.2 var(--sans);

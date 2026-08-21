@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort sixteen pathology clues into four hidden groups." />
   <meta name="twitter:image" content="https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=17" />
+  <link rel="stylesheet" href="styles.css?v=18" />
 </head>
 <body>
   <div id="app">
@@ -177,35 +177,25 @@
         <h2 id="help-title">How to use clues</h2>
         <div class="clue-guide-grid">
           <section class="clue-guide-step" aria-labelledby="guide-scope-title">
-            <div class="clue-guide-visual clue-guide-scope-visual" aria-hidden="true">
-              <span class="guide-scope-optic"></span>
-              <span class="guide-scope-stage">
-                <img id="guide-scope-image" alt="" hidden />
-                <span id="guide-scope-fallback">Slide</span>
-              </span>
+            <div class="clue-guide-visual guide-prop-demo" aria-hidden="true">
+              <div class="scope-stage guide-demo-stage">
+                <span class="scope-stage-glass"></span>
+                <span class="guide-slide-asset"></span>
+              </div>
             </div>
             <h3 id="guide-scope-title">Microscope slides</h3>
             <p>Drag a slide onto the microscope stage to reveal its clue.</p>
           </section>
           <section class="clue-guide-step" aria-labelledby="guide-lightbox-title">
-            <svg class="clue-guide-visual" viewBox="0 0 240 120" aria-hidden="true">
-              <rect x="42" y="16" width="156" height="88" rx="8" fill="#38352d"/>
-              <rect x="52" y="26" width="136" height="68" rx="4" fill="#f3e6a5"/>
-              <rect x="72" y="13" width="94" height="94" rx="4" fill="#4d5b66" opacity=".88"/>
-              <path d="M112 32c-13 16-9 40 0 53m17-53c13 16 9 40 0 53" fill="none" stroke="#eff4dc" stroke-width="6" stroke-linecap="round"/>
-            </svg>
+            <div class="clue-guide-visual guide-prop-demo" aria-hidden="true">
+              <div class="lightbox-screen guide-demo-lightbox">
+                <span class="guide-film-asset"></span>
+              </div>
+            </div>
             <h3 id="guide-lightbox-title">X-ray films</h3>
             <p>Drag an X-ray over the lightbox to see the image.</p>
           </section>
           <section class="clue-guide-step" aria-labelledby="guide-groups-title">
-            <svg class="clue-guide-visual" viewBox="0 0 240 120" aria-hidden="true">
-              <rect x="43" y="23" width="41" height="30" rx="4" fill="#f3c45b"/>
-              <rect x="91" y="23" width="41" height="30" rx="4" fill="#a9d2a7"/>
-              <rect x="139" y="23" width="41" height="30" rx="4" fill="#d5b2df"/>
-              <rect x="91" y="58" width="41" height="30" rx="4" fill="#efaeb0"/>
-              <path d="M31 97h178v-18H31z" fill="#645d4e"/>
-              <path d="M52 98v12h136V98" fill="none" stroke="#645d4e" stroke-width="8" stroke-linecap="round"/>
-            </svg>
             <h3 id="guide-groups-title">Hidden groups</h3>
             <p>Find four clues that belong together, place them in a tray, then lock in the group.</p>
           </section>

@@ -597,7 +597,7 @@ function cacheEls() {
     'btn-reset',
     'btn-settings', 'overlay-settings',
     'btn-close-settings',
-    'overlay-help', 'btn-close-help', 'guide-scope-image', 'guide-scope-fallback',
+    'overlay-help', 'btn-close-help',
     'overlay-results', 'results-title', 'results-sub', 'results-groups',
     'btn-share', 'btn-play-again', 'btn-back-menu', 'share-fallback',
     'error-message', 'btn-error-menu', 'layout-panel',
@@ -1513,13 +1513,6 @@ function hideOverlay(el) { el.hidden = true; }
     immediately usable by keyboard. */
 function showClueGuide() {
   if (state.previewMode || state.editorMode || state.layoutMode) return;
-  var slide = state.game && state.game.puzzle.items.find(function (item) {
-    return item.zone === 'rack' && item.info && item.info.image;
-  });
-  var hasSlideImage = !!slide;
-  els.guideScopeImage.hidden = !hasSlideImage;
-  els.guideScopeFallback.hidden = hasSlideImage;
-  if (hasSlideImage) els.guideScopeImage.src = slide.info.image;
   showOverlay(els.overlayHelp);
   requestAnimationFrame(function () { els.btnCloseHelp.focus(); });
 }
