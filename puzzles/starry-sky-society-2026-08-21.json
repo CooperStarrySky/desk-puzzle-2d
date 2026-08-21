@@ -10,7 +10,7 @@
     {
       "id": "g-staph-aureus",
       "name": "Manifestations of Staph aureus",
-      "tier": 1,
+      "tier": 2,
       "explanation": "Bullous impetigo, tricuspid valve endocarditis, osteomyelitis, and a gram stain can all point to Staphylococcus aureus.",
       "itemIds": [
         "bullous-impetigo",
@@ -22,7 +22,7 @@
     {
       "id": "g-simple-columnar",
       "name": "Simple columnar epithelium",
-      "tier": 2,
+      "tier": 4,
       "explanation": "The four clues point toward simple columnar epithelium in histology, organ identification, or gross anatomy.",
       "itemIds": [
         "excretory-ducts",
@@ -46,7 +46,7 @@
     {
       "id": "g-letter-p",
       "name": "Angelman Syndrome",
-      "tier": 4,
+      "tier": 1,
       "explanation": "These written clues point to Angelman syndrome: a neurodevelopmental disorder associated with maternal UBE3A dysfunction on chromosome 15.",
       "itemIds": [
         "fascination-with-water",
