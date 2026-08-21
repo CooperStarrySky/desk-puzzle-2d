@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort sixteen pathology clues into four hidden groups." />
   <meta name="twitter:image" content="https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=17" />
 </head>
 <body>
   <div id="app">
@@ -177,14 +177,13 @@
         <h2 id="help-title">How to use clues</h2>
         <div class="clue-guide-grid">
           <section class="clue-guide-step" aria-labelledby="guide-scope-title">
-            <svg class="clue-guide-visual" viewBox="0 0 240 120" aria-hidden="true">
-              <rect x="30" y="68" width="180" height="31" rx="7" fill="#4a463e"/>
-              <rect x="45" y="58" width="150" height="30" rx="5" fill="#24211d"/>
-              <rect x="64" y="48" width="112" height="25" rx="4" fill="#e8becf" stroke="#9d5875" stroke-width="3"/>
-              <circle cx="119" cy="60" r="9" fill="#9d5875" opacity=".72"/>
-              <path d="M101 22h38v26h-38z" fill="#dcd7bc" stroke="#5b574c" stroke-width="4"/>
-              <path d="M120 22v-12" stroke="#5b574c" stroke-width="7" stroke-linecap="round"/>
-            </svg>
+            <div class="clue-guide-visual clue-guide-scope-visual" aria-hidden="true">
+              <span class="guide-scope-optic"></span>
+              <span class="guide-scope-stage">
+                <img id="guide-scope-image" alt="" hidden />
+                <span id="guide-scope-fallback">Slide</span>
+              </span>
+            </div>
             <h3 id="guide-scope-title">Microscope slides</h3>
             <p>Drag a slide onto the microscope stage to reveal its clue.</p>
           </section>
@@ -251,6 +250,6 @@
       document.write('<script src="puzzles/.local-puzzle-fallback.js"><\\/script>');
     }
   </script>
-  <script src="game.js?v=15" defer></script>
+  <script src="game.js?v=16" defer></script>
 </body>
 </html>
