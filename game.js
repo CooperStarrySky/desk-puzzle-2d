@@ -472,6 +472,7 @@ var EDITOR_DRAFT_KEY = SAVE_PREFIX + 'editor-draft';
 var SAVE_NS = SAVE_PREFIX + 'save3:';
 var LEGACY_SAVE_NS = [SAVE_PREFIX + 'save:', SAVE_PREFIX + 'save2:'];
 
+// HINTS_MAX retired in v15 — label printer no longer issues hint labels.
 var TIER_EMOJI = { 1: '🟨', 2: '🟩', 3: '🟪', 4: '🟧' };
 
 var PIECE_CLASS = {
@@ -514,6 +515,12 @@ var trayEls = [];
 var trayHeaderEls = [];
 var slotEls = [];
 var lockBtnEls = [];
+var peekOverlay = null; // dynamically created peek viewer overlay
+
+/* ── Viewport health tip state ──────────────────────────────────── */
+var viewportTipShownThisLoad = false;
+var viewportTipAutoHideTimer = null;
+var viewportTipResizeTimer = null;
 
 var state = {
   settings: { casual: false, sound: true, theme: 'system', dragAudioWip: false },
@@ -589,18 +596,18 @@ function downloadJson(filename, data) {
 function cacheEls() {
   [
     'screen-menu', 'screen-play', 'screen-error', 'screen-editor', 'live-region', 'toast',
-    'btn-play-today', 'toggle-casual', 'toggle-sound',
-    'puzzle-title', 'puzzle-date', 'mistake-tracker', 'btn-shuffle', 'btn-help', 'btn-menu',
+    'btn-play-today', 'btn-puzzle-select', 'puzzle-select-panel', 'puzzle-select-list', 'puzzle-select-summary', 'toggle-casual', 'toggle-sound',
+    'puzzle-title', 'puzzle-date', 'mistake-tracker', 'btn-shuffle', 'btn-help', 'btn-hints', 'hints-panel', 'btn-menu',
     'play-area', 'wall-area', 'xray-rack', 'xray-rail', 'desk-surface', 'piece-layer', 'trays',
     'machine-scope', 'scope-stage', 'machine-lightbox', 'lightbox-screen',
     'scope-panel', 'scope-display-wrap', 'scope-canvas', 'tray-hud',
     'btn-reset',
-    'btn-settings', 'overlay-settings',
+    'btn-settings', 'settings-panel',
     'btn-close-settings',
     'overlay-help', 'btn-close-help',
-    'overlay-results', 'results-title', 'results-sub', 'results-groups',
+    'overlay-results', 'results-title', 'results-sub', 'results-hints', 'results-groups',
     'btn-share', 'btn-play-again', 'btn-back-menu', 'share-fallback',
-    'error-message', 'btn-error-menu', 'layout-panel',
+    'error-message', 'btn-error-menu', 'layout-panel', 'reveal-note',
   ].forEach(function (id) {
     els[toCamel(id)] = document.getElementById(id);
   });
@@ -816,7 +823,8 @@ function scatterSpot(rng) {
 
 function freshDeskState(puzzle) {
   var rng = mulberry32(hashString(puzzle.id));
-  var desk = { pos: {}, rot: {}, z: {}, zTop: 0, scope: null };
+  var desk = { pos: {}, rot: {}, z: {}, zTop: 0, scope: null, labels: {}, hintsUsed: 0,
+               hints: { labels: false, seeds: false, category: false, revealedGroupId: null, pinned: {} } };
   var filmIndex = 0;
   puzzle.items.forEach(function (item) {
     if (item.zone === 'tubes') {
@@ -835,7 +843,8 @@ function restoreDeskState(saved, puzzle, game) {
   var fresh = freshDeskState(puzzle);
   var d = saved && saved.desk;
   if (!d || typeof d !== 'object') return fresh;
-  var desk = { pos: {}, rot: {}, z: {}, zTop: 0, scope: null };
+  var desk = { pos: {}, rot: {}, z: {}, zTop: 0, scope: null, labels: {}, hintsUsed: 0,
+               hints: { labels: false, seeds: false, category: false, revealedGroupId: null, pinned: {} } };
   puzzle.items.forEach(function (item) {
     var p = d.pos && d.pos[item.id];
     desk.pos[item.id] = (p && isFinite(p.fx) && isFinite(p.fy))
@@ -853,6 +862,30 @@ function restoreDeskState(saved, puzzle, game) {
     var it = puzzle.items.find(function (i) { return i.id === d.scope; });
     if (it && it.zone === 'rack' && !game.isStaged(d.scope)) desk.scope = d.scope;
   }
+  var labelCount = Object.keys(desk.labels).length;
+  desk.hintsUsed = Math.max(
+    labelCount,
+    (typeof d.hintsUsed === 'number' && d.hintsUsed >= 0) ? Math.floor(d.hintsUsed) : 0
+  );
+  // Heal hints block (new in v15 — old saves have no hints block).
+  var hints = { labels: false, seeds: false, category: false, revealedGroupId: null, pinned: {} };
+  var dh = d.hints;
+  if (dh && typeof dh === 'object') {
+    if (dh.labels === true) hints.labels = true;
+    if (dh.seeds === true) hints.seeds = true;
+    if (dh.category === true) hints.category = true;
+    if (typeof dh.revealedGroupId === 'string') {
+      var rg = puzzle.groups.find(function (g) { return g.id === dh.revealedGroupId; });
+      if (rg) hints.revealedGroupId = dh.revealedGroupId;
+    }
+    if (dh.pinned && typeof dh.pinned === 'object') {
+      Object.keys(dh.pinned).forEach(function (itemId) {
+        var pit = puzzle.items.find(function (i) { return i.id === itemId; });
+        if (pit && game.isStaged(itemId)) hints.pinned[itemId] = dh.pinned[itemId];
+      });
+    }
+  }
+  desk.hints = hints;
   return desk;
 }
 
@@ -1497,6 +1530,70 @@ function toast(text) {
   }, 2200);
 }
 
+/* ── Viewport health tip ─────────────────────────────────────────── */
+
+function dismissViewportTip() {
+  clearTimeout(viewportTipAutoHideTimer);
+  var tip = document.getElementById('viewport-tip');
+  if (!tip) return;
+  tip.classList.remove('tip-visible');
+  setTimeout(function () { tip.hidden = true; }, 260);
+}
+
+function showViewportTip() {
+  if (viewportTipShownThisLoad) return;
+  viewportTipShownThisLoad = true;
+  var tip = document.getElementById('viewport-tip');
+  if (!tip) return;
+  tip.hidden = false;
+  requestAnimationFrame(function () { tip.classList.add('tip-visible'); });
+  viewportTipAutoHideTimer = setTimeout(dismissViewportTip, 15000);
+}
+
+/**
+ * Checks whether the play-screen layout is under stress and shows the
+ * viewport health tip (at most once per page load).
+ *
+ * Detection strategy:
+ *   1. Skip genuine phones/tablets (coarse pointer + small screen — the
+ *      responsive breakpoints already handle those).
+ *   2. Horizontal document overflow: assets spilling outside the viewport.
+ *   3. Viewport height < 500px or width < 640px on fine-pointer devices:
+ *      below these values the desk + trays + header start colliding even
+ *      after the responsive tweaks at 760/480px. (640px is the point the
+ *      editor-drawer media query fires; 500px gives the wall area ~260px,
+ *      header ~50px, and tray HUD ~120px — tight but possible; below 500px
+ *      the three zones genuinely overlap.)
+ *   4. Play-header height probe: when the header wraps onto two or more
+ *      rows its measured height rises above ~80px (single row ≈ 42-48px;
+ *      2× = ~84-96px). This fires whenever the user's window/zoom combo
+ *      forces flex-wrap in the header, regardless of which dimension is
+ *      the culprit — one cheap getBoundingClientRect call catches it all.
+ */
+function checkViewportHealth() {
+  // Exclude genuine phones/tablets — responsive breakpoints cover them.
+  if (window.matchMedia('(pointer: coarse)').matches
+      && Math.min(screen.width, screen.height) <= 820) return;
+
+  // Flag 1: horizontal overflow (zoomed in too far / very narrow window).
+  if (document.documentElement.scrollWidth > window.innerWidth + 4) {
+    showViewportTip();
+    return;
+  }
+
+  // Flag 2: viewport dimensions below comfortable desktop minimums.
+  if (window.innerHeight < 500 || window.innerWidth < 640) {
+    showViewportTip();
+    return;
+  }
+
+  // Flag 3: play-header has wrapped — a reliable single-element geometry probe.
+  var header = document.querySelector('.play-header');
+  if (header && header.getBoundingClientRect().height > 80) {
+    showViewportTip();
+  }
+}
+
 /* ── Screen switching ────────────────────────────────────────────── */
 
 function showScreen(name) {
@@ -1547,9 +1644,79 @@ function loadPuzzleByEntry(entry) {
   });
 }
 
-/* ── Menu rendering (archive uses delegation — no per-item binds) ── */
+/* ── Menu rendering (puzzle-select dropdown, delegation — no per-item binds) ── */
 
-function renderMenu() {}
+function renderMenu(registry) {
+  var puzzles = (registry.puzzles || []).slice().sort(function (a, b) {
+    return (b.date || '').localeCompare(a.date || '');
+  });
+
+  // Update the trigger summary text.
+  if (els.puzzleSelectSummary) {
+    els.puzzleSelectSummary.textContent = puzzles.length
+      ? puzzles.length + ' puzzle' + (puzzles.length !== 1 ? 's' : '')
+      : 'No archived puzzles';
+  }
+
+  els.puzzleSelectList.innerHTML = '';
+
+  if (!puzzles.length) {
+    var empty = document.createElement('p');
+    empty.className = 'archive-empty';
+    empty.textContent = 'No archived puzzles yet.';
+    els.puzzleSelectList.appendChild(empty);
+    return;
+  }
+
+  puzzles.forEach(function (entry) {
+    var li = document.createElement('li');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'puzzle-select-entry' + (entry.id === registry.current ? ' current' : '');
+    btn.dataset.puzzleId = entry.id;
+    btn.dataset.puzzleFile = entry.file;
+
+    // Title
+    var titleSpan = document.createElement('span');
+    titleSpan.className = 'puzzle-select-entry-title';
+    titleSpan.textContent = entry.title;
+    btn.appendChild(titleSpan);
+
+    // "This week" pill for the current puzzle
+    if (entry.id === registry.current) {
+      var pill = document.createElement('span');
+      pill.className = 'puzzle-select-pill';
+      pill.textContent = 'This week';
+      btn.appendChild(pill);
+    }
+
+    // Played check mark (won or lost both count)
+    var played = false;
+    try {
+      var raw = localStorage.getItem(SAVE_NS + entry.id);
+      if (raw) {
+        var save = JSON.parse(raw);
+        played = save.phase === 'won' || save.phase === 'lost';
+      }
+    } catch (e) { /* treat as unplayed */ }
+    if (played) {
+      var check = document.createElement('span');
+      check.className = 'puzzle-select-played';
+      check.textContent = '✓';
+      check.setAttribute('aria-label', 'Played');
+      btn.appendChild(check);
+    }
+
+    // Date
+    var dateSpan = document.createElement('span');
+    dateSpan.className = 'archive-date';
+    dateSpan.textContent = entry.date || '';
+    btn.appendChild(dateSpan);
+
+    li.appendChild(btn);
+    els.puzzleSelectList.appendChild(li);
+  });
+}
 
 /* ── Geometry ────────────────────────────────────────────────────── */
 
@@ -1592,6 +1759,7 @@ function openPuzzle(puzzleData) {
   }
 
   // Orphan any previous game instance completely — no stale listeners.
+  closeHintsPanel();
   if (state.game) state.game.events.removeAll();
   state.drag = null;
 
@@ -1648,6 +1816,10 @@ function openPuzzle(puzzleData) {
   persistGame();
   if (game.phase === 'won' || game.phase === 'lost') showResults();
   else showClueGuide();
+  // Check viewport health after layout has settled (~300ms gives two rAFs
+  // plus reflow time on slow hardware). Fires at most once per page load
+  // (or once more after a Reset, which re-arms viewportTipShownThisLoad).
+  setTimeout(checkViewportHealth, 300);
 }
 
 function onEngineChange() {
@@ -1860,6 +2032,13 @@ function clampMachinesToDesk() {
   });
 }
 
+function syncHintsBtn() {
+  if (!els.btnHints) return;
+  var phase = state.game ? state.game.phase : null;
+  var isOver = phase === 'won' || phase === 'lost';
+  els.btnHints.disabled = isOver;
+}
+
 function syncAll() {
   if (!state.game) return;
   sizeViewer();
@@ -1868,6 +2047,8 @@ function syncAll() {
   syncTrays();
   syncMachines();
   syncPieces();
+  syncRevealNote();
+  syncHintsBtn();
 }
 
 /** Which element (if any) on a piece carries its readable clue text, per
@@ -2011,10 +2192,19 @@ function syncTrays() {
   }
 }
 
-/* ── Machines ────────────────────────────────────────────────────── */
+/* ── Machines sync: scope display + printer counter ──────────────── */
+
+// hintsLeft() is legacy — printer label creation is retired in v15.
+// Returns 0 always so printLabel()'s guard never passes; printLabel is dead
+// code retained only for save-format compatibility; nothing calls it.
+function hintsLeft() {
+  return 0;
+}
 
 function syncMachines() {
   if (hasMachine('scope')) renderScopeView();
+  // Printer counter chips removed (v15: printer is retired from hint duties).
+  if (els.printerCount) els.printerCount.innerHTML = '';
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -2223,6 +2413,56 @@ function syncPieces() {
       el.classList.toggle('textured', !!hasType);
     }
 
+    // Legacy printed hint label (idempotent — keeps old in-progress saves readable).
+    if (state.desk.labels[id] && !el.querySelector('.hint-label')) {
+      var legacyTag = document.createElement('span');
+      legacyTag.className = 'hint-label';
+      legacyTag.setAttribute('aria-hidden', 'true');
+      legacyTag.textContent = item.label;
+      el.appendChild(legacyTag);
+    }
+
+    // H1 id-tag: shows info.title on image pieces when Label Images hint is used (idempotent).
+    var hints = state.desk.hints;
+    if (hints && hints.labels
+        && (item.zone === 'photo' || item.zone === 'rack' || item.zone === 'tubes')
+        && item.info && item.info.title
+        && !el.querySelector('.id-tag')) {
+      var idTag = document.createElement('span');
+      idTag.className = 'id-tag';
+      idTag.setAttribute('aria-hidden', 'true');
+      idTag.textContent = item.info.title;
+      el.appendChild(idTag);
+    }
+
+    // H2 pin marker: only show on staged-but-not-locked pieces (idempotent).
+    var isPinned = hints && hints.pinned && hints.pinned[id] !== undefined;
+    var pieceLocNow = pieceLocation(id);
+    var shouldShowPin = isPinned && pieceLocNow.kind === 'tray' && !pieceLocNow.locked;
+    var isPeekable = shouldShowPin && (item.zone === 'rack' || item.zone === 'tubes');
+    if (shouldShowPin && !el.querySelector('.pin-marker')) {
+      var pinMark = document.createElement('span');
+      pinMark.className = 'pin-marker';
+      pinMark.setAttribute('aria-hidden', 'true');
+      el.appendChild(pinMark);
+    }
+    if (!shouldShowPin && el.querySelector('.pin-marker')) {
+      var oldPin = el.querySelector('.pin-marker');
+      if (oldPin) oldPin.parentNode.removeChild(oldPin);
+    }
+    // Loupe badge + zoom-in cursor for peekable pinned pieces (rack/tubes).
+    el.classList.toggle('piece-peekable', isPeekable);
+    if (isPeekable && !el.querySelector('.peek-loupe')) {
+      var loupeEl = document.createElement('span');
+      loupeEl.className = 'peek-loupe';
+      loupeEl.setAttribute('aria-hidden', 'true');
+      el.appendChild(loupeEl);
+    }
+    if (!isPeekable && el.querySelector('.peek-loupe')) {
+      var oldLoupe = el.querySelector('.peek-loupe');
+      if (oldLoupe) oldLoupe.parentNode.removeChild(oldLoupe);
+    }
+
     if (state.drag && state.drag.id === id) return; // never fight an active drag
 
     var loc = pieceLocation(id);
@@ -2291,11 +2531,360 @@ function syncPieces() {
     } else {
       where = 'on the desk';
     }
+    var labeled = state.desk.labels[id] ? ', labeled' : '';
+    var isViewablePinned = isPinned && (item.zone === 'rack' || item.zone === 'tubes');
+    var pinnedNote = isPinned ? (isViewablePinned ? ' — pinned, press V or tap to view' : ', pinned by hint') : '';
     var spoken = item.zone === 'rack' ? 'Slide ' + (state.slideLetters[id] || '?') : item.label;
-    el.setAttribute('aria-label', spoken + ', ' + noun + ', ' + where);
+    el.setAttribute('aria-label', spoken + ', ' + noun + labeled + pinnedNote + ', ' + where);
   });
 
   scheduleFilmLighting();
+}
+
+/* ── The label printer ───────────────────────────────────────────── */
+
+function printLabel(id) {
+  var item = itemById(id);
+  if (state.desk.labels[id]) {
+    toast('That piece already has a label.');
+    announce(item.label + ' already has a label.');
+    return false;
+  }
+  if (!hasMachine('printer')) {
+    toast('This puzzle has no label printer.');
+    announce('This puzzle has no label printer.');
+    return false;
+  }
+  if (hintsLeft() <= 0) {
+    toast('Out of blank labels.');
+    announce('No blank labels left.');
+    return false;
+  }
+  state.desk.labels[id] = true;
+  state.desk.hintsUsed += 1;
+  // Bring the labeled piece to the front of the desk z-order so its
+  // printed label (which now overflows the piece's own box — see the
+  // .hint-label rule in styles.css) can't be covered by a neighboring
+  // piece that happens to sit on top of it.
+  state.desk.z[id] = ++state.desk.zTop;
+  playSound('print');
+  announce('Label printed: ' + item.label + '.');
+  syncAll();
+  persistGame();
+  return true;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * HINTS SYSTEM (v15) — three free hints per puzzle, each once.
+ *
+ * H1 Label Images: attaches .id-tag showing info.title on image pieces.
+ * H2 Seed the Trays: places one piece per unsolved group + pins it.
+ * H3 Reveal a Category: shows lowest-tier unsolved group name on a sticky.
+ *
+ * State lives in state.desk.hints = { labels, seeds, category,
+ *   revealedGroupId, pinned:{itemId:boxIndex} }.
+ * ════════════════════════════════════════════════════════════════════ */
+
+function openSettingsPanel() {
+  if (!els.settingsPanel || !els.btnSettings) return;
+  closeHintsPanel(); // only one panel open at a time
+  els.settingsPanel.hidden = false;
+  els.btnSettings.setAttribute('aria-expanded', 'true');
+}
+
+function closeSettingsPanel() {
+  if (!els.settingsPanel) return;
+  els.settingsPanel.hidden = true;
+  if (els.btnSettings) els.btnSettings.setAttribute('aria-expanded', 'false');
+}
+
+function toggleSettingsPanel() {
+  if (!els.settingsPanel) return;
+  if (els.settingsPanel.hidden) openSettingsPanel(); else closeSettingsPanel();
+}
+
+function openHintsPanel() {
+  if (!els.hintsPanel || !els.btnHints) return;
+  closeSettingsPanel(); // only one panel open at a time
+  buildHintsPanel();
+  els.hintsPanel.hidden = false;
+  els.btnHints.setAttribute('aria-expanded', 'true');
+  // Focus first enabled row button.
+  var first = els.hintsPanel.querySelector('.hint-row-btn:not([disabled])');
+  if (first) first.focus();
+}
+
+function closeHintsPanel() {
+  if (!els.hintsPanel) return;
+  els.hintsPanel.hidden = true;
+  if (els.btnHints) els.btnHints.setAttribute('aria-expanded', 'false');
+}
+
+function toggleHintsPanel() {
+  if (!els.hintsPanel) return;
+  if (els.hintsPanel.hidden) openHintsPanel(); else closeHintsPanel();
+}
+
+function buildHintsPanel() {
+  var panel = els.hintsPanel;
+  if (!panel) return;
+  panel.innerHTML = '';
+  var game = state.game;
+  var hints = state.desk && state.desk.hints;
+  var phase = game ? game.phase : null;
+  var isOver = phase === 'won' || phase === 'lost';
+
+  // H1 — Label Images
+  var solvedGroupIds = game ? new Set(game.solved.map(function (s) { return s.groupId; })) : new Set();
+  var imagePieces = game ? game.puzzle.items.filter(function (item) {
+    return (item.zone === 'photo' || item.zone === 'rack' || item.zone === 'tubes')
+      && item.info && item.info.title;
+  }) : [];
+  var h1Used = hints && hints.labels;
+  var h1Disabled = !imagePieces.length;
+  var h1Reason = h1Disabled ? 'No unidentified images in this puzzle.' : (h1Used ? 'Used' : '');
+  addHintRow(panel, 'Label Images', 'Reveals the name of every image piece.', h1Used, h1Disabled && !h1Used, h1Reason, function () {
+    closeHintsPanel();
+    applyH1LabelImages();
+  });
+
+  // H2 — Seed the Trays
+  var unsolvedCount = game ? game.puzzle.groups.length - game.solved.length : 0;
+  var h2Used = hints && hints.seeds;
+  var h2DisabledReason = unsolvedCount <= 1 ? 'Only one group left — every remaining piece belongs to it.' : '';
+  addHintRow(panel, 'Seed the Trays', 'Places one piece from each unsolved group into its tray and pins it. Tap a seeded slide or film to view it.', h2Used, !!h2DisabledReason && !h2Used, h2DisabledReason || (h2Used ? 'Used' : ''), function () {
+    closeHintsPanel();
+    applyH2SeedTrays();
+  });
+
+  // H3 — Reveal a Category
+  var h3Used = hints && hints.category;
+  addHintRow(panel, 'Reveal a Category', 'Shows the name of the lowest-tier unsolved group.', h3Used, false, h3Used ? 'Used' : '', function () {
+    closeHintsPanel();
+    applyH3RevealCategory();
+  });
+}
+
+function addHintRow(panel, name, desc, used, disabled, reason, onClick) {
+  var row = document.createElement('div');
+  row.className = 'hint-row' + (used ? ' hint-row-used' : '');
+  row.setAttribute('role', 'menuitem');
+
+  var info = document.createElement('div');
+  info.className = 'hint-row-info';
+
+  var nameEl = document.createElement('span');
+  nameEl.className = 'hint-row-name';
+  nameEl.textContent = name;
+  info.appendChild(nameEl);
+
+  var descEl = document.createElement('span');
+  descEl.className = 'hint-row-desc';
+  descEl.textContent = desc;
+  info.appendChild(descEl);
+
+  if (reason) {
+    var reasonEl = document.createElement('span');
+    reasonEl.className = 'hint-row-reason';
+    reasonEl.textContent = reason;
+    info.appendChild(reasonEl);
+  }
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn hint-row-btn';
+  btn.textContent = used ? 'Used' : 'Use';
+  btn.disabled = used || disabled;
+  btn.setAttribute('aria-disabled', String(used || disabled));
+  if (!used && !disabled) btn.addEventListener('click', onClick);
+
+  row.appendChild(info);
+  row.appendChild(btn);
+  panel.appendChild(row);
+}
+
+/* ── H1: Label Images ─────────────────────────────────────────────── */
+
+function applyH1LabelImages() {
+  var game = state.game;
+  var desk = state.desk;
+  if (!game || !desk) return;
+  if (desk.hints.labels) { toast('Labels already applied.'); return; }
+  var imagePieces = game.puzzle.items.filter(function (item) {
+    return (item.zone === 'photo' || item.zone === 'rack' || item.zone === 'tubes')
+      && item.info && item.info.title;
+  });
+  if (!imagePieces.length) {
+    toast('No unidentified images in this puzzle.');
+    return;
+  }
+  desk.hints.labels = true;
+  announce('Image labels revealed.');
+  syncAll();
+  persistGame();
+}
+
+/* ── H2: Seed the Trays ───────────────────────────────────────────── */
+
+function applyH2SeedTrays() {
+  var game = state.game;
+  var desk = state.desk;
+  if (!game || !desk) return;
+  if (desk.hints.seeds) { toast('Trays already seeded.'); return; }
+  if (state.drag) return; // in-progress drag — ignore silently
+
+  var solvedBoxes = new Set(game.solved.map(function (s) { return s.boxIndex; }));
+  var unsolvedBoxes = [0, 1, 2, 3].filter(function (b) { return !solvedBoxes.has(b); });
+
+  if (unsolvedBoxes.length <= 1) {
+    toast('Only one group left — every remaining piece belongs to it.');
+    return;
+  }
+
+  var solvedGroupIds = new Set(game.solved.map(function (s) { return s.groupId; }));
+  var unsolvedGroups = game.puzzle.groups
+    .filter(function (g) { return !solvedGroupIds.has(g.id); })
+    .slice().sort(function (a, b) { return a.tier - b.tier; });
+
+  // Pass 1: claim trays where a group's piece is already staged there.
+  var claimedTray = {};   // groupId -> boxIndex
+  var claimedBoxes = new Set();
+  var pinnedPieces = {};  // itemId -> true (just mark; actual box from staging)
+
+  unsolvedGroups.forEach(function (group) {
+    for (var ii = 0; ii < group.itemIds.length; ii++) {
+      var itemId = group.itemIds[ii];
+      var cell = game.cellOfItem(itemId);
+      if (!cell) continue;
+      if (solvedBoxes.has(cell.box)) continue;
+      if (claimedBoxes.has(cell.box)) continue;
+      claimedTray[group.id] = cell.box;
+      claimedBoxes.add(cell.box);
+      pinnedPieces[itemId] = cell.box;
+      break;
+    }
+  });
+
+  // Pass 2: assign remaining groups to remaining boxes in tier order.
+  var remainingBoxes = unsolvedBoxes.filter(function (b) { return !claimedBoxes.has(b); });
+  var remainingGroups = unsolvedGroups.filter(function (g) { return claimedTray[g.id] === undefined; });
+  remainingGroups.forEach(function (group, i) {
+    if (i < remainingBoxes.length) {
+      claimedTray[group.id] = remainingBoxes[i];
+      claimedBoxes.add(remainingBoxes[i]);
+    }
+  });
+
+  // Build reverse map: boxIndex -> groupId
+  var groupByBox = {};
+  Object.keys(claimedTray).forEach(function (gid) { groupByBox[claimedTray[gid]] = gid; });
+
+  // Pass 3: evict staged, unpinned pieces that are in the wrong tray.
+  var evicted = 0;
+  for (var b = 0; b < BOX_COUNT; b++) {
+    if (!groupByBox[b]) continue;
+    var targetGroupId = groupByBox[b];
+    for (var s = 0; s < SLOT_COUNT; s++) {
+      var occupantId = game.staging[b][s];
+      if (!occupantId) continue;
+      if (pinnedPieces[occupantId] !== undefined) continue; // already pinned by pass 1
+      var occupantGroup = groupOfItem(game.puzzle, occupantId);
+      if (occupantGroup && occupantGroup.id === targetGroupId) continue; // belongs here
+      game.unstage(occupantId);
+      settleOnDesk(occupantId, null, null, null);
+      evicted++;
+    }
+  }
+  if (evicted > 0) {
+    toast(evicted + ' piece' + (evicted === 1 ? '' : 's') + ' returned to the desk.');
+  }
+
+  // Pass 4: for groups lacking a pin, pick a random desk piece and stage + pin it.
+  unsolvedGroups.forEach(function (group) {
+    var trayBox = claimedTray[group.id];
+    if (trayBox === undefined) return;
+    var hasPinned = group.itemIds.some(function (iid) { return pinnedPieces[iid] !== undefined; });
+    if (hasPinned) return;
+    var deskPieces = group.itemIds.filter(function (iid) { return pieceLocation(iid).kind === 'desk'; });
+    if (!deskPieces.length) return;
+    var pick = deskPieces[Math.floor(Math.random() * deskPieces.length)];
+    var slot = game.firstEmptySlot(trayBox);
+    if (slot < 0) return;
+    var result = game.stageToSlot(pick, trayBox, slot);
+    if (result === 'staged' || result === 'moved') {
+      pinnedPieces[pick] = trayBox;
+    }
+  });
+
+  // Apply pins to desk.hints.pinned.
+  Object.keys(pinnedPieces).forEach(function (iid) {
+    desk.hints.pinned[iid] = pinnedPieces[iid];
+  });
+
+  desk.hints.seeds = true;
+  announce('Trays seeded with one piece from each group.');
+  syncAll();
+  persistGame();
+}
+
+/* ── H3: Reveal a Category ────────────────────────────────────────── */
+
+function applyH3RevealCategory() {
+  var game = state.game;
+  var desk = state.desk;
+  if (!game || !desk) return;
+  if (desk.hints.category) { toast('Category already revealed.'); return; }
+
+  var solvedGroupIds = new Set(game.solved.map(function (s) { return s.groupId; }));
+  var unsolvedGroups = game.puzzle.groups
+    .filter(function (g) { return !solvedGroupIds.has(g.id); })
+    .slice().sort(function (a, b) { return a.tier - b.tier; });
+
+  if (!unsolvedGroups.length) {
+    toast('All groups are solved.');
+    return;
+  }
+
+  var lowest = unsolvedGroups[0];
+  desk.hints.category = true;
+  desk.hints.revealedGroupId = lowest.id;
+  announce('One group is: ' + lowest.name);
+  syncRevealNote();
+  persistGame();
+}
+
+function syncRevealNote() {
+  var note = els.revealNote;
+  if (!note) return;
+  var desk = state.desk;
+  if (!desk || !desk.hints || !desk.hints.revealedGroupId) {
+    note.hidden = true;
+    note.textContent = '';
+    return;
+  }
+  var game = state.game;
+  if (!game) { note.hidden = true; return; }
+  var group = game.puzzle.groups.find(function (g) { return g.id === desk.hints.revealedGroupId; });
+  if (!group) { note.hidden = true; return; }
+  var solved = game.solved.some(function (s) { return s.groupId === group.id; });
+  note.hidden = false;
+  note.className = 'reveal-note' + (solved ? ' reveal-note-solved' : '');
+  note.innerHTML = '';
+  var label = document.createElement('span');
+  label.className = 'reveal-note-label';
+  label.textContent = 'One group is:';
+  var name = document.createElement('strong');
+  name.textContent = group.name;
+  note.appendChild(label);
+  note.appendChild(document.createTextNode(' '));
+  note.appendChild(name);
+  if (solved) {
+    var check = document.createElement('span');
+    check.className = 'reveal-note-check';
+    check.textContent = ' ✓';
+    check.setAttribute('aria-label', 'solved');
+    note.appendChild(check);
+  }
 }
 
 /* ── Dragging (Pointer Events, handlers bound ONCE in init) ─────── */
@@ -2327,6 +2916,18 @@ function onPointerDown(ev) {
   var id = pieceEl.dataset.itemId;
   var loc = pieceLocation(id);
   if (loc.kind === 'tray' && loc.locked) return;
+
+  // Block dragging pinned pieces (H2 hint). Slides and films open a peek viewer instead.
+  if (state.desk && state.desk.hints && state.desk.hints.pinned && state.desk.hints.pinned[id] !== undefined) {
+    var pinnedItem = itemById(id);
+    if (pinnedItem.zone === 'rack' || pinnedItem.zone === 'tubes') {
+      ev.preventDefault();
+      openPinnedPeek(id, pinnedItem);
+    } else {
+      toast('That piece is pinned by a hint.');
+    }
+    return;
+  }
 
   ev.preventDefault();
   pieceEl.focus({ preventScroll: true });
@@ -2363,6 +2964,7 @@ function onPointerDown(ev) {
     rects: {
       desk: rectRel(els.deskSurface),
       stage: hasMachine('scope') ? rectRel(els.scopeStage) : NEVER_RECT,
+      printer: NEVER_RECT,
       trays: trayEls.map(function (t) { return rectRel(t); }),
       slots: slotEls.map(function (row) { return row.map(function (s) { return rectRel(s); }); }),
     },
@@ -2455,7 +3057,7 @@ function onPointerCancel(ev) {
  * cached target rects, and current occupancy, decide what a drop means.
  * returns: {kind:'slot',box,slot} | {kind:'tray-locked'|'tray-full',box}
  *   | {kind:'scope'|'scope-wrong'|'scope-occupied'}
- *   | {kind:'desk'}
+ *   | {kind:'printer'} | {kind:'desk'}
  */
 function classifyDrop(input) {
   for (var b = 0; b < input.rects.trays.length; b++) {
@@ -2476,6 +3078,9 @@ function classifyDrop(input) {
     if (input.zone !== 'rack') return { kind: 'scope-wrong' };
     if (input.scope && input.scope !== input.itemId) return { kind: 'scope-occupied' };
     return { kind: 'scope' };
+  }
+  if (pointIn(input.rects.printer, input.x, input.y)) {
+    return { kind: 'printer' };
   }
   return { kind: 'desk' };
 }
@@ -2530,6 +3135,9 @@ function applyDrop(d, x, y) {
     case 'scope-occupied':
       toast('The stage already holds a slide.');
       break;
+    case 'printer':
+      toast("The printer's out of ink — try the Hints menu.");
+      break;
     case 'desk':
       if (item.zone === 'tubes') settleOnWall(id, x, d.wallRect);
       else settleOnDesk(id, x, y, d.rects.desk);
@@ -2577,12 +3185,30 @@ function onKeyDown(ev) {
     closeClueGuide();
     return;
   }
-  if (ev.key === 'Escape' && !els.overlaySettings.hidden) {
-    hideOverlay(els.overlaySettings);
+  if (ev.key === 'Escape' && els.settingsPanel && !els.settingsPanel.hidden) {
+    closeSettingsPanel();
+    if (els.btnSettings) els.btnSettings.focus();
+    return;
+  }
+  // Peek overlay Esc close.
+  if (ev.key === 'Escape' && peekOverlay && !peekOverlay.hidden) {
+    closePinnedPeek();
+    return;
+  }
+  // Hints panel Esc close.
+  if (ev.key === 'Escape' && els.hintsPanel && !els.hintsPanel.hidden) {
+    closeHintsPanel();
+    if (els.btnHints) els.btnHints.focus();
     return;
   }
   if (!state.game || state.game.phase !== 'playing') return;
-  if (!els.overlayHelp.hidden || !els.overlayResults.hidden || !els.overlaySettings.hidden) return;
+  if (!els.overlayHelp.hidden || !els.overlayResults.hidden || (els.settingsPanel && !els.settingsPanel.hidden) || (peekOverlay && !peekOverlay.hidden)) return;
+  // Hints panel L key: toggle from anywhere during play (before piece-focus check).
+  if (ev.key === 'l' || ev.key === 'L') {
+    ev.preventDefault();
+    toggleHintsPanel();
+    return;
+  }
 
   var active = document.activeElement;
   if (!active || !active.classList || !active.classList.contains('piece')) return;
@@ -2590,6 +3216,19 @@ function onKeyDown(ev) {
   var item = itemById(id);
   var loc = pieceLocation(id);
   if (loc.kind === 'tray' && loc.locked) return;
+
+  // Block piece-action keys for pinned pieces (H2 hint) — mirrors the pointer guard.
+  // Slides and films allow V (and Enter/Space as synonym) to open the peek viewer.
+  if (state.desk && state.desk.hints && state.desk.hints.pinned && state.desk.hints.pinned[id] !== undefined) {
+    if ((item.zone === 'rack' || item.zone === 'tubes') &&
+        (ev.key === 'v' || ev.key === 'V' || ev.key === 'Enter' || ev.key === ' ')) {
+      ev.preventDefault();
+      openPinnedPeek(id, item);
+    } else {
+      toast('That piece is pinned by a hint.');
+    }
+    return;
+  }
 
   if (ev.key.length === 1 && ev.key >= '1' && ev.key <= '4') {
     ev.preventDefault();
@@ -2698,6 +3337,161 @@ function viewOnMachine(id, item) {
   persistGame();
 }
 
+/* ════════════════════════════════════════════════════════════════════
+ * PEEK OVERLAY — read-only viewer for hint-pinned slides and films.
+ * The piece stays in its tray; no engine state is touched.
+ * ════════════════════════════════════════════════════════════════════ */
+
+/** Build (once) and show the peek overlay for a pinned rack or tubes piece. */
+function openPinnedPeek(id, item) {
+  // Lazily create the overlay DOM the first time.
+  if (!peekOverlay) {
+    var ov = document.createElement('div');
+    ov.className = 'overlay overlay-peek';
+    ov.id = 'overlay-peek';
+    ov.hidden = true;
+
+    var card = document.createElement('div');
+    card.className = 'overlay-card peek-card';
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-labelledby', 'peek-caption');
+    card.setAttribute('tabindex', '-1');
+
+    var viewerWrap = document.createElement('div');
+    viewerWrap.className = 'peek-viewer-wrap';
+    viewerWrap.id = 'peek-viewer-wrap';
+    card.appendChild(viewerWrap);
+
+    var caption = document.createElement('p');
+    caption.className = 'peek-caption';
+    caption.id = 'peek-caption';
+    card.appendChild(caption);
+
+    var actions = document.createElement('div');
+    actions.className = 'overlay-actions';
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn btn-primary';
+    closeBtn.textContent = 'Close';
+    closeBtn.addEventListener('click', closePinnedPeek);
+    actions.appendChild(closeBtn);
+    card.appendChild(actions);
+
+    ov.appendChild(card);
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function (ev) { if (ev.target === ov) closePinnedPeek(); });
+    peekOverlay = ov;
+  }
+
+  var wrap = document.getElementById('peek-viewer-wrap');
+  var captionEl = document.getElementById('peek-caption');
+  wrap.innerHTML = '';
+
+  // Build caption from label + optional info.title.
+  var captionParts = [item.label];
+  if (item.info && item.info.title && item.info.title !== item.label) captionParts.push(item.info.title);
+  captionEl.textContent = captionParts.join(' — ');
+
+  if (item.zone === 'rack') {
+    // Scope-style viewer — same canvas rendering as renderScopeView().
+    var scopeWrap = document.createElement('div');
+    scopeWrap.className = 'peek-scope-wrap';
+    var peekCanvas = document.createElement('canvas');
+    peekCanvas.className = 'peek-canvas';
+    peekCanvas.setAttribute('aria-label', 'Microscope view');
+    scopeWrap.appendChild(peekCanvas);
+    wrap.appendChild(scopeWrap);
+    peekOverlay.hidden = false;
+    // Defer rendering until the wrap has layout dimensions.
+    requestAnimationFrame(function () { renderPeekScopeCanvas(item, peekCanvas, scopeWrap); });
+  } else {
+    // Film lightbox viewer — same lit layer as in buildPieces() for tubes.
+    var filmWrap = document.createElement('div');
+    filmWrap.className = 'peek-film-wrap';
+    var litDiv = document.createElement('div');
+    litDiv.className = 'peek-film-lit';
+    if (item.info && item.info.image) {
+      litDiv.classList.add('has-image');
+      litDiv.style.backgroundImage = 'url("' + item.info.image + '")';
+    } else {
+      var litLbl = document.createElement('span');
+      litLbl.className = 'film-lit-label';
+      litLbl.textContent = item.label;
+      litDiv.appendChild(litLbl);
+    }
+    filmWrap.appendChild(litDiv);
+    wrap.appendChild(filmWrap);
+    peekOverlay.hidden = false;
+  }
+
+  // Remember which piece gets focus back on close.
+  peekOverlay.dataset.returnFocusId = id;
+  var card2 = peekOverlay.querySelector('.peek-card');
+  if (card2) setTimeout(function () { card2.focus(); }, 40);
+}
+
+/** Draw the scope view for the peek overlay, retrying until the source is ready. */
+function renderPeekScopeCanvas(item, canvas, scopeWrap) {
+  if (!peekOverlay || peekOverlay.hidden) return; // overlay closed before render
+  var cw = scopeWrap.clientWidth;
+  var ch = scopeWrap.clientHeight;
+  if (cw < 10 || ch < 10) {
+    // Layout not settled yet — retry.
+    setTimeout(function () { renderPeekScopeCanvas(item, canvas, scopeWrap); }, 40);
+    return;
+  }
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cw * dpr);
+  canvas.height = Math.round(ch * dpr);
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Idle bed background (matches renderScopeView).
+  var bed = ctx.createRadialGradient(cw / 2, ch / 2, 10, cw / 2, ch / 2, Math.max(cw, ch) * 0.7);
+  bed.addColorStop(0, '#f4ecdc');
+  bed.addColorStop(1, '#d9cdb4');
+  ctx.fillStyle = bed;
+  ctx.fillRect(0, 0, cw, ch);
+
+  var src = scopeSource(item);
+  if (!src) {
+    // Image still loading — draw a shimmer ring and poll.
+    ctx.beginPath();
+    ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) * 0.3, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(122, 79, 192, 0.35)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    setTimeout(function () { renderPeekScopeCanvas(item, canvas, scopeWrap); }, 150);
+    return;
+  }
+
+  var sw = src.width, sh = src.height;
+  var cover = Math.max(cw / sw, ch / sh);
+  var vw = cw / cover, vh = ch / cover;
+  var sx = (sw - vw) / 2, sy = (sh - vh) / 2;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(src, sx, sy, vw, vh, 0, 0, cw, ch);
+
+  // Soft vignette — matches renderScopeView.
+  var vg = ctx.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.42, cw / 2, ch / 2, Math.max(cw, ch) * 0.72);
+  vg.addColorStop(0, 'rgba(40, 30, 16, 0)');
+  vg.addColorStop(1, 'rgba(40, 30, 16, 0.35)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, cw, ch);
+}
+
+/** Close the peek overlay and restore focus to the source piece. */
+function closePinnedPeek() {
+  if (!peekOverlay) return;
+  peekOverlay.hidden = true;
+  var returnId = peekOverlay.dataset.returnFocusId;
+  if (returnId && state.pieceEls && state.pieceEls[returnId]) {
+    state.pieceEls[returnId].focus({ preventScroll: true });
+  }
+}
+
 /** Spoken description of what a machine reveals for an item (aria only —
     the displays themselves stay text-free). */
 function revealText(item) {
@@ -2771,7 +3565,7 @@ function onShuffle() {
   playSound('shuffle');
   syncPieces();
   persistGame();
-  announce('Desk pieces scattered.');
+  announce('Desk pieces shuffled.');
 }
 
 /* ── Restricted-HTML sanitizer (rich text in article heading/text) ──────
@@ -2908,6 +3702,18 @@ function showResultsForPuzzle(puzzle, opts) {
   opts = opts || {};
   els.resultsTitle.textContent = opts.title || 'Solved!';
   els.resultsSub.textContent = opts.sub || '';
+  var hintsObj = opts.hints || {};
+  var hintNames = [];
+  if (hintsObj.labels) hintNames.push('Label Images');
+  if (hintsObj.seeds) hintNames.push('Seed the Trays');
+  if (hintsObj.category) hintNames.push('Reveal a Category');
+  if (els.resultsHints) {
+    els.resultsHints.textContent = hintNames.length
+      ? 'Hints used: ' + hintNames.join(', ')
+      : (opts.legacyHintsUsed ? 'Hints used: ' + opts.legacyHintsUsed : '');
+    els.resultsHints.hidden = !hintNames.length && !opts.legacyHintsUsed;
+  }
+
   els.resultsGroups.innerHTML = '';
   var solvedGroupIds = opts.solvedGroupIds || new Set();
   var ordered = puzzle.groups.slice().sort(function (a, b) { return a.tier - b.tier; });
@@ -2928,6 +3734,8 @@ function showResults() {
     sub: won
       ? 'Solved with ' + game.mistakes + ' mistake' + (game.mistakes === 1 ? '' : 's') + '.'
       : 'Here is how the groups fit together.',
+    hints: state.desk.hints || {},
+    legacyHintsUsed: state.desk.hintsUsed,
     solvedGroupIds: solvedGroupIds,
   });
 }
@@ -2953,6 +3761,14 @@ function buildShareText() {
   lines.push('Starry Sky Society Puzzle');
   lines.push(puzzle.title + (puzzle.date ? ', ' + puzzle.date : ''));
   lines.push('Mistakes: ' + game.mistakes + (state.settings.casual ? ' (casual)' : '/' + MAX_MISTAKES));
+  var hintEmojis = '';
+  var hints = state.desk.hints || {};
+  if (hints.labels) hintEmojis += '🏷️';
+  if (hints.seeds) hintEmojis += '📌';
+  if (hints.category) hintEmojis += '📝';
+  // Fallback: old saves without hints block but with hintsUsed > 0.
+  if (!hintEmojis && state.desk.hintsUsed > 0) hintEmojis = String(state.desk.hintsUsed);
+  if (hintEmojis) lines.push('Hints: ' + hintEmojis);
   lines.push('');
   game.attempts.forEach(function (attempt) {
     var row = attempt.itemIds.map(function (id) {
@@ -2998,9 +3814,24 @@ function playToday() {
   });
 }
 
-function onArchiveClick(ev) {
-  var btn = ev.target.closest ? ev.target.closest('.archive-item-btn') : null;
+/* ── Puzzle-select dropdown ──────────────────────────────────────── */
+
+function openPuzzleSelect() {
+  els.puzzleSelectPanel.hidden = false;
+  els.btnPuzzleSelect.setAttribute('aria-expanded', 'true');
+  var first = els.puzzleSelectList.querySelector('.puzzle-select-entry');
+  if (first) first.focus();
+}
+
+function closePuzzleSelect() {
+  els.puzzleSelectPanel.hidden = true;
+  els.btnPuzzleSelect.setAttribute('aria-expanded', 'false');
+}
+
+function onPuzzleSelectEntry(ev) {
+  var btn = ev.target.closest ? ev.target.closest('.puzzle-select-entry') : null;
   if (!btn) return;
+  closePuzzleSelect();
   var entry = { id: btn.dataset.puzzleId, file: btn.dataset.puzzleFile };
   loadPuzzleByEntry(entry).then(openPuzzle).catch(function (err) {
     showErrorScreen(err.message);
@@ -3008,6 +3839,8 @@ function onArchiveClick(ev) {
 }
 
 function backToMenu() {
+  closeHintsPanel();
+  closeSettingsPanel();
   showScreen('screenMenu');
   refreshMenu();
 }
@@ -3030,14 +3863,15 @@ function onPlayAgain() {
 function onResetPuzzle() {
   var game = state.game;
   if (!game) return;
-  var hasProgress = game.mistakes > 0
-    || game.puzzle.items.some(function (i) { return pieceLocation(i.id).kind === 'tray'; });
-  if (game.phase === 'playing' && hasProgress
+  if (game.phase === 'playing'
     && !window.confirm('Reset this puzzle? Staged pieces and mistakes will be cleared.')) {
     return;
   }
   var puzzle = game.puzzle;
   try { localStorage.removeItem(saveKey(puzzle.id)); } catch (e) { /* ignore */ }
+  // Re-arm the viewport health tip so it may show once more after the reset.
+  viewportTipShownThisLoad = false;
+  dismissViewportTip();
   openPuzzle(JSON.parse(JSON.stringify(puzzle)));
 }
 
@@ -3511,7 +4345,7 @@ function renderEditor() {
   var iframe = document.createElement('iframe');
   iframe.id = 'preview-frame';
   iframe.title = 'Live puzzle preview';
-  iframe.src = '?preview&v=14';
+  iframe.src = '?preview&v=19';
   iframe.addEventListener('load', function () {
     // Belt-and-suspenders: if the ready handshake message was somehow
     // missed, the iframe finishing its own load is a second chance to
@@ -4709,8 +5543,46 @@ async function init() {
 
   // Menu + settings overlay.
   els.btnPlayToday.addEventListener('click', playToday);
-  els.btnSettings.addEventListener('click', function () { showOverlay(els.overlaySettings); });
-  els.btnCloseSettings.addEventListener('click', function () { hideOverlay(els.overlaySettings); });
+
+  // Puzzle-select dropdown
+  els.btnPuzzleSelect.addEventListener('click', function () {
+    if (els.puzzleSelectPanel.hidden) { openPuzzleSelect(); } else { closePuzzleSelect(); }
+  });
+  els.puzzleSelectList.addEventListener('click', onPuzzleSelectEntry);
+  document.addEventListener('keydown', function (ev) {
+    if (!els.puzzleSelectPanel || els.puzzleSelectPanel.hidden) return;
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      closePuzzleSelect();
+      els.btnPuzzleSelect.focus();
+      return;
+    }
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      var entries = Array.prototype.slice.call(
+        els.puzzleSelectList.querySelectorAll('.puzzle-select-entry'));
+      if (!entries.length) return;
+      var idx = entries.indexOf(document.activeElement);
+      idx = ev.key === 'ArrowDown'
+        ? (idx < entries.length - 1 ? idx + 1 : 0)
+        : (idx > 0 ? idx - 1 : entries.length - 1);
+      entries[idx].focus();
+    }
+  });
+  document.addEventListener('click', function (ev) {
+    if (!els.puzzleSelectPanel || els.puzzleSelectPanel.hidden) return;
+    var wrap = els.btnPuzzleSelect ? els.btnPuzzleSelect.closest('.puzzle-select-wrap') : null;
+    if (wrap && !wrap.contains(ev.target)) { closePuzzleSelect(); }
+  });
+
+  els.btnSettings.addEventListener('click', function () { toggleSettingsPanel(); });
+  if (els.btnCloseSettings) els.btnCloseSettings.addEventListener('click', function () { closeSettingsPanel(); els.btnSettings.focus(); });
+  // Settings panel: click-outside close — namespaced.
+  document.addEventListener('click', function (ev) {
+    if (!els.settingsPanel || els.settingsPanel.hidden) return;
+    var wrap = els.btnSettings ? els.btnSettings.closest('.settings-wrap') : null;
+    if (wrap && !wrap.contains(ev.target)) closeSettingsPanel();
+  });
   document.querySelectorAll('input[name="theme"]').forEach(function (r) {
     r.addEventListener('change', function () { if (r.checked) setTheme(r.value); });
   });
@@ -4738,7 +5610,45 @@ async function init() {
   els.btnReset.addEventListener('click', onResetPuzzle);
   els.btnHelp.addEventListener('click', showClueGuide);
   els.btnCloseHelp.addEventListener('click', closeClueGuide);
+  if (els.btnHints) {
+    els.btnHints.addEventListener('click', function () { toggleHintsPanel(); });
+  }
   els.btnMenu.addEventListener('click', backToMenu);
+
+  // Viewport health tip: dismiss button.
+  var viewportTipDismissBtn = document.querySelector('.viewport-tip-dismiss');
+  if (viewportTipDismissBtn) {
+    viewportTipDismissBtn.addEventListener('click', dismissViewportTip);
+  }
+
+  // Viewport health tip: debounced resize check while play screen is visible.
+  window.addEventListener('resize', function () {
+    if (!els.screenPlay || els.screenPlay.hidden) return;
+    clearTimeout(viewportTipResizeTimer);
+    viewportTipResizeTimer = setTimeout(checkViewportHealth, 400);
+  });
+
+  // Hints panel: keyboard nav (ArrowUp/Down between enabled rows) — namespaced
+  // so it doesn't conflict with the puzzle-select dropdown's own handlers.
+  document.addEventListener('keydown', function (ev) {
+    if (!els.hintsPanel || els.hintsPanel.hidden) return;
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      var rows = Array.prototype.slice.call(els.hintsPanel.querySelectorAll('.hint-row-btn:not([disabled])'));
+      if (!rows.length) return;
+      var idx = rows.indexOf(document.activeElement);
+      idx = ev.key === 'ArrowDown'
+        ? (idx < rows.length - 1 ? idx + 1 : 0)
+        : (idx > 0 ? idx - 1 : rows.length - 1);
+      rows[idx].focus();
+    }
+  });
+  // Hints panel: click-outside close — namespaced.
+  document.addEventListener('click', function (ev) {
+    if (!els.hintsPanel || els.hintsPanel.hidden) return;
+    var wrap = els.btnHints ? els.btnHints.closest('.hints-wrap') : null;
+    if (wrap && !wrap.contains(ev.target)) closeHintsPanel();
+  });
 
   // Trays (lock buttons via delegation).
   els.trays.addEventListener('click', onTraysClick);

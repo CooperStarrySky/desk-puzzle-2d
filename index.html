@@ -20,12 +20,12 @@
   <meta name="twitter:description" content="Sort sixteen pathology clues into four hidden groups." />
   <meta name="twitter:image" content="https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=18" />
+  <link rel="stylesheet" href="styles.css?v=19" />
 </head>
 <body>
   <div id="app">
     <div id="live-region" class="sr-only" aria-live="polite" role="status"></div>
-    <p id="piece-instructions" class="sr-only">Drag with a pointer, or use keys: 1 to 4 sends this piece to a tray, 0 or Backspace returns it to the desk, V views a slide or film on its machine, and arrow keys nudge it.</p>
+    <p id="piece-instructions" class="sr-only">Drag with a pointer, or use keys: 1 to 4 sends this piece to a tray, 0 or Backspace returns it to the desk, V views a slide or film on its machine, L opens the Hints menu, and arrow keys nudge it.</p>
     <div id="toast" class="toast" hidden></div>
 
     <!-- ═══════════════════ MENU SCREEN ═══════════════════ -->
@@ -35,8 +35,23 @@
         <p class="game-tagline">Sixteen pathology clues strewn across a desk. Four hidden groups. Take your time.</p>
       </header>
 
-      <div class="menu-panel menu-panel-simple">
-        <button id="btn-play-today" class="btn btn-primary btn-play-today" type="button">Play puzzle</button>
+      <div class="menu-panel">
+        <button id="btn-play-today" class="btn btn-primary btn-play-today" type="button">Play Latest Puzzle</button>
+
+        <section class="menu-section puzzle-select-section">
+          <h2>Past puzzles</h2>
+          <div class="puzzle-select-wrap">
+            <button id="btn-puzzle-select" class="btn puzzle-select-trigger" type="button"
+                    aria-haspopup="true" aria-expanded="false">
+              <span id="puzzle-select-summary" class="puzzle-select-summary">Loading&hellip;</span>
+              <span class="puzzle-select-chevron" aria-hidden="true">&#9662;</span>
+            </button>
+            <div id="puzzle-select-panel" class="puzzle-select-panel" hidden>
+              <ul id="puzzle-select-list" class="puzzle-select-list"></ul>
+            </div>
+          </div>
+        </section>
+
       </div>
     </section>
 
@@ -47,13 +62,41 @@
           <h1 id="puzzle-title"></h1>
           <p id="puzzle-date"></p>
         </div>
+        <div class="hints-wrap">
+          <button id="btn-hints" class="btn btn-primary" type="button"
+                  aria-haspopup="menu" aria-expanded="false">Hints</button>
+          <div id="hints-panel" class="hints-panel" hidden role="menu" aria-label="Hints"></div>
+        </div>
         <div class="mistake-tracker" id="mistake-tracker" aria-label="Mistakes"></div>
         <div class="play-actions">
-          <button id="btn-shuffle" class="btn btn-ghost" type="button">Scatter</button>
-          <button id="btn-reset" class="btn btn-ghost" type="button">Reset</button>
-          <button id="btn-help" class="btn btn-ghost" type="button">Help</button>
-          <button id="btn-settings" class="btn btn-ghost" type="button" aria-label="Settings">Settings</button>
-          <button id="btn-menu" class="btn btn-ghost" type="button">Menu</button>
+          <button id="btn-shuffle" class="btn btn-ghost" type="button">Shuffle</button>
+          <button id="btn-reset" class="btn btn-ghost" type="button" aria-label="Reset puzzle" title="Reset"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+          <button id="btn-help" class="btn btn-ghost" type="button" aria-label="Help" title="Help"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <div class="settings-wrap">
+            <button id="btn-settings" class="btn btn-ghost" type="button" aria-label="Settings" title="Settings" aria-expanded="false"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+            <div id="settings-panel" class="settings-panel" hidden>
+              <fieldset class="settings-group" id="theme-group">
+                <legend>Theme</legend>
+                <label class="toggle-row"><input type="radio" name="theme" value="light" /> <span>Light</span></label>
+                <label class="toggle-row"><input type="radio" name="theme" value="dark" /> <span>Dark</span></label>
+                <label class="toggle-row"><input type="radio" name="theme" value="system" /> <span>System</span></label>
+              </fieldset>
+              <div class="settings-group">
+                <label class="toggle-row">
+                  <input type="checkbox" id="toggle-sound" checked />
+                  <span>Sound</span>
+                </label>
+                <label class="toggle-row">
+                  <input type="checkbox" id="toggle-casual" />
+                  <span>Casual mode: unlimited mistakes, still counted</span>
+                </label>
+              </div>
+              <div class="overlay-actions">
+                <button id="btn-close-settings" class="btn btn-primary" type="button">Done</button>
+              </div>
+            </div>
+          </div>
+          <button id="btn-menu" class="btn btn-ghost" type="button" aria-label="Back to menu" title="Menu"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-5.5L21 9"/><path d="M3 9v11a1 1 0 0 0 1 1h5v-7h4v7h5a1 1 0 0 0 1-1V9"/></svg></button>
         </div>
       </header>
 
@@ -88,6 +131,7 @@
         </div>
 
         <div class="piece-layer" id="piece-layer"></div>
+        <div id="reveal-note" class="reveal-note" hidden aria-live="polite"></div>
       </div>
       </div>
 
@@ -141,35 +185,6 @@
       </div>
     </section>
 
-    <!-- ═══════════════════ SETTINGS OVERLAY ═══════════════════ -->
-    <div id="overlay-settings" class="overlay" hidden>
-      <div class="overlay-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <h2 id="settings-title">Settings</h2>
-
-        <fieldset class="settings-group" id="theme-group">
-          <legend>Theme</legend>
-          <label class="toggle-row"><input type="radio" name="theme" value="light" /> <span>Light</span></label>
-          <label class="toggle-row"><input type="radio" name="theme" value="dark" /> <span>Dark</span></label>
-          <label class="toggle-row"><input type="radio" name="theme" value="system" /> <span>System</span></label>
-        </fieldset>
-
-        <div class="settings-group">
-          <label class="toggle-row">
-            <input type="checkbox" id="toggle-sound" checked />
-            <span>Sound</span>
-          </label>
-          <label class="toggle-row">
-            <input type="checkbox" id="toggle-casual" />
-            <span>Casual mode: unlimited mistakes, still counted</span>
-          </label>
-        </div>
-
-        <div class="overlay-actions">
-          <button id="btn-close-settings" class="btn btn-primary" type="button">Done</button>
-        </div>
-      </div>
-    </div>
-
     <!-- ═══════════════════ HELP OVERLAY ═══════════════════ -->
     <div id="overlay-help" class="overlay" hidden>
       <div class="overlay-card clue-guide-card" role="dialog" aria-modal="true" aria-labelledby="help-title" tabindex="-1">
@@ -211,6 +226,7 @@
       <div class="overlay-card results-card" role="dialog" aria-modal="true" aria-labelledby="results-title">
         <h2 id="results-title"></h2>
         <p id="results-sub"></p>
+        <p id="results-hints" class="results-hints" hidden></p>
         <div id="results-groups" class="results-groups"></div>
         <div class="results-actions">
           <button id="btn-share" class="btn btn-primary" type="button">Share</button>
@@ -233,6 +249,15 @@
     <!-- Dev-only shells, populated by game.js when ?editor / ?layout is present -->
     <section id="screen-editor" class="screen screen-editor" hidden></section>
     <div id="layout-panel" class="layout-panel" hidden></div>
+
+    <!-- ═══════════════════ VIEWPORT HEALTH TIP ═══════════════════ -->
+    <div id="viewport-tip" class="viewport-tip" hidden role="status" aria-live="polite">
+      <div class="viewport-tip-body">
+        <p class="viewport-tip-title">Feeling cramped?</p>
+        <p class="viewport-tip-text">Try zooming out (Cmd/Ctrl and &minus;) or making the window bigger for the best desk experience.</p>
+      </div>
+      <button class="viewport-tip-dismiss" type="button" aria-label="Dismiss tip" title="Dismiss">&#x2715;</button>
+    </div>
   </div>
 
   <script>
@@ -240,6 +265,6 @@
       document.write('<script src="puzzles/.local-puzzle-fallback.js"><\\/script>');
     }
   </script>
-  <script src="game.js?v=17" defer></script>
+  <script src="game.js?v=19" defer></script>
 </body>
 </html>

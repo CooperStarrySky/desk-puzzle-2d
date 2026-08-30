@@ -249,89 +249,110 @@ img { max-width: 100%; display: block; }
   margin-bottom: 12px;
 }
 
-/* How-to-play cards: shared by the menu screen's inline section and the
-   Help overlay modal. A small icon chip + short copy per mechanic, laid
-   out as a responsive card grid instead of a numbered wall of text. */
-.howto-grid {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-}
-.howto-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: var(--card);
-  border: 1px solid var(--panel-edge);
-  border-radius: var(--r-m);
-  padding: 10px 12px;
-  /* Grid items default to a content-based automatic minimum size (their
-     text's single-line max-content width) that ignores the track's
-     minmax(220px, ...) minimum — the classic grid/flexbox overflow trap.
-     Without this the longer cards blow the modal past the viewport on
-     narrow screens instead of wrapping. */
-  min-width: 0;
-}
-.howto-icon {
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent);
+
+/* ── Puzzle-select dropdown ──────────────────────────────────────── */
+
+.puzzle-select-wrap { position: relative; }
+
+.puzzle-select-trigger {
+  width: 100%;
+  text-align: left;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-s);
+  padding: 0.6em 1.0em;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  transition: background var(--dur-fast), border-color var(--dur-fast);
 }
-.howto-icon svg { width: 18px; height: 18px; }
-.howto-text {
-  flex: 1 1 auto;
-  min-width: 0; /* same fix, one level down: the text is a flex item too */
-  font-size: 0.83rem;
-  line-height: 1.45;
+.puzzle-select-trigger:hover { background: var(--accent-soft); border-color: var(--accent); }
+.puzzle-select-trigger[aria-expanded="true"] { border-color: var(--accent); }
+.puzzle-select-trigger[aria-expanded="true"] .puzzle-select-chevron { transform: rotate(180deg); }
+.puzzle-select-chevron {
+  display: inline-block;
+  transition: transform var(--dur) var(--ease);
+  flex-shrink: 0;
+  font-size: 0.75rem;
   color: var(--ink-soft);
-}
-.howto-text strong { color: var(--ink); font-family: var(--sans); }
-.howto-keys {
-  margin: 14px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--panel-edge);
-  color: var(--ink-soft);
-  font-size: 0.76rem;
-  line-height: 1.5;
 }
 
-.archive-list {
+.puzzle-select-panel {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0; right: 0;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-m);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  max-height: 40vh;
+  overflow-y: auto;
+  z-index: 200;
+  padding: 5px;
+  transform-origin: top center;
+  animation: puzzle-select-in var(--dur) var(--ease);
+}
+@keyframes puzzle-select-in {
+  from { opacity: 0; transform: scaleY(0.93) translateY(-4px); }
+  to   { opacity: 1; transform: scaleY(1) translateY(0); }
+}
+
+.puzzle-select-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
-.archive-item-btn {
+
+.puzzle-select-entry {
   width: 100%;
   text-align: left;
   background: transparent;
-  border: 1px solid var(--panel-edge);
-  border-radius: 8px;
-  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--r-s);
+  padding: 9px 12px;
   font-family: inherit;
+  font-size: 0.92rem;
   color: var(--ink);
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  transition: background var(--dur-fast), transform var(--dur-fast) var(--ease);
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background var(--dur-fast), border-color var(--dur-fast);
 }
-.archive-item-btn:hover { background: var(--accent-soft); transform: translateX(2px); }
-.archive-item-btn .archive-date { color: var(--ink-soft); font-size: 0.85rem; white-space: nowrap; }
-.archive-item-btn.current { border-color: var(--accent); }
-.archive-empty { color: var(--ink-soft); font-style: italic; margin: 0; }
+.puzzle-select-entry:hover,
+.puzzle-select-entry:focus { background: var(--accent-soft); border-color: var(--accent); outline: none; }
+.puzzle-select-entry.current { border-color: var(--accent); }
 
-.menu-settings { display: flex; flex-direction: column; gap: 10px; }
+.puzzle-select-entry-title { flex: 1 1 auto; min-width: 0; }
+.puzzle-select-entry .archive-date { color: var(--ink-soft); font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; }
+
+.puzzle-select-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  flex-shrink: 0;
+}
+.puzzle-select-played {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.archive-empty { color: var(--ink-soft); font-style: italic; margin: 4px 6px; }
+
 .toggle-row {
   display: flex;
   align-items: center;
@@ -388,7 +409,6 @@ img { max-width: 100%; display: block; }
 .play-header-title p { margin: 0; color: var(--ink-soft); font-size: 0.85rem; }
 
 .mistake-tracker {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -655,6 +675,8 @@ img { max-width: 100%; display: block; }
   letter-spacing: 0.25em;
   pointer-events: none;
 }
+/* .label-chip removed in v15 — printer label counter chips are retired. */
+.machine-printer.drop-hot .printer-body { outline: 3px dashed var(--accent-soft); outline-offset: 3px; }
 
 /* ── Group trays ─────────────────────────────────────────────────── */
 
@@ -1232,6 +1254,70 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   transition: opacity var(--dur), transform var(--dur) var(--ease);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+/* ── Viewport health tip ─────────────────────────────────────────── */
+
+.viewport-tip {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-m);
+  padding: 10px 12px 10px 14px;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 32px));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  z-index: 60;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  pointer-events: none;
+}
+.viewport-tip.tip-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.viewport-tip-body { flex: 1 1 auto; min-width: 0; }
+.viewport-tip-title {
+  font-family: var(--serif);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 3px;
+}
+.viewport-tip-text {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin: 0;
+  line-height: 1.4;
+}
+.viewport-tip-dismiss {
+  all: unset;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: var(--r-s);
+  transition: color var(--dur-fast), background var(--dur-fast);
+  min-width: 24px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.viewport-tip-dismiss:hover { color: var(--ink); background: var(--accent-soft); }
+.viewport-tip-dismiss:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
 
 /* ── Overlays ────────────────────────────────────────────────────── */
 
@@ -1829,7 +1915,30 @@ body.preview-mode .play-header-title p { display: none; }
   .editor-drawer { width: calc(100vw - 24px); }
 }
 
-/* ── Settings overlay ────────────────────────────────────────────── */
+/* ── Settings dropdown panel ─────────────────────────────────────── */
+
+.settings-wrap { position: relative; }
+.settings-panel {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  left: auto;
+  min-width: 260px;
+  max-width: min(320px, 90vw);
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-m);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  z-index: 200;
+  padding: 12px;
+  animation: puzzle-select-in var(--dur) var(--ease);
+}
+.settings-panel .settings-group { margin-bottom: 10px; }
+.settings-panel .settings-group:last-of-type { margin-bottom: 0; }
+.settings-panel .toggle-row { min-height: 44px; }
+.settings-panel .overlay-actions { margin-top: 10px; }
+
+/* ── Settings content (shared by dropdown panel) ─────────────────── */
 
 .settings-group {
   border: 1px solid var(--panel-edge);
@@ -1857,7 +1966,6 @@ body.preview-mode .play-header-title p { display: none; }
   color: var(--ink-soft);
   margin: 0;
 }
-.menu-settings-note { color: var(--ink-soft); font-size: 0.9rem; }
 
 /* ── Dev panel: collapsible sections + slide-away (both editors) ─── */
 
@@ -1910,6 +2018,266 @@ body.preview-mode .play-header-title p { display: none; }
 .group-card > summary::before { content: "▸ "; }
 .group-card[open] > summary::before { content: "▾ "; }
 
+/* ══════════════════════ HINTS SYSTEM (v15) ══════════════════════ */
+
+/* Hints button wrapper — relative so the panel can anchor to it.
+   Sits in the play header, immediately left of the mistake tracker.
+   margin-left: auto absorbs flex slack, pushing hints+mistakes to the
+   right cluster while the title/date occupy the left. */
+.hints-wrap { position: relative; margin-left: auto; }
+.hints-wrap #btn-hints {
+  min-width: 110px;
+  padding: 0.5em 1.2em;
+  font-size: 0.88rem;
+}
+
+/* Hints dropdown panel — anchors to right edge of the button so it
+   stays inside the viewport now that the button lives at the right. */
+.hints-panel {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  left: auto;
+  min-width: 280px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-m);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  z-index: 200;
+  padding: 8px;
+  animation: puzzle-select-in var(--dur) var(--ease);
+}
+
+.hint-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 6px;
+  border-radius: var(--r-s);
+  transition: background var(--dur-fast);
+}
+.hint-row + .hint-row { border-top: 1px solid var(--panel-edge); }
+.hint-row-used { opacity: 0.55; }
+.hint-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.hint-row-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.hint-row-desc {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+.hint-row-reason {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin-top: 2px;
+}
+.hint-row-btn {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  padding: 0.3em 0.75em;
+  min-width: 46px;
+  align-self: center;
+}
+.hint-row-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* ── H1: ID tags on image pieces ─────────────────────────────── */
+
+/* Machine-stamp look: slightly different tint from .hint-label
+   so clue-labels (warm cream) and id-tags (cool grey-blue) read differently. */
+.id-tag {
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  transform: translateX(-50%) rotate(1deg);
+  background: #e8edf2;
+  border: 1px solid rgba(60, 80, 110, 0.38);
+  border-radius: 2px;
+  padding: 1px 5px;
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: #253648;
+  box-shadow: 0 1px 3px rgba(36, 31, 20, 0.28);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 6;
+}
+:root[data-theme="dark"] .id-tag {
+  background: #2e3843;
+  border-color: rgba(140, 170, 210, 0.35);
+  color: #b8cde0;
+}
+
+/* ── H2: Pin marker on staged pieces ─────────────────────────── */
+
+.pin-marker {
+  position: absolute;
+  top: -6px;
+  right: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--accent);
+  border: 1.5px solid var(--accent-ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 7;
+}
+
+/* ── Peek-viewable pinned pieces (rack / tubes only) ─────────── */
+
+/* zoom-in cursor signals that tapping/pressing V opens a viewer */
+.piece-peekable { cursor: zoom-in; }
+
+/* Small loupe badge — sits at bottom-right, mirrors pin-marker style */
+.peek-loupe {
+  position: absolute;
+  bottom: -5px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1.5px solid var(--accent-ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.peek-loupe::after {
+  content: "\29BF"; /* ⦿ small circle/dot — loupe feel */
+  color: var(--accent-ink);
+  font-size: 7px;
+  line-height: 1;
+}
+
+/* ── Peek overlay (read-only viewer for pinned slides / films) ── */
+
+.peek-card { max-width: 460px; width: 100%; }
+
+.peek-viewer-wrap { margin-bottom: 12px; }
+
+/* Scope-style viewer — same border + background as .scope-display-wrap */
+.peek-scope-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--r-s);
+  overflow: hidden;
+  border: 3px solid #4d4437;
+  background: #efe6d6;
+  box-shadow: inset 0 0 14px rgba(60, 46, 24, 0.25);
+}
+.peek-scope-wrap .peek-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Film lightbox viewer — same dark slab + lit overlay as .film-lit */
+.peek-film-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 300px;
+  border-radius: 4px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(250, 240, 215, 0.10) 0 18%, transparent 55%),
+    linear-gradient(160deg, #2f2b24, #211d17);
+  border: 2px solid rgba(250, 240, 215, 0.14);
+  box-shadow: 0 3px 7px rgba(20, 14, 6, 0.45);
+}
+/* The lit layer — same as .film-lit but always fully revealed */
+.peek-film-lit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(255, 246, 222, 0.30) 0 30%, transparent 70%),
+    linear-gradient(165deg, #4d4232, #3a3225);
+  background-size: cover;
+  background-position: center;
+}
+.peek-film-lit::before {
+  content: "";
+  position: absolute;
+  top: 18px; left: 50%;
+  width: 4px; height: 78px;
+  margin-left: -2px;
+  background: rgba(253, 243, 216, 0.28);
+  border-radius: 2px;
+  box-shadow:
+    -14px 12px 0 -1px rgba(253, 243, 216, 0.18),
+    14px 12px 0 -1px rgba(253, 243, 216, 0.18),
+    -11px 30px 0 -1px rgba(253, 243, 216, 0.15),
+    11px 30px 0 -1px rgba(253, 243, 216, 0.15),
+    -8px 48px 0 -1px rgba(253, 243, 216, 0.12),
+    8px 48px 0 -1px rgba(253, 243, 216, 0.12);
+}
+.peek-film-lit.has-image::before { display: none; }
+
+.peek-caption {
+  margin: 0 0 4px;
+  font-family: var(--serif);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+/* ── H3: Reveal note sticky ──────────────────────────────────── */
+
+.reveal-note {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1.5deg);
+  background: #fefce8;
+  border: 1px solid rgba(36, 31, 20, 0.22);
+  border-radius: var(--r-s);
+  padding: 7px 14px;
+  font-family: var(--hand);
+  font-size: 0.92rem;
+  color: #2b2b33;
+  box-shadow: 2px 3px 10px rgba(36, 31, 20, 0.22);
+  pointer-events: none;
+  z-index: 50;
+  white-space: nowrap;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reveal-note-label { color: var(--ink-soft); font-size: 0.8rem; }
+.reveal-note-check { color: var(--tier-2); font-weight: 700; }
+.reveal-note.reveal-note-solved {
+  opacity: 0.5;
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-soft);
+}
+:root[data-theme="dark"] .reveal-note {
+  background: #2f2c1a;
+  border-color: rgba(236, 228, 210, 0.2);
+  color: var(--ink);
+}
+
 /* ══════════════════════ RESPONSIVE ══════════════════════ */
 
 @media (max-width: 900px) {
@@ -1940,6 +2308,8 @@ body.preview-mode .play-header-title p { display: none; }
     align-items: center;
   }
   .clue-guide-visual { grid-row: span 2; margin: 0; }
+  .hints-wrap #btn-hints { min-height: 44px; }
+  .hints-panel { min-width: 240px; }
   .trays { grid-template-columns: repeat(2, 1fr); }
   .scope-stage { width: 92px; height: 92px; }
   .scope-stage-glass { width: 62px; height: 62px; }
@@ -1950,8 +2320,9 @@ body.preview-mode .play-header-title p { display: none; }
   .machine-lightbox { top: 16px; right: 3%; }
   .piece { --responsive-scale: clamp(0.72, calc(100vw / 760px), 1); }
   .play-header { gap: 10px; }
-  .mistake-tracker { margin-left: 0; order: 3; width: 100%; }
-  /* Toolbar (Scatter/Reset/Help/Settings/Menu): wrap onto a second row
+  .hints-wrap { margin-left: 0; }
+  .mistake-tracker { order: 3; width: 100%; }
+  /* Toolbar (Shuffle/Reset/Help/Settings/Menu): wrap onto a second row
      rather than force the page wider — only actually wraps once the row
      no longer fits (harmless no-op above ~420px). Touch targets grow to
      the ~44px guideline instead of the desktop-sized compact padding. */
@@ -1962,9 +2333,13 @@ body.preview-mode .play-header-title p { display: none; }
 @media (max-width: 480px) {
   .screen-play { padding: 8px 10px 10px; }
   .play-header-title h1 { font-size: 1.1rem; }
-  /* Two-up so five buttons read as tidy rows instead of a ragged wrap. */
+  /* Two-up so six buttons read as tidy rows instead of a ragged wrap. */
   .play-actions { justify-content: flex-start; gap: 8px; }
   .play-actions .btn { flex: 1 1 calc(50% - 8px); text-align: center; }
+  .hints-wrap #btn-hints { min-height: 44px; min-width: 100px; }
+  .hints-panel { min-width: 200px; }
+  .zoom-control { max-width: none; }
+  .printer-count { font-size: 0.72rem; }
   .trays { gap: 8px; }
   .tray { padding: 8px; }
   .tray-slot { min-height: 40px; }
