@@ -197,7 +197,7 @@ game. Settings (Casual mode, sound, display size) live under
 
 The public build lives in a separate sibling repo (never the AnkiCards
 workspace): `../../../Desk-Puzzle-2D-site/` → GitHub repo `desk-puzzle-2d`
-(public, Pages from `main` root) → https://4bbcxvwpdw-png.github.io/desk-puzzle-2d/
+(public, Pages from `main` root) → https://cooperstarrysky.github.io/desk-puzzle-2d/
 
 To republish after changes here:
 
