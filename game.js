@@ -545,6 +545,12 @@ var state = {
   textures: null,     // Set of present texture filenames, or null
   editorDraft: null,
   filmLightTimer: null,
+  // Runtime properties added during game load (declared here for clarity):
+  activeMachines: null,   // string[] of machine ids active for current puzzle
+  slideLetters: null,     // { [itemId]: letter } for rack pieces
+  previewMode: false,     // true when loaded via ?preview
+  editorMode: false,      // true when loaded via ?editor
+  previewV: null,         // { w, h } logical preview viewport captured at editor boot
 };
 
 /* ── Small utilities ─────────────────────────────────────────────── */
