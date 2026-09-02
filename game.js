@@ -2136,13 +2136,24 @@ function fitOneLabel(textEl, maxLines, item) {
   var lineHeightRatio = lineHeightPx / baseFontPx;
   var floorScale = Math.min(1, LABEL_FIT_MIN_PX / baseFontPx);
 
+  // Measure the natural line count at scale=1 with a single read, then
+  // compute the target scale arithmetically (one write) and verify with
+  // at most 2 extra shrink steps. The old per-step write→read loop
+  // forced a reflow every iteration — this cuts it to ≤3 reads per label.
   var scale = 1;
-  while (scale > floorScale) {
-    var curLineHeightPx = lineHeightRatio * baseFontPx * scale;
-    var linesUsed = textEl.scrollHeight / curLineHeightPx;
-    if (linesUsed <= maxLines * LABEL_FIT_TOLERANCE) break;
-    scale = Math.max(floorScale, +(scale - LABEL_FIT_STEP).toFixed(3));
+  var linesNatural = textEl.scrollHeight / lineHeightPx;
+  if (linesNatural > maxLines * LABEL_FIT_TOLERANCE) {
+    var rawScale = (maxLines * LABEL_FIT_TOLERANCE) / linesNatural;
+    scale = Math.max(floorScale, Math.floor(rawScale / LABEL_FIT_STEP) * LABEL_FIT_STEP);
     textEl.style.setProperty('--fit-scale', String(scale));
+    // Verification: at most 2 extra steps if the linear estimate was off
+    // (word-wrap is non-linear — one or two corrections handle all real cases).
+    for (var pass = 0; pass < 2 && scale > floorScale; pass++) {
+      var curLineHeightPx = lineHeightRatio * baseFontPx * scale;
+      if (textEl.scrollHeight / curLineHeightPx <= maxLines * LABEL_FIT_TOLERANCE) break;
+      scale = Math.max(floorScale, +(scale - LABEL_FIT_STEP).toFixed(3));
+      textEl.style.setProperty('--fit-scale', String(scale));
+    }
   }
 
   var override = item && isFinite(item.labelScale) && item.labelScale > 0 ? item.labelScale : null;
