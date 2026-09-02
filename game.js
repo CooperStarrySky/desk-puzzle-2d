@@ -814,21 +814,25 @@ function sanitizeEngineSave(saved, puzzle) {
     });
   }
 
-  // Use the casual flag that was in effect when the game was saved, so that
-  // toggling casual off and reloading never flips an in-progress game to
-  // 'lost'. Falls back to current setting for saves written before this fix.
-  var casual = typeof saved.casual === 'boolean' ? saved.casual : !!state.settings.casual;
-  var phase = solved.length === puzzle.groups.length
-    ? 'won'
-    : (!casual && mistakes >= MAX_MISTAKES ? 'lost' : 'playing');
-  // Extra guard: if the saved phase was 'playing' but the recomputed phase
-  // would be 'lost' only because the player switched casual mode off since
-  // the save, keep 'playing' and clamp mistakes so the game is not
-  // immediately over on reload.
-  if (saved.phase === 'playing' && phase === 'lost' &&
-      typeof saved.casual === 'boolean' && saved.casual !== !!state.settings.casual) {
+  // The mode in force NOW decides whether the game is over. But if the
+  // mistakes were made in casual mode (no limit) and the game was still in
+  // progress, switching casual off must not end it on reload: keep it alive
+  // with one guess left. Saves written before this fix have no casual flag
+  // and fall back to the current setting.
+  var savedCasual = typeof saved.casual === 'boolean' ? saved.casual : !!state.settings.casual;
+  var nowCasual = !!state.settings.casual;
+  var phase;
+  if (solved.length === puzzle.groups.length) {
+    phase = 'won';
+  } else if (!nowCasual && mistakes >= MAX_MISTAKES) {
+    if (savedCasual && saved.phase === 'playing') {
+      phase = 'playing';
+      mistakes = MAX_MISTAKES - 1;
+    } else {
+      phase = 'lost';
+    }
+  } else {
     phase = 'playing';
-    mistakes = Math.min(mistakes, MAX_MISTAKES - 1);
   }
 
   return { caseId: puzzle.id, phase: phase, staging: staging, mistakes: mistakes, solved: solved, attempts: attempts, desk: saved.desk };
