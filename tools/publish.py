@@ -30,6 +30,25 @@ MACHINE_ZONES = {"rack": "scope", "tubes": "lightbox"}
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
+def _validate_image_field(value, owner, field_label):
+    """Return a list of error strings for an image field value.
+
+    A value is valid when it is:
+      - a non-empty data URI (starts with 'data:'), OR
+      - a non-empty relative path whose file exists under REPO_ROOT.
+    An empty value is allowed (field absent / no image).
+    """
+    if not value:
+        return [f'item "{owner}" {field_label} is missing or empty']
+    if value.startswith("data:"):
+        return []  # embedded data URI — always valid
+    # Relative path: must resolve to an existing file
+    candidate = os.path.join(REPO_ROOT, value)
+    if not os.path.isfile(candidate):
+        return [f'item "{owner}" {field_label} is a relative path but file not found: {value!r}']
+    return []
+
+
 def validate_puzzle(puzzle, filename):
     """Mirror caseProblems() from game.js and add the extra audit checks.
     Returns (errors, warnings) as lists of strings."""
@@ -95,8 +114,10 @@ def validate_puzzle(puzzle, filename):
                     btype = block.get("type") if isinstance(block, dict) else None
                     if btype not in ("heading", "text", "image"):
                         errors.append(f'group "{g_name}" article block {bi+1} has invalid type {btype!r}')
-                    elif btype == "image" and not block.get("src"):
-                        errors.append(f'group "{g_name}" article image block {bi+1} missing src')
+                    elif btype == "image":
+                        errors.extend(_validate_image_field(
+                            block.get("src"), g_name, f"article image block {bi+1} src"
+                        ))
 
         # anki.nids must be positive integers if present
         anki = g.get("anki")
@@ -138,6 +159,18 @@ def validate_puzzle(puzzle, filename):
             info = item.get("info")
             if not isinstance(info, dict) or not info.get("title"):
                 errors.append(f'item "{iid}" zone "{zone}" requires info.title')
+
+        # image fields: valid if data URI or relative path to existing file
+        info = item.get("info")
+        if isinstance(info, dict) and info.get("image"):
+            errors.extend(_validate_image_field(
+                info["image"], iid, "info.image"
+            ))
+        scope = item.get("scope")
+        if isinstance(scope, dict) and scope.get("image"):
+            errors.extend(_validate_image_field(
+                scope["image"], iid, "scope.image"
+            ))
 
     # Size warning
     try:
