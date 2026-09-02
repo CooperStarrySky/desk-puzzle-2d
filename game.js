@@ -9,7 +9,6 @@
  * for rendering, input, persistence, and sound.
  * ════════════════════════════════════════════════════════════════════ */
 
-var ZONE_CAPACITY = { corkboard: 6, folder: 5, rack: 6, tubes: 4, deskCards: 4 };
 var MAX_MISTAKES = 4;
 var GROUP_SIZE = 4;
 var BOX_COUNT = 4;
@@ -533,7 +532,7 @@ var viewportTipAutoHideTimer = null;
 var viewportTipResizeTimer = null;
 
 var state = {
-  settings: { casual: false, sound: true, theme: 'system', dragAudioWip: false },
+  settings: { casual: false, sound: true, theme: 'system' },
   game: null,
   pieceEls: {},
   desk: null, // { pos, rot, z, zTop, scope }
@@ -643,14 +642,6 @@ function loadSettings() {
       state.settings.casual = !!parsed.casual;
       state.settings.sound = parsed.sound !== false;
       if (parsed.theme === 'light' || parsed.theme === 'dark' || parsed.theme === 'system') state.settings.theme = parsed.theme;
-      // The "Experimental drag audio (WIP)" toggle was removed from the
-      // player-facing Settings overlay (round 10) — the round-5 velocity-
-      // bed engine and its SOUND_TUNING entries stay in the codebase for
-      // future tuning, just with no UI path to turn it on anymore, so a
-      // stale localStorage value from before this change must never
-      // silently re-enable it. Always false; the gated scrape grains are
-      // the shipped default.
-      state.settings.dragAudioWip = false;
     }
   } catch (e) { /* corrupt settings — use defaults */ }
 }
@@ -973,21 +964,6 @@ var SOUND_TUNING = {
     },
   },
 
-  /* WIP drag sound (dev toggle): the round-5 velocity bed + travel grains,
-     kept for comparison, with hysteresis + envelopes + speed→lowpass. */
-  dragBed: {
-    paper: { hp: 900, lp: 5200, maxGain: 0.09, speedRef: 900 },
-    slide: { hp: 2200, lp: 7000, maxGain: 0.03, speedRef: 1100 },
-    film:  { hp: 240, lp: 1700, maxGain: 0.11, speedRef: 800 },
-  },
-  dragGrain: {
-    paper: { everyPx: 46, dur: 0.045, hp: 1300, lp: 7000, gain: 0.09 },
-    slide: { everyPx: 95, tick: true, freq: 2600, dur: 0.02, gain: 0.05 },
-    film:  { everyPx: 58, dur: 0.07, hp: 280, lp: 1600, gain: 0.11 },
-    capPerSec: 16,
-    turnBoost: 1.8,
-    turnDot: 0.25,
-  },
 };
 
 var SOUND_DEFAULTS = JSON.parse(JSON.stringify(SOUND_TUNING));
@@ -1172,218 +1148,6 @@ function pieceSound(zone, kind) {
   if (zone === 'rack') playSound(kind === 'pickup' ? 'pickup-glass' : 'drop-glass');
   else if (zone === 'tubes') playSound('film-rustle');
   else playSound(kind === 'pickup' ? 'pickup-paper' : 'drop-paper');
-}
-
-/* Dragging is intentionally silent. Pickup/drop cues remain available, but
-   moving a clue across the desk must not generate a continuous sound. */
-function startPieceDrag() {}
-function movePieceDrag() {}
-function stopPieceDrag() {}
-
-/* ── DEFAULT: distance-quantized scrape grains with hysteresis gate ── */
-
-var scrape = { s: null };
-
-function startScrape(zone, x, y) {
-  stopScrape();
-  var ctx = audioCtx();
-  if (!ctx) return;
-  scrape.s = {
-    mat: dragMaterial(zone),
-    ema: 0, moving: false, moved: false,
-    dist: 0, lastX: x, lastY: y, lastT: ctx.currentTime,
-    lastGrain: 0, lastVariant: -1,
-  };
-  state.scrapeStats = { grains: 0, gateOpens: 0, material: scrape.s.mat };
-}
-
-/* four subtle procedural variants per material, rotated no-immediate-repeat */
-var SCRAPE_VARIANTS = [
-  { hpMul: 1.0, durMul: 1.0 },
-  { hpMul: 0.85, durMul: 1.15 },
-  { hpMul: 1.18, durMul: 0.85 },
-  { hpMul: 1.05, durMul: 1.05 },
-];
-
-function scrapeMove(x, y) {
-  var s = scrape.s;
-  var ctx = audio.ctx;
-  if (!s || !ctx) return;
-  var cfg = SOUND_TUNING.scrape;
-  var now = ctx.currentTime;
-  var dt = Math.max(0.004, now - s.lastT);
-  var dx = x - s.lastX, dy = y - s.lastY;
-  var dist = Math.sqrt(dx * dx + dy * dy);
-  var speed = dist / dt;
-  s.ema = s.ema * (1 - cfg.emaAlpha) + speed * cfg.emaAlpha;
-  s.lastX = x; s.lastY = y; s.lastT = now;
-
-  // hysteresis gate
-  if (!s.moving && s.ema > cfg.vOn) {
-    s.moving = true;
-    s.moved = true;
-    if (state.scrapeStats) state.scrapeStats.gateOpens++;
-  } else if (s.moving && s.ema < cfg.vOff) {
-    s.moving = false;
-    s.dist = 0; // micro-adjustments never bank distance
-  }
-  if (!s.moving) return; // total silence below the gate
-
-  s.dist += dist;
-  if (s.dist < cfg.grainPx) return;
-  if ((now - s.lastGrain) * 1000 < cfg.cooldownMs) { s.dist = cfg.grainPx; return; }
-  s.dist -= cfg.grainPx;
-  s.lastGrain = now;
-  fireScrapeGrain(ctx, now, s, cfg);
-  if (state.scrapeStats) state.scrapeStats.grains++;
-}
-
-function fireScrapeGrain(ctx, now, s, cfg) {
-  var mat = SOUND_TUNING.scrape.materials[s.mat];
-  // speed→gain: sqrt curve from the gate to vRef
-  var t = clamp((s.ema - cfg.vOff) / (cfg.vRef - cfg.vOff), 0, 1);
-  var speedGain = cfg.gainLo + (cfg.gainHi - cfg.gainLo) * Math.sqrt(t);
-  // small randomization: ±volJitterDb, pitch within [pitchLo, pitchHi]
-  var vol = Math.pow(10, ((Math.random() * 2 - 1) * cfg.volJitterDb) / 20);
-  var rate = cfg.pitchLo + Math.random() * (cfg.pitchHi - cfg.pitchLo);
-  // rotate variants, never the same twice in a row
-  var vi = Math.floor(Math.random() * SCRAPE_VARIANTS.length);
-  if (vi === s.lastVariant) vi = (vi + 1) % SCRAPE_VARIANTS.length;
-  s.lastVariant = vi;
-  var v = SCRAPE_VARIANTS[vi];
-  if (mat.tick) {
-    synthTick(ctx, now, { freq: mat.freq * rate, dur: mat.dur * v.durMul, gain: mat.gain * speedGain * vol });
-  } else {
-    synthNoise(ctx, now, {
-      hp: mat.hp * v.hpMul, lp: mat.lp,
-      dur: mat.dur * v.durMul,
-      gain: mat.gain * speedGain * vol,
-      attack: 0.003,
-      rate: rate,
-    });
-  }
-}
-
-function stopScrape() {
-  var s = scrape.s;
-  scrape.s = null;
-  if (!s || !audio.ctx) return;
-  // optional soft settle tick, only after real motion
-  if (s.moved && SOUND_TUNING.scrape.settleTick) {
-    var mat = SOUND_TUNING.scrape.materials[s.mat];
-    if (!mat.tick) synthNoise(audio.ctx, audio.ctx.currentTime, { hp: mat.hp * 0.7, lp: mat.lp, dur: 0.04, gain: mat.gain * 0.35, attack: 0.004 });
-  }
-}
-
-/* ── WIP: round-5 bed + travel grains (behind the dev toggle) ────── */
-
-var dragAudio = { session: null };
-
-function dragMaterial(zone) {
-  return zone === 'rack' ? 'slide' : zone === 'tubes' ? 'film' : 'paper';
-}
-
-function startDragAudio(zone, x, y) {
-  stopDragAudio();
-  var ctx = audioCtx();
-  if (!ctx) return;
-  var mat = dragMaterial(zone);
-  var bedCfg = SOUND_TUNING.dragBed[mat];
-  var srcNode = ctx.createBufferSource();
-  srcNode.buffer = noiseBuffer(ctx);
-  srcNode.loop = true;
-  var hp = ctx.createBiquadFilter();
-  hp.type = 'highpass'; hp.frequency.value = bedCfg.hp;
-  var lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass'; lp.frequency.value = bedCfg.lp;
-  var g = ctx.createGain();
-  g.gain.value = 0;
-  srcNode.connect(hp).connect(lp).connect(g).connect(audio.master);
-  srcNode.start();
-  dragAudio.session = {
-    mat: mat, src: srcNode, gain: g, lp: lp,
-    lastX: x, lastY: y, lastT: ctx.currentTime,
-    speed: 0, distAccum: 0, dirX: 0, dirY: 0,
-    grainTimes: [], gateOpen: false,
-  };
-  // instrumentation (acceptance-checkable):
-  state.dragAudioStats = { grains: 0, turnGrains: 0, bedPeak: 0, material: mat };
-}
-
-function dragAudioMove(x, y) {
-  var s = dragAudio.session;
-  var ctx = audio.ctx;
-  if (!s || !ctx) return;
-  var now = ctx.currentTime;
-  var dt = Math.max(0.004, now - s.lastT);
-  var dx = x - s.lastX, dy = y - s.lastY;
-  var dist = Math.sqrt(dx * dx + dy * dy);
-  var speed = dist / dt; // px/s
-  s.speed = s.speed * 0.75 + speed * 0.25; // smoothed
-  var bedCfg = SOUND_TUNING.dragBed[s.mat];
-  // hysteresis gate (research brief Option B): hard zero below the gate
-  var sc = SOUND_TUNING.scrape;
-  if (!s.gateOpen && s.speed > sc.vOn) s.gateOpen = true;
-  else if (s.gateOpen && s.speed < sc.vOff) s.gateOpen = false;
-  var target = s.gateOpen
-    ? Math.min(bedCfg.maxGain, bedCfg.maxGain * (s.speed / bedCfg.speedRef))
-    : 0;
-  // 25ms attack, 120ms release
-  s.gain.gain.setTargetAtTime(target, now, target > s.gain.gain.value ? 0.025 : 0.12);
-  // speed→brightness: lowpass opens with velocity
-  s.lp.frequency.setTargetAtTime(
-    bedCfg.lp * (0.4 + 0.6 * Math.min(1, s.speed / bedCfg.speedRef)), now, 0.08);
-  if (state.dragAudioStats && target > state.dragAudioStats.bedPeak) state.dragAudioStats.bedPeak = target;
-
-  // direction-change accent
-  var turn = false;
-  if (dist > 2) {
-    var nx = dx / dist, ny = dy / dist;
-    if (s.dirX || s.dirY) {
-      var dot = nx * s.dirX + ny * s.dirY;
-      if (dot < SOUND_TUNING.dragGrain.turnDot && s.speed > 240) turn = true;
-    }
-    s.dirX = nx; s.dirY = ny;
-  }
-
-  // travel-distance grains, density-capped
-  s.distAccum += dist;
-  var gcfg = SOUND_TUNING.dragGrain[s.mat];
-  s.grainTimes = s.grainTimes.filter(function (t) { return now - t < 1; });
-  while ((s.distAccum >= gcfg.everyPx || turn) && s.grainTimes.length < SOUND_TUNING.dragGrain.capPerSec) {
-    var boost = turn ? SOUND_TUNING.dragGrain.turnBoost : 1;
-    fireDragGrain(ctx, now, gcfg, boost);
-    s.grainTimes.push(now);
-    if (state.dragAudioStats) {
-      state.dragAudioStats.grains++;
-      if (turn) state.dragAudioStats.turnGrains++;
-    }
-    if (turn) { turn = false; } else { s.distAccum -= gcfg.everyPx; }
-  }
-  if (s.distAccum >= gcfg.everyPx) s.distAccum = gcfg.everyPx; // capped backlog
-
-  s.lastX = x; s.lastY = y; s.lastT = now;
-}
-
-function fireDragGrain(ctx, now, gcfg, boost) {
-  var jitter = 0.7 + Math.random() * 0.6;
-  if (gcfg.tick) {
-    synthTick(ctx, now, { freq: gcfg.freq * (0.9 + Math.random() * 0.2), dur: gcfg.dur, gain: gcfg.gain * jitter * boost });
-  } else {
-    synthNoise(ctx, now, { hp: gcfg.hp * (0.85 + Math.random() * 0.3), lp: gcfg.lp, dur: gcfg.dur * jitter, gain: gcfg.gain * jitter * boost, attack: 0.003 });
-  }
-}
-
-function stopDragAudio() {
-  var s = dragAudio.session;
-  if (!s) return;
-  dragAudio.session = null;
-  var ctx = audio.ctx;
-  if (!ctx) return;
-  try {
-    s.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
-    s.src.stop(ctx.currentTime + 0.15);
-  } catch (e) { /* already stopped */ }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -2932,7 +2696,6 @@ function forceEndStaleDrag() {
   if (d.hotEl) d.hotEl.classList.remove('drop-hot');
   d.el.classList.remove('is-dragging');
   state.drag = null;
-  stopPieceDrag();
   if (d.isFilm) settleOnWall(d.id, null, d.wallRect);
   else settleOnDesk(d.id, null, null, null);
   syncAll();
@@ -3019,7 +2782,6 @@ function onPointerDown(ev) {
   if (wasStaged) state.game.unstage(id);
   if (wasDocked) { state.desk.scope = null; renderScopeView(); }
 
-  startPieceDrag(item.zone, ev.clientX, ev.clientY);
 }
 
 function dragPoint(ev) {
@@ -3046,7 +2808,6 @@ function onPointerMove(ev) {
   d.el.style.left = p.x + 'px';
   d.el.style.top = p.y + 'px';
   updateDropHot(p.x, p.y);
-  movePieceDrag(ev.clientX, ev.clientY);
   if (d.isFilm) updateFilmLighting(); // light-through follows the drag live
 }
 
@@ -3069,7 +2830,6 @@ function onPointerUp(ev) {
   if (d.hotEl) d.hotEl.classList.remove('drop-hot');
   d.el.classList.remove('is-dragging');
   state.drag = null;
-  stopPieceDrag();
   applyDrop(d, p.x, p.y);
   syncAll();
   persistGame();
@@ -3082,7 +2842,6 @@ function onPointerCancel(ev) {
   if (d.hotEl) d.hotEl.classList.remove('drop-hot');
   d.el.classList.remove('is-dragging');
   state.drag = null;
-  stopPieceDrag();
   if (d.isFilm) settleOnWall(d.id, null, d.wallRect);
   else settleOnDesk(d.id, null, null, d.rects.desk);
   syncAll();
@@ -4047,8 +3806,6 @@ function resetSoundLayer() {
   SOUND_TUNING.master = d.master;
   EDITABLE_CUES.forEach(function (c) { SOUND_TUNING[c] = d[c]; });
   SOUND_TUNING.scrape = d.scrape;
-  SOUND_TUNING.dragBed = d.dragBed;
-  SOUND_TUNING.dragGrain = d.dragGrain;
   if (audio.master) audio.master.gain.value = d.master;
 }
 
@@ -5673,10 +5430,6 @@ async function init() {
   document.querySelectorAll('input[name="theme"]').forEach(function (r) {
     r.addEventListener('change', function () { if (r.checked) setTheme(r.value); });
   });
-  // No UI binding for dragAudioWip anymore — see the comment in
-  // loadSettings(). The engine (startDragAudio/dragAudioMove below) is
-  // still here for future tuning; it's just permanently off by default
-  // with no player-facing way to flip it on.
   els.toggleCasual.addEventListener('change', function () {
     state.settings.casual = els.toggleCasual.checked;
     saveSettings();
