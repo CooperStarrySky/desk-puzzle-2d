@@ -395,6 +395,10 @@ img { max-width: 100%; display: block; }
   padding-top: 10px;
   border-top: 2px solid var(--panel-edge);
   position: relative;
+  /* z-index 1 is intentionally below .play-main (z-index 2); staged pieces
+     are sized by --slot-scale so they stay inside their slot and never
+     visually reach the Lock In button. Dragging pieces (z ≥ 10) still paint
+     above all tray content as expected. */
   z-index: 1;
 }
 
@@ -798,7 +802,7 @@ img { max-width: 100%; display: block; }
   -webkit-user-select: none;
   --responsive-scale: 1;
   max-width: calc(100% - 12px);
-  transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(calc(var(--pc-scale, 1) * var(--type-scale, 1) * var(--responsive-scale)));
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(calc(var(--pc-scale, 1) * var(--type-scale, 1) * var(--responsive-scale) * var(--slot-scale, 1)));
   transition:
     left var(--dur) var(--ease),
     top var(--dur) var(--ease),

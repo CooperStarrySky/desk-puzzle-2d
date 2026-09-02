@@ -26,6 +26,7 @@ import {
   sizeViewer, fitPieceLabels, syncPieces, renderScopeView,
   buildAnkiSearch, showResults, showResultsForPuzzle,
   showScreen, showPreviewResultsFromDraft,
+  fitFactor,
 } from './ui-play.js';
 
 import {
@@ -40,7 +41,7 @@ import {
 } from './editor.js';
 
 /* ── Debug handle (written before init() completes) ──────────────── */
-window.__dp2d = { state, els, buildAnkiSearch, showResultsForPuzzle, openPuzzle };
+window.__dp2d = { state, els, buildAnkiSearch, showResultsForPuzzle, openPuzzle, fitFactor };
 
 /* ── Entry point ─────────────────────────────────────────────────── */
 

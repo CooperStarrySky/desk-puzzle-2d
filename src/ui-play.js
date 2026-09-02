@@ -700,6 +700,58 @@ export function scheduleFilmLighting() {
   state.filmLightTimer = setTimeout(updateFilmLighting, 280);
 }
 
+/* ── Slot-fit helpers ────────────────────────────────────────────── */
+
+/* TRAY_PC_SCALE must stay in sync with `.piece.in-tray { --pc-scale: 0.82 }`
+   in styles.css. If that CSS value changes, update this constant too. */
+var TRAY_PC_SCALE = 0.82;
+var SLOT_PAD = 6; // px kept clear inside the slot on each axis
+
+/* Zone → layout.json pieceScale key, which applyLayout() writes to
+   --scale-<key> on :root; each .piece-<kind> rule reads it as --type-scale. */
+var ZONE_TO_SCALE_KEY = {
+  corkboard: 'sticky',
+  folder: 'paper',
+  rack: 'slide',
+  tubes: 'film',
+  photo: 'photo',
+  rx: 'rx',
+};
+
+function pieceTypeScale(item) {
+  var key = ZONE_TO_SCALE_KEY[item.zone];
+  if (!key || !state.layout || !state.layout.pieceScale) return 1;
+  return state.layout.pieceScale[key] || 1;
+}
+
+/* Mirror of styles.css (search --responsive-scale at the 760px breakpoint):
+   @media (max-width: 760px) { .piece { --responsive-scale: clamp(0.72, calc(100vw / 760px), 1); } }
+   Breakpoint 760px, clamp floor 0.72, cap 1. */
+function responsiveScale() {
+  if (window.innerWidth > 760) return 1;
+  return Math.min(1, Math.max(0.72, window.innerWidth / 760));
+}
+
+/* Pure math: given slot inner dimensions, untransformed piece box, and the
+   combined base scale (pc-scale * type-scale * responsive-scale), return the
+   largest additional factor ≤ 1 that keeps the piece inside the slot.
+   Exported so window.__dp2d.fitFactor gives a browser debug hook. */
+export function fitFactor(innerW, innerH, offW, offH, base) {
+  if (innerW <= 0 || innerH <= 0 || offW <= 0 || offH <= 0) return 1;
+  var w = offW * base;
+  var h = offH * base;
+  return Math.min(1, innerW / w, innerH / h);
+}
+
+function slotFitScale(el, slotEl, item) {
+  var innerW = slotEl.clientWidth - SLOT_PAD;
+  var innerH = slotEl.clientHeight - SLOT_PAD;
+  var typeScale = pieceTypeScale(item);
+  var responsive = responsiveScale();
+  var base = TRAY_PC_SCALE * typeScale * responsive;
+  return fitFactor(innerW, innerH, el.offsetWidth, el.offsetHeight, base);
+}
+
 /* ── Piece sync ───────────────────────────────────────────────────── */
 
 export function syncPieces() {
@@ -783,15 +835,40 @@ export function syncPieces() {
     var x, y, rot;
 
     if (loc.kind === 'tray') {
-      var slotRect = rectRel(slotEls[loc.box][loc.slot]);
+      var slotEl = slotEls[loc.box][loc.slot];
+      var slotRect = rectRel(slotEl);
       x = slotRect.cx;
       y = slotRect.cy;
       rot = 0;
+      // Scale the piece so it fits entirely inside its slot.
+      var fit = slotFitScale(el, slotEl, item);
+      el.style.setProperty('--slot-scale', String(fit));
+      // Self-correcting pass: after the transform transition finishes,
+      // measure the rendered box. If it still overflows by > 0.5 px
+      // (e.g. due to sub-pixel rounding in the JS/CSS mirror), apply a
+      // proportional correction on top of the initial scale.
+      (function (capturedSlotEl, capturedEl) {
+        capturedEl.addEventListener('transitionend', function (ev) {
+          if (ev.propertyName !== 'transform') return;
+          if (!capturedEl.classList.contains('in-tray')) return;
+          var sr = capturedSlotEl.getBoundingClientRect();
+          var er = capturedEl.getBoundingClientRect();
+          var slotInnerW = sr.width - SLOT_PAD / 2;
+          var slotInnerH = sr.height - SLOT_PAD / 2;
+          if (er.width - slotInnerW > 0.5 || er.height - slotInnerH > 0.5) {
+            var cur = parseFloat(capturedEl.style.getPropertyValue('--slot-scale')) || 1;
+            var corr = Math.min(slotInnerW / er.width, slotInnerH / er.height);
+            capturedEl.style.setProperty('--slot-scale', String(cur * corr));
+          }
+        }, { once: true });
+      }(slotEl, el));
     } else if (loc.kind === 'scope') {
+      el.style.removeProperty('--slot-scale');
       x = stageRect.cx;
       y = stageRect.cy - 4;
       rot = 0;
     } else if (loc.kind === 'wall') {
+      el.style.removeProperty('--slot-scale');
       var wp = state.desk.pos[id];
       x = wallRect.left + wp.fx * wallRect.width;
       // The rail's top edge is the hanging line. Use the rendered film
@@ -799,6 +876,7 @@ export function syncPieces() {
       y = wallRect.top + el.getBoundingClientRect().height / 2;
       rot = 0;
     } else {
+      el.style.removeProperty('--slot-scale');
       var p = state.desk.pos[id];
       x = deskRect.left + p.fx * deskRect.width;
       y = deskRect.top + p.fy * deskRect.height;
@@ -1277,6 +1355,9 @@ export function onPointerDown(ev) {
   };
 
   pieceEl.classList.add('is-dragging');
+  // Restore full desk size immediately so the grabbed piece doesn't
+  // animate at slot-scale while flying across the board.
+  pieceEl.style.removeProperty('--slot-scale');
   pieceEl.style.setProperty('--rot', '0deg');
   pieceEl.style.zIndex = String(10 + state.desk.z[id]);
   pieceEl.style.left = cx + 'px';
