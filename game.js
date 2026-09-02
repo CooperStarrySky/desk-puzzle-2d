@@ -544,6 +544,7 @@ function downloadJson(filename, data) {
 function cacheEls() {
   [
     'screen-menu', 'screen-play', 'screen-error', 'screen-editor', 'live-region', 'toast',
+    'menu-title',
     'btn-play-today', 'btn-puzzle-select', 'puzzle-select-panel', 'puzzle-select-list', 'puzzle-select-summary', 'toggle-casual', 'toggle-sound',
     'puzzle-title', 'puzzle-date', 'mistake-tracker', 'btn-shuffle', 'btn-help', 'btn-hints', 'hints-panel', 'btn-menu',
     'play-area', 'wall-area', 'xray-rack', 'xray-rail', 'desk-surface', 'piece-layer', 'trays',
@@ -1387,10 +1388,25 @@ function loadPuzzleByEntry(entry) {
 
 /* ── Menu rendering (puzzle-select dropdown, delegation — no per-item binds) ── */
 
+/** Update document.title, the menu <h1>, and meta description from the
+ *  current puzzle registry entry. og:/twitter: tags are static defaults
+ *  updated at publish time by tools/publish.py. */
+function applyRegistryTitles(entry) {
+  if (!entry) return;
+  var desc = entry.title + ' - a pathology desk puzzle: sort 16 clues into 4 groups.';
+  document.title = entry.title + ' - Desk Puzzle';
+  if (els.menuTitle) els.menuTitle.textContent = entry.title;
+  var metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) metaDesc.setAttribute('content', desc);
+}
+
 function renderMenu(registry) {
   var puzzles = (registry.puzzles || []).slice().sort(function (a, b) {
     return (b.date || '').localeCompare(a.date || '');
   });
+
+  var currentEntry = (registry.puzzles || []).find(function (p) { return p.id === registry.current; });
+  applyRegistryTitles(currentEntry);
 
   // Update the trigger summary text.
   if (els.puzzleSelectSummary) {
