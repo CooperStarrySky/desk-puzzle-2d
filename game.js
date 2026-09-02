@@ -382,77 +382,10 @@ DeskPuzzleGame.prototype.touch = function () {
   this.events.emit('change', this.snapshot());
 };
 
-/* ════════════════════════════════════════════════════════════════════
- * EMBEDDED FALLBACK PUZZLE — content-equivalent copy of the current puzzle
- * and index so the game still works when fetch() fails (e.g. file://).
- * ════════════════════════════════════════════════════════════════════ */
-
-var CURRENT_PUZZLE = {
-  id: 'starry-sky-society-2026-08-21',
-  title: 'Starry Sky Society Puzzle',
-  date: '2026-08-21',
-  machines: ['scope', 'lightbox'],
-  groups: [
-    {
-      id: 'g-staph-aureus',
-      name: 'Manifestations of Staph aureus',
-      tier: 1,
-      explanation: 'Bullous impetigo, tricuspid valve endocarditis, osteomyelitis, and a gram stain can all point to Staphylococcus aureus.',
-      itemIds: ['bullous-impetigo', 'tricuspid-valve-endocarditis', 'osteomyelitis', 'gram-stain'],
-    },
-    {
-      id: 'g-simple-columnar',
-      name: 'Simple columnar epithelium',
-      tier: 2,
-      explanation: 'The four clues point toward simple columnar epithelium in histology, organ identification, or gross anatomy.',
-      itemIds: ['excretory-ducts', 'cholecystectomy-organ', 'small-bowel', 'stomach'],
-    },
-    {
-      id: 'g-multiple-myeloma',
-      name: 'Multiple myeloma CRAB symptoms',
-      tier: 3,
-      explanation: 'CRAB points to hyperCalcemia, Renal involvement, Anemia, and Bone lesions. Apple-green birefringence adds the amyloid clue associated with renal disease.',
-      itemIds: ['anemia-blood-smear', 'hypercalcemia', 'apple-green-birefringence', 'lytic-bone-lesions'],
-    },
-    {
-      id: 'g-angelman-syndrome',
-      name: 'Angelman syndrome',
-      tier: 4,
-      explanation: 'These written clues point to Angelman syndrome: a neurodevelopmental disorder associated with maternal UBE3A dysfunction on chromosome 15.',
-      itemIds: ['fascination-with-water', 'ube3a-mutation', 'chromosome-15', 'wide-spaced-teeth'],
-    },
-  ],
-  items: [
-    { id: 'bullous-impetigo', label: 'Bullous impetigo', zone: 'rack', info: { title: 'Bullous impetigo', text: 'Histology clue: a superficial intraepidermal blister.' } },
-    { id: 'tricuspid-valve-endocarditis', label: 'Tricuspid valve endocarditis', zone: 'tubes', info: { title: 'Tricuspid valve endocarditis', text: 'Echocardiogram clue: a vegetation on the tricuspid valve.' } },
-    { id: 'osteomyelitis', label: 'Osteomyelitis', zone: 'photo', info: { title: 'Osteomyelitis', text: 'Gross pathology clue: infected bone.' } },
-    { id: 'gram-stain', label: 'Gram stain', zone: 'rack', info: { title: 'Gram stain', text: 'Microscopy clue: gram-positive cocci in clusters.' } },
-    { id: 'excretory-ducts', label: 'Excretory ducts', zone: 'rack', info: { title: 'Excretory ducts', text: 'Histology clue: simple columnar epithelium in an excretory duct.' } },
-    { id: 'cholecystectomy-organ', label: 'Organ removed in a cholecystectomy', zone: 'folder', info: { title: 'Gallbladder', text: 'The gallbladder is removed during a cholecystectomy.' } },
-    { id: 'small-bowel', label: 'Small bowel', zone: 'rack', info: { title: 'Small bowel', text: 'Histology clue: simple columnar epithelium in the small bowel.' } },
-    { id: 'stomach', label: 'Stomach', zone: 'photo', info: { title: 'Stomach', text: 'Gross anatomy clue: stomach.' } },
-    { id: 'anemia-blood-smear', label: 'Blood smear of anemia', zone: 'rack', info: { title: 'Blood smear of anemia', text: 'The A in the CRAB mnemonic: anemia.' } },
-    { id: 'hypercalcemia', label: 'Hypercalcemia', zone: 'folder', info: { title: 'Hypercalcemia', text: 'The C in the CRAB mnemonic.' } },
-    { id: 'apple-green-birefringence', label: 'Apple Green Birefringence', zone: 'rack', info: { title: 'Apple Green Birefringence', text: 'Congo red amyloid under polarized light, associated here with renal involvement.' } },
-    { id: 'lytic-bone-lesions', label: 'Lytic Bone Lesions', zone: 'tubes', info: { title: 'Lytic Bone Lesions', text: 'X-ray clue: lytic bone lesions, the B in CRAB.' } },
-    { id: 'fascination-with-water', label: 'Fascination with water', zone: 'corkboard', info: { title: 'Fascination with water', text: 'Behavioral clue associated with Angelman syndrome.' } },
-    { id: 'ube3a-mutation', label: 'UBE3A mutation', zone: 'corkboard', info: { title: 'UBE3A mutation', text: 'Genetic clue associated with Angelman syndrome.' } },
-    { id: 'chromosome-15', label: 'Chromosome 15', zone: 'corkboard', info: { title: 'Chromosome 15', text: 'Chromosomal clue associated with Angelman syndrome.' } },
-    { id: 'wide-spaced-teeth', label: 'Wide spaced teeth', zone: 'corkboard', info: { title: 'Wide spaced teeth', text: 'Physical finding associated with Angelman syndrome.' } },
-  ],
-};
-
-/* file:// cannot fetch the authored JSON. index.html loads this local-only
-   mirror before game.js so the desktop file preview uses the exact same
-   payload as the published puzzle. */
-if (window.DP2D_LOCAL_PUZZLE) CURRENT_PUZZLE = window.DP2D_LOCAL_PUZZLE;
-
-var CURRENT_INDEX = {
-  current: 'starry-sky-society-2026-08-21',
-  puzzles: [
-    { id: 'starry-sky-society-2026-08-21', title: 'Starry Sky Society Puzzle', date: '2026-08-21', file: 'starry-sky-society-2026-08-21.json' },
-  ],
-};
+/* file:// previews: index.html loads puzzles/.local-puzzle-fallback.js (gitignored,
+ * generated by tools/publish.py --apply) which sets window.DP2D_LOCAL_PUZZLE to the
+ * current puzzle object. loadRegistry() and loadPuzzleByEntry() use it as a fallback
+ * when fetch() fails so double-click file:// previews still work without a server. */
 
 /* ════════════════════════════════════════════════════════════════════
  * DOM LAYER — top-down desk, strewn pile, drag everything.
@@ -1434,13 +1367,21 @@ function fetchJson(url) {
 }
 
 function loadRegistry() {
-  return fetchJson('puzzles/index.json').catch(function () { return CURRENT_INDEX; });
+  return fetchJson('puzzles/index.json').catch(function () {
+    if (window.DP2D_LOCAL_PUZZLE) {
+      var p = window.DP2D_LOCAL_PUZZLE;
+      return { current: p.id, puzzles: [{ id: p.id, title: p.title, date: p.date, file: p.id + '.json' }] };
+    }
+    throw new Error('Could not load the puzzle registry. Check your connection and reload.');
+  });
 }
 
 function loadPuzzleByEntry(entry) {
   return fetchJson('puzzles/' + entry.file).catch(function () {
-    if (entry.id === CURRENT_PUZZLE.id) return CURRENT_PUZZLE;
-    throw new Error('Could not load puzzle "' + entry.id + '" (fetch failed and no embedded fallback matches).');
+    if (window.DP2D_LOCAL_PUZZLE && window.DP2D_LOCAL_PUZZLE.id === entry.id) {
+      return window.DP2D_LOCAL_PUZZLE;
+    }
+    throw new Error('Puzzle "' + entry.id + '" could not be fetched. Check your connection and reload.');
   });
 }
 
@@ -3741,11 +3682,7 @@ function tryDeepLink() {
   loadRegistry().then(function (registry) {
     var entry = (registry.puzzles || []).find(function (p) { return p.id === puzzleId; });
     if (!entry) {
-      if (puzzleId === CURRENT_PUZZLE.id) {
-        openPuzzle(CURRENT_PUZZLE);
-        return;
-      }
-      showErrorScreen('No puzzle found for id "' + puzzleId + '".');
+      showErrorScreen('No puzzle found for id "' + puzzleId + '". Check the URL and try reloading.');
       return;
     }
     return loadPuzzleByEntry(entry).then(openPuzzle);
@@ -4056,7 +3993,7 @@ function loadEditorDraft() {
     var raw = localStorage.getItem(EDITOR_DRAFT_KEY);
     if (raw) return normalizeDraft(JSON.parse(raw));
   } catch (e) { /* fall through */ }
-  return normalizeDraft(JSON.parse(JSON.stringify(CURRENT_PUZZLE)));
+  return normalizeDraft({});
 }
 
 function saveEditorDraft() {
@@ -4123,7 +4060,7 @@ function normalizeDraft(d) {
     moment ago) prompts a confirm before being overwritten. */
 function draftIsPristine(d) {
   try {
-    var fresh = normalizeDraft(JSON.parse(JSON.stringify(CURRENT_PUZZLE)));
+    var fresh = normalizeDraft({});
     return JSON.stringify(fresh) === JSON.stringify(d);
   } catch (e) { return false; }
 }
@@ -5303,7 +5240,7 @@ function flushPreviewQueue() {
 function bootPreviewDraft() {
   var draft = null;
   try { draft = JSON.parse(localStorage.getItem(SAVE_PREFIX + 'preview-draft')); } catch (e) { /* ignore */ }
-  openPuzzle(draft && typeof draft === 'object' ? draft : JSON.parse(JSON.stringify(CURRENT_PUZZLE)));
+  openPuzzle(draft && typeof draft === 'object' ? draft : normalizeDraft({}));
 }
 
 /* ── Editor UI persistence (drawer width) ────────────────────────── */
