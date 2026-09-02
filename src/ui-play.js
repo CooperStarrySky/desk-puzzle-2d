@@ -2035,11 +2035,12 @@ export function showResults() {
   var game = state.game;
   var won = game.phase === 'won';
   var solvedGroupIds = new Set(game.solved.map(function (s) { return s.groupId; }));
+  var casualSuffix = game.casual ? ' · Casual mode' : '';
   showResultsForPuzzle(game.puzzle, {
     title: won ? 'Solved!' : 'Out of mistakes',
     sub: won
-      ? 'Solved with ' + game.mistakes + ' mistake' + (game.mistakes === 1 ? '' : 's') + '.'
-      : 'Here is how the groups fit together.',
+      ? 'Solved with ' + game.mistakes + ' mistake' + (game.mistakes === 1 ? '' : 's') + '.' + casualSuffix
+      : 'Here is how the groups fit together.' + casualSuffix,
     hints: state.desk.hints || {},
     legacyHintsUsed: state.desk.hintsUsed,
     solvedGroupIds: solvedGroupIds,
