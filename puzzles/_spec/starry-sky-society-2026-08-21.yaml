@@ -1,0 +1,144 @@
+# Starry Sky Society Puzzle — author spec
+# Reconstructed from puzzles/starry-sky-society-2026-08-21.json as the worked example.
+#
+# images: is the folder that holds all image files for this spec,
+# given as a path relative to THIS file (puzzles/_spec/).
+# build_puzzle.py resolves image and scope_image filenames against it.
+
+title: Starry Sky Society Puzzle
+date: 2026-08-21
+images: ../starry-sky-society-2026-08-21/
+
+groups:
+  # tier 1 — easiest
+  - id: g-letter-p
+    name: Angelman Syndrome
+    tier: 1
+    explanation: >
+      These written clues point to Angelman syndrome: a neurodevelopmental
+      disorder associated with maternal UBE3A dysfunction on chromosome 15.
+    anki:
+      - 1541799643280
+      - 1469211918414
+      - 1469211963576
+      - 1469211959736
+    items:
+      - label: Fascination with water
+        zone: photo
+        text: "Behavioral clue: an unusual attraction to water, a hallmark of Angelman syndrome."
+        image: fascination-with-water-info.webp
+
+      - label: UBE3A
+        zone: corkboard
+        text: "Gene clue: UBE3A, the maternally expressed gene on chromosome 15 lost in Angelman syndrome."
+
+      - label: Chromosome 15
+        zone: rack
+        text: "Genetics clue: Angelman syndrome maps to a deletion on the long arm of chromosome 15 (15q11-q13)."
+        scope_image: chromosome-15-scope.webp
+
+      - label: Wide spaced teeth
+        zone: photo
+        title: Wide-spaced teeth
+        text: "Widely spaced upper teeth, a characteristic oral finding of Angelman syndrome."
+        image: wide-spaced-teeth-info.webp
+
+  # tier 2
+  - id: g-staph-aureus
+    name: Manifestations of Staph aureus
+    tier: 2
+    explanation: >
+      Bullous impetigo, tricuspid valve endocarditis, osteomyelitis, and a
+      gram stain can all point to Staphylococcus aureus.
+    anki:
+      - 1488680546029
+      - 1484873092105
+      - 1488154292555
+      - 1484871806725
+      - 1472072107763
+    items:
+      - label: Bullous impetigo
+        zone: rack
+        text: "Histology clue: a superficial intraepidermal blister."
+        image: bullous-impetigo-info.webp
+        scope_image: bullous-impetigo-scope.webp
+
+      - label: Tricuspid valve endocarditis
+        zone: tubes
+        text: "Echocardiogram clue: a vegetation on the tricuspid valve."
+        image: tricuspid-valve-endocarditis-info.webp
+
+      - label: Osteomyelitis
+        zone: photo
+        text: "Gross pathology clue: infected bone."
+        image: osteomyelitis-info.webp
+
+      - label: Gram stain
+        zone: rack
+        text: "Microscopy clue: gram-positive cocci in clusters."
+        scope_image: gram-stain-scope.webp
+
+  # tier 3
+  - id: g-multiple-myeloma
+    name: Multiple myeloma CRAB symptoms
+    tier: 3
+    explanation: >
+      CRAB points to hyperCalcemia, Renal involvement, Anemia, and Bone lesions.
+      Apple-green birefringence adds the amyloid clue associated with renal disease.
+    anki:
+      - 1481335901819
+      - 1557355214995
+      - 1481335881007
+      - 1475364152379
+      - 1487550496659
+    items:
+      - id: anemia-blood-smear
+        label: Blood smear of anemia
+        zone: rack
+        text: "The A in the CRAB mnemonic: anemia."
+        scope_image: anemia-blood-smear-scope.webp
+
+      - label: Hypercalcemia
+        zone: folder
+        text: "The C in the CRAB mnemonic."
+
+      - label: Apple Green Birefringence
+        zone: rack
+        text: "Congo red amyloid under polarized light, associated here with renal involvement."
+        scope_image: apple-green-birefringence-scope.webp
+
+      - label: Lytic Bone Lesions
+        zone: tubes
+        text: "X-ray clue: lytic bone lesions, the B in CRAB."
+        image: lytic-bone-lesions-info.webp
+
+  # tier 4 — hardest
+  - id: g-simple-columnar
+    name: Simple columnar epithelium
+    tier: 4
+    explanation: >
+      The four clues point toward simple columnar epithelium in histology,
+      organ identification, or gross anatomy.
+    anki:
+      - 1486608749626
+    items:
+      - label: Excretory ducts
+        zone: rack
+        text: "Histology clue: simple columnar epithelium in an excretory duct."
+        scope_image: excretory-ducts-scope.webp
+
+      - id: cholecystectomy-organ
+        label: Organ removed in a cholecystectomy
+        zone: folder
+        title: Gallbladder
+        text: "The gallbladder is removed during a cholecystectomy."
+
+      - label: Small bowel
+        zone: rack
+        text: "Histology clue: simple columnar epithelium in the small bowel."
+        scope_image: small-bowel-scope.webp
+
+      - label: Stomach
+        zone: photo
+        text: "Gross anatomy clue: stomach."
+        image: stomach-info.webp
