@@ -25,7 +25,7 @@ import { playSound } from './audio.js';
 import {
   closeHintsPanel, buildPieces, showScreen, sizeViewer, syncAll,
   renderScopeView, showResults, showClueGuide, announce, hideOverlay,
-  dismissViewportTip,
+  dismissViewportTip, showErrorScreen, checkViewportHealth, closeSettingsPanel,
 } from './ui-play.js';
 
 /* ── Shared in-flight guard ──────────────────────────────────────── */

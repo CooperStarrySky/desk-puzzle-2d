@@ -255,7 +255,7 @@ async function init() {
     window.addEventListener('message', function (ev) {
       if (!ev.data) return;
       if (ev.data.type === 'dp2d-preview') bootPreviewDraft();
-      else if (ev.data.type === 'dp2d-preview-results') showPreviewResultsFromDraft();
+      else if (ev.data.type === 'dp2d-preview-results') { bootPreviewDraft(); showPreviewResultsFromDraft(); }
     });
     bootPreviewDraft();
     // Handshake: tell the parent editor we're listening, so its very

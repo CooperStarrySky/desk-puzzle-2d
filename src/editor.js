@@ -15,7 +15,7 @@ import {
 
 import {
   state, els,
-  clamp, applyLayout, persistLayout, downloadJson,
+  clamp, applyLayout, persistLayout, downloadJson, loadLayout,
   SAVE_PREFIX, LAYOUT_KEY, EDITOR_DRAFT_KEY,
 } from './state.js';
 
@@ -24,9 +24,9 @@ import {
   audio, playSound, collectSoundLayer, resetSoundLayer,
 } from './audio.js';
 
-import { syncAll, syncPieces, renderScopeView } from './ui-play.js';
+import { syncAll, syncPieces, renderScopeView, toast, sanitizeRichHtml } from './ui-play.js';
 
-import { openPuzzle, backToMenu } from './ui-menu.js';
+import { openPuzzle, backToMenu, loadRegistry, loadPuzzleByEntry } from './ui-menu.js';
 
 export function layoutPointerDown(ev) {
   var machine = ev.target.closest ? ev.target.closest('.machine') : null;
@@ -52,6 +52,11 @@ export function layoutPointerMove(ev) {
 }
 
 export var LAYOUT_UI_KEY = SAVE_PREFIX + 'layout-ui';
+
+// Register layout-drag handlers on state so ui-play.js can call them
+// without creating a circular import (ui-play → editor → ui-play).
+state._layoutPointerDown = layoutPointerDown;
+state._layoutPointerMove = layoutPointerMove;
 
 export function devSectionState() {
   try { return JSON.parse(localStorage.getItem(LAYOUT_UI_KEY) || '{}'); } catch (e) { return {}; }

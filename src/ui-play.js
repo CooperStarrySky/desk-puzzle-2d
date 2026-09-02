@@ -1209,7 +1209,7 @@ export function forceEndStaleDrag() {
 
 export function onPointerDown(ev) {
   // Dev layout mode: machines are draggable instead of pieces.
-  if (state.layoutMode && layoutPointerDown(ev)) return;
+  if (state.layoutMode && state._layoutPointerDown && state._layoutPointerDown(ev)) return;
 
   if (!state.game || state.game.phase !== 'playing') return;
   var pieceEl = ev.target.closest ? ev.target.closest('.piece') : null;
@@ -1298,7 +1298,7 @@ export function dragPoint(ev) {
 }
 
 export function onPointerMove(ev) {
-  if (state.layoutDrag) { layoutPointerMove(ev); return; }
+  if (state.layoutDrag) { if (state._layoutPointerMove) state._layoutPointerMove(ev); return; }
   var d = state.drag;
   if (!d || ev.pointerId !== d.pointerId) return;
   ev.preventDefault();
@@ -2031,7 +2031,6 @@ export function showResults() {
     load the current draft and show its results overlay as if every group
     had just been solved — the exact game-end view, without playing. */
 export function showPreviewResultsFromDraft() {
-  bootPreviewDraft();
   if (!state.game) return;
   var puzzle = state.game.puzzle;
   showResultsForPuzzle(puzzle, {
