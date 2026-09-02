@@ -736,6 +736,9 @@ function persistGame() {
   if (!state.game || !state.desk || state.previewMode) return;
   var snap = state.game.snapshot();
   snap.desk = state.desk;
+  // Persist the mode so sanitizeEngineSave can use it on reload instead
+  // of the current (possibly toggled) setting — fixes B2 casual reload bug.
+  snap.casual = !!state.settings.casual;
   try {
     localStorage.setItem(saveKey(state.game.puzzle.id), JSON.stringify(snap));
   } catch (e) { /* storage full/unavailable */ }
@@ -804,9 +807,22 @@ function sanitizeEngineSave(saved, puzzle) {
     });
   }
 
+  // Use the casual flag that was in effect when the game was saved, so that
+  // toggling casual off and reloading never flips an in-progress game to
+  // 'lost'. Falls back to current setting for saves written before this fix.
+  var casual = typeof saved.casual === 'boolean' ? saved.casual : !!state.settings.casual;
   var phase = solved.length === puzzle.groups.length
     ? 'won'
-    : (!state.settings.casual && mistakes >= MAX_MISTAKES ? 'lost' : 'playing');
+    : (!casual && mistakes >= MAX_MISTAKES ? 'lost' : 'playing');
+  // Extra guard: if the saved phase was 'playing' but the recomputed phase
+  // would be 'lost' only because the player switched casual mode off since
+  // the save, keep 'playing' and clamp mistakes so the game is not
+  // immediately over on reload.
+  if (saved.phase === 'playing' && phase === 'lost' &&
+      typeof saved.casual === 'boolean' && saved.casual !== !!state.settings.casual) {
+    phase = 'playing';
+    mistakes = Math.min(mistakes, MAX_MISTAKES - 1);
+  }
 
   return { caseId: puzzle.id, phase: phase, staging: staging, mistakes: mistakes, solved: solved, attempts: attempts, desk: saved.desk };
 }
