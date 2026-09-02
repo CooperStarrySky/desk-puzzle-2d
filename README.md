@@ -61,10 +61,26 @@ index card, slide, X-ray film.
 Each `group` can also carry an optional `article`: an array of
 `{type, ...}` blocks — `{"type":"heading","text":"..."}`,
 `{"type":"text","text":"..."}`, or `{"type":"image","src":"...","caption":"..."}`
-(`src` is a data URI, same as an item's `info.image`) — rendered on the
-results screen under that group's one-line `explanation`. It's optional
-and backward compatible; groups (and whole puzzle files) without it render
-exactly as before.
+— rendered on the results screen under that group's one-line `explanation`.
+It's optional and backward compatible; groups (and whole puzzle files)
+without it render exactly as before.
+
+**Image fields** (`items[].info.image`, `items[].scope.image`, `groups[].article[].src`)
+accept either form:
+
+- **Data URI** — what the editor exports directly (`data:image/jpeg;base64,...`).
+  Self-contained but bloats the JSON; a puzzle with 14 embedded 640×480 images
+  weighs ~850 KB.
+- **Page-relative path** — a string like
+  `puzzles/starry-sky-society-2026-08-21/bullous-impetigo-info.webp`.
+  Produced by `tools/externalize_images.py` (see below). The game, the
+  preview iframe, and all hint/results consumers accept relative paths
+  without any code change.
+
+Run `externalize_images.py` after exporting from the editor and before
+`publish.py` when you want the JSON to stay small and images to be served
+as separate, cache-friendly WebP files. The script is idempotent: already-
+externalized fields (non-`data:` values) are skipped.
 
 Each `group` may also carry an optional `anki` object: `{"anki": {"nids": [1499870123456, ...]}}`,
 where `nids` is a list of Anki note IDs for cards that belong to that group. When any group in the
@@ -149,20 +165,24 @@ for it fails silently and the built-in defaults stand.
 
 ## Drop-in assets (all optional, all auto-detected)
 
-**Textures — `assets/textures/`.** Drop files with these exact names and
-the game uses them on the next load; anything missing keeps the built-in
-CSS look. No manifest, no registration step (`manifest.json` in that folder
-is a leftover from an older setup and is ignored):
+**Textures — `assets/textures/`.** All textures are now WebP. Drop files
+with these exact names and the game uses them on the next load; anything
+missing keeps the built-in CSS look. The game probes for each name via a
+plain `Image` load — a missing file silently falls back to the CSS look
+for that piece type:
 
 ```
-desk.jpg  blotter.png  sticky.png  sticky-pink.png  sticky-green.png
-sticky-orange.png  card.png  paper.png  slide.png  film.png
+desk.webp  blotter.webp  sticky.webp  sticky-pink.webp  sticky-green.webp
+sticky-orange.webp  card.webp  paper.webp  slide.webp  film.webp
 ```
+
+(`manifest.json` in that folder is a metadata reference only; the runtime
+ignores it and probes from the hardcoded list above.)
 
 Object textures should be alpha-transparent cutouts (the piece shadow
 follows the cutout); every file is auto-trimmed to its visible pixels at
 load, so margins and resolution don't matter — pieces always render at
-their standard size. Numbered alternates (`sticky-2.png`, `paper-2.png`, …)
+their standard size. Numbered alternates (`sticky-2.webp`, `paper-2.webp`, …)
 join the per-piece variety pool when present. Piece variety otherwise comes
 from a seeded flip/hue-brightness jitter per piece (the corner-fold and tape
 overlay decorations were removed in round 9 — they read as clutter, not
@@ -185,15 +205,23 @@ win, lose`.
    field — a list of Anki note IDs for that group's cards. When any group
    has this field, a "Copy Anki tags" button appears on the results screen;
    clicking it copies an Anki Browse search string to the clipboard.
-2. Point `"current"` at the new id in `puzzles/index.json` and add its
+2. **Optional — externalize images.** The editor embeds images as data
+   URIs, which makes the JSON self-contained but large (14 images ≈ 850 KB).
+   Run `python3 tools/externalize_images.py puzzles/<id>.json --apply`
+   to extract each image to `puzzles/<id>/<item-id>-{info,scope}.webp`,
+   rewrite the JSON to page-relative paths, and shrink the JSON to a few KB.
+   Do this after exporting from the editor and before `publish.py`.
+   Both data-URI and path-based image fields pass `publish.py` validation;
+   `publish.py` checks that path-based images actually exist on disk.
+3. Point `"current"` at the new id in `puzzles/index.json` and add its
    `{id, title, date, file}` entry — or use the editor's exported
    `index.json`.
-3. Run `python3 tools/publish.py --apply` (or `--commit` to also create the
+4. Run `python3 tools/publish.py --apply` (or `--commit` to also create the
    git commit). This validates the puzzle, rewrites the five puzzle-specific
    strings in `index.html` (`<title>`, `og:title`, `twitter:title`,
    `meta description`, cache-bust `?v=`), and generates
    `puzzles/.local-puzzle-fallback.js` for file:// preview.
-4. Push: `git push origin main`. Pages redeploys in about a minute.
+5. Push: `git push origin main`. Pages redeploys in about a minute.
 
 Invalid puzzles are rejected by `publish.py` with a plain-English error
 list before anything is written. Never edit `index.html` titles or the

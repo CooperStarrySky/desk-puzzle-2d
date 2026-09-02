@@ -1,16 +1,21 @@
 {
   "generated": "GPT Image generation on 2026-07-16; object assets have transparent PNG backgrounds.",
   "present": [
-    "sticky.png",
-    "sticky-pink.png",
-    "sticky-green.png",
-    "sticky-orange.png",
-    "card.png",
-    "paper.png",
-    "slide.png",
-    "film.png",
-    "desk.jpg",
-    "blotter.png"
+    "sticky.webp",
+    "sticky-2.webp",
+    "sticky-3.webp",
+    "sticky-pink.webp",
+    "sticky-green.webp",
+    "sticky-orange.webp",
+    "card.webp",
+    "paper.webp",
+    "paper-2.webp",
+    "slide.webp",
+    "film.webp",
+    "photo.webp",
+    "rx.webp",
+    "desk.webp",
+    "blotter.webp"
   ],
-  "notes": "The sticky notes, card, paper, slide, and film are natural-looking cutouts with alpha transparency. desk.jpg and blotter.png are intentionally opaque full-frame background textures."
+  "notes": "The sticky notes, card, paper, slide, and film are natural-looking cutouts with alpha transparency. desk.webp and blotter.webp are intentionally opaque full-frame background textures. All files converted to WebP (quality 82, method 6) with Pillow; piece cutouts resized to 2x max CSS render size x 1.25 headroom. Adding a new variant: drop the file and add its name here — the loader probes only names in this list."
 }
