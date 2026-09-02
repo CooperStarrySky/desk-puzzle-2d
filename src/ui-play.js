@@ -2035,7 +2035,7 @@ export function showResults() {
   var game = state.game;
   var won = game.phase === 'won';
   var solvedGroupIds = new Set(game.solved.map(function (s) { return s.groupId; }));
-  var casualSuffix = game.casual ? ' · Casual mode' : '';
+  var casualSuffix = game.casual ? ' Casual mode.' : '';
   showResultsForPuzzle(game.puzzle, {
     title: won ? 'Solved!' : 'Out of mistakes',
     sub: won
