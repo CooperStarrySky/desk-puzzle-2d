@@ -66,6 +66,12 @@ results screen under that group's one-line `explanation`. It's optional
 and backward compatible; groups (and whole puzzle files) without it render
 exactly as before.
 
+Each `group` may also carry an optional `anki` object: `{"anki": {"nids": [1499870123456, ...]}}`,
+where `nids` is a list of Anki note IDs for cards that belong to that group. When any group in the
+puzzle has this field, a "Copy Anki tags" button appears on the results screen; clicking it copies
+an Anki Browse search string (`nid:id1,id2,...`) to the clipboard so you can open those cards
+directly in Anki. Puzzles without `anki` data on any group never show the button.
+
 ## Keyboard play
 
 Every piece is focusable:

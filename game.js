@@ -606,7 +606,7 @@ function cacheEls() {
     'btn-close-settings',
     'overlay-help', 'btn-close-help',
     'overlay-results', 'results-title', 'results-sub', 'results-hints', 'results-groups',
-    'btn-share', 'btn-play-again', 'btn-back-menu', 'share-fallback',
+    'btn-share', 'btn-copy-anki', 'btn-play-again', 'btn-back-menu', 'share-fallback',
     'error-message', 'btn-error-menu', 'layout-panel', 'reveal-note',
   ].forEach(function (id) {
     els[toCamel(id)] = document.getElementById(id);
@@ -3722,6 +3722,10 @@ function showResultsForPuzzle(puzzle, opts) {
   });
 
   els.shareFallback.hidden = true;
+  if (els.btnCopyAnki) {
+    var ankiResult = buildAnkiSearch(puzzle);
+    els.btnCopyAnki.hidden = ankiResult.noteCount === 0;
+  }
   showOverlay(els.overlayResults);
 }
 
@@ -3797,6 +3801,40 @@ function showShareFallback(text) {
   els.shareFallback.focus();
   els.shareFallback.select();
   toast('Select the text below to copy.');
+}
+
+function buildAnkiSearch(puzzle) {
+  var groups = (puzzle && Array.isArray(puzzle.groups)) ? puzzle.groups : [];
+  var seen = Object.create(null);
+  var nids = [];
+  var groupCount = 0;
+  groups.forEach(function (g) {
+    if (!g || !g.anki || !Array.isArray(g.anki.nids)) return;
+    groupCount++;
+    g.anki.nids.forEach(function (id) {
+      if (typeof id === 'number' && Number.isInteger(id) && id > 0 && !seen[id]) {
+        seen[id] = true;
+        nids.push(id);
+      }
+    });
+  });
+  if (nids.length === 0) return { text: '', noteCount: 0, groupCount: 0 };
+  return { text: 'nid:' + nids.join(','), noteCount: nids.length, groupCount: groupCount };
+}
+
+function onCopyAnki() {
+  var puzzle = state.game && state.game.puzzle;
+  var result = buildAnkiSearch(puzzle);
+  var text = result.text;
+  var noteCount = result.noteCount;
+  var msg = 'Copied Anki search for ' + noteCount + ' notes - paste into Browse';
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      toast(msg);
+    }, function () { showShareFallback(text); });
+  } else {
+    showShareFallback(text);
+  }
 }
 
 /* ── Menu / navigation actions ───────────────────────────────────── */
@@ -5655,6 +5693,7 @@ async function init() {
 
   // Results.
   els.btnShare.addEventListener('click', onShare);
+  els.btnCopyAnki.addEventListener('click', onCopyAnki);
   els.btnPlayAgain.addEventListener('click', onPlayAgain);
   els.btnBackMenu.addEventListener('click', function () {
     hideOverlay(els.overlayResults);

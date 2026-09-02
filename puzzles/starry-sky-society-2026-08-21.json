@@ -17,7 +17,16 @@
         "tricuspid-valve-endocarditis",
         "osteomyelitis",
         "gram-stain"
-      ]
+      ],
+      "anki": {
+        "nids": [
+          1488680546029,
+          1484873092105,
+          1488154292555,
+          1484871806725,
+          1472072107763
+        ]
+      }
     },
     {
       "id": "g-simple-columnar",
@@ -29,7 +38,12 @@
         "cholecystectomy-organ",
         "small-bowel",
         "stomach"
-      ]
+      ],
+      "anki": {
+        "nids": [
+          1486608749626
+        ]
+      }
     },
     {
       "id": "g-multiple-myeloma",
@@ -41,7 +55,16 @@
         "hypercalcemia",
         "apple-green-birefringence",
         "lytic-bone-lesions"
-      ]
+      ],
+      "anki": {
+        "nids": [
+          1481335901819,
+          1557355214995,
+          1481335881007,
+          1475364152379,
+          1487550496659
+        ]
+      }
     },
     {
       "id": "g-letter-p",
@@ -53,7 +76,15 @@
         "ube3a",
         "chromosome-15",
         "wide-spaced-teeth"
-      ]
+      ],
+      "anki": {
+        "nids": [
+          1541799643280,
+          1469211918414,
+          1469211963576,
+          1469211959736
+        ]
+      }
     }
   ],
   "items": [
