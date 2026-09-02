@@ -1487,6 +1487,9 @@ var previewTimer = null;
 var previewReady = false;
 var previewQueue = [];
 
+/** main.js calls this when the preview iframe handshakes. */
+export function setPreviewReady(v) { previewReady = v; }
+
 export function pushPreview() {
   try { localStorage.setItem(SAVE_PREFIX + 'preview-draft', JSON.stringify(state.editorDraft)); } catch (e) { /* ignore */ }
   clearTimeout(previewTimer);

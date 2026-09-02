@@ -109,9 +109,11 @@ then open `http://localhost:4607`. A `desk-puzzle-2d` entry for this is in
 the workspace's `.claude/launch.json`. Deep link a puzzle with
 `?puzzle=<id>`.
 
+**Source layout.** All game logic lives in `src/` as browser-native ES modules — no bundler, no build step. The entry point is `src/main.js`, loaded by `index.html` as `<script type="module">`. Modules are: `engine.js` (pure rules, no DOM), `state.js` (singletons, settings, persistence), `audio.js` (WebAudio synthesis), `textures.js` (skeuomorphic texture loading), `ui-play.js` (desk/piece/drag/hints UI), `ui-menu.js` (registry, openPuzzle, nav), `editor.js` (layout panel, case editor, live preview), and `main.js` (init, event wiring). The import graph is an acyclic DAG; verify with `python3 tools/check_imports.py`. For debugging, `window.__dp2d` exposes `{ state, els, buildAnkiSearch, showResultsForPuzzle, openPuzzle }`.
+
 **File preview (double-click `index.html` without a server).** Run
 `python3 tools/publish.py --apply` first. This writes the gitignored
-`puzzles/.local-puzzle-fallback.js` file that game.js uses when
+`puzzles/.local-puzzle-fallback.js` file that `src/main.js` uses when
 `fetch()` fails under the `file://` protocol. The file is derived
 automatically from the current puzzle in `puzzles/index.json`, so
 it is always accurate and never hand-edited.
