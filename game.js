@@ -9,7 +9,6 @@
  * for rendering, input, persistence, and sound.
  * ════════════════════════════════════════════════════════════════════ */
 
-var ZONE_CAPACITY = { corkboard: 6, folder: 5, rack: 6, tubes: 4, deskCards: 4 };
 var MAX_MISTAKES = 4;
 var GROUP_SIZE = 4;
 var BOX_COUNT = 4;
@@ -383,77 +382,10 @@ DeskPuzzleGame.prototype.touch = function () {
   this.events.emit('change', this.snapshot());
 };
 
-/* ════════════════════════════════════════════════════════════════════
- * EMBEDDED FALLBACK PUZZLE — content-equivalent copy of the current puzzle
- * and index so the game still works when fetch() fails (e.g. file://).
- * ════════════════════════════════════════════════════════════════════ */
-
-var CURRENT_PUZZLE = {
-  id: 'starry-sky-society-2026-08-21',
-  title: 'Starry Sky Society Puzzle',
-  date: '2026-08-21',
-  machines: ['scope', 'lightbox'],
-  groups: [
-    {
-      id: 'g-staph-aureus',
-      name: 'Manifestations of Staph aureus',
-      tier: 1,
-      explanation: 'Bullous impetigo, tricuspid valve endocarditis, osteomyelitis, and a gram stain can all point to Staphylococcus aureus.',
-      itemIds: ['bullous-impetigo', 'tricuspid-valve-endocarditis', 'osteomyelitis', 'gram-stain'],
-    },
-    {
-      id: 'g-simple-columnar',
-      name: 'Simple columnar epithelium',
-      tier: 2,
-      explanation: 'The four clues point toward simple columnar epithelium in histology, organ identification, or gross anatomy.',
-      itemIds: ['excretory-ducts', 'cholecystectomy-organ', 'small-bowel', 'stomach'],
-    },
-    {
-      id: 'g-multiple-myeloma',
-      name: 'Multiple myeloma CRAB symptoms',
-      tier: 3,
-      explanation: 'CRAB points to hyperCalcemia, Renal involvement, Anemia, and Bone lesions. Apple-green birefringence adds the amyloid clue associated with renal disease.',
-      itemIds: ['anemia-blood-smear', 'hypercalcemia', 'apple-green-birefringence', 'lytic-bone-lesions'],
-    },
-    {
-      id: 'g-angelman-syndrome',
-      name: 'Angelman syndrome',
-      tier: 4,
-      explanation: 'These written clues point to Angelman syndrome: a neurodevelopmental disorder associated with maternal UBE3A dysfunction on chromosome 15.',
-      itemIds: ['fascination-with-water', 'ube3a-mutation', 'chromosome-15', 'wide-spaced-teeth'],
-    },
-  ],
-  items: [
-    { id: 'bullous-impetigo', label: 'Bullous impetigo', zone: 'rack', info: { title: 'Bullous impetigo', text: 'Histology clue: a superficial intraepidermal blister.' } },
-    { id: 'tricuspid-valve-endocarditis', label: 'Tricuspid valve endocarditis', zone: 'tubes', info: { title: 'Tricuspid valve endocarditis', text: 'Echocardiogram clue: a vegetation on the tricuspid valve.' } },
-    { id: 'osteomyelitis', label: 'Osteomyelitis', zone: 'photo', info: { title: 'Osteomyelitis', text: 'Gross pathology clue: infected bone.' } },
-    { id: 'gram-stain', label: 'Gram stain', zone: 'rack', info: { title: 'Gram stain', text: 'Microscopy clue: gram-positive cocci in clusters.' } },
-    { id: 'excretory-ducts', label: 'Excretory ducts', zone: 'rack', info: { title: 'Excretory ducts', text: 'Histology clue: simple columnar epithelium in an excretory duct.' } },
-    { id: 'cholecystectomy-organ', label: 'Organ removed in a cholecystectomy', zone: 'folder', info: { title: 'Gallbladder', text: 'The gallbladder is removed during a cholecystectomy.' } },
-    { id: 'small-bowel', label: 'Small bowel', zone: 'rack', info: { title: 'Small bowel', text: 'Histology clue: simple columnar epithelium in the small bowel.' } },
-    { id: 'stomach', label: 'Stomach', zone: 'photo', info: { title: 'Stomach', text: 'Gross anatomy clue: stomach.' } },
-    { id: 'anemia-blood-smear', label: 'Blood smear of anemia', zone: 'rack', info: { title: 'Blood smear of anemia', text: 'The A in the CRAB mnemonic: anemia.' } },
-    { id: 'hypercalcemia', label: 'Hypercalcemia', zone: 'folder', info: { title: 'Hypercalcemia', text: 'The C in the CRAB mnemonic.' } },
-    { id: 'apple-green-birefringence', label: 'Apple Green Birefringence', zone: 'rack', info: { title: 'Apple Green Birefringence', text: 'Congo red amyloid under polarized light, associated here with renal involvement.' } },
-    { id: 'lytic-bone-lesions', label: 'Lytic Bone Lesions', zone: 'tubes', info: { title: 'Lytic Bone Lesions', text: 'X-ray clue: lytic bone lesions, the B in CRAB.' } },
-    { id: 'fascination-with-water', label: 'Fascination with water', zone: 'corkboard', info: { title: 'Fascination with water', text: 'Behavioral clue associated with Angelman syndrome.' } },
-    { id: 'ube3a-mutation', label: 'UBE3A mutation', zone: 'corkboard', info: { title: 'UBE3A mutation', text: 'Genetic clue associated with Angelman syndrome.' } },
-    { id: 'chromosome-15', label: 'Chromosome 15', zone: 'corkboard', info: { title: 'Chromosome 15', text: 'Chromosomal clue associated with Angelman syndrome.' } },
-    { id: 'wide-spaced-teeth', label: 'Wide spaced teeth', zone: 'corkboard', info: { title: 'Wide spaced teeth', text: 'Physical finding associated with Angelman syndrome.' } },
-  ],
-};
-
-/* file:// cannot fetch the authored JSON. index.html loads this local-only
-   mirror before game.js so the desktop file preview uses the exact same
-   payload as the published puzzle. */
-if (window.DP2D_LOCAL_PUZZLE) CURRENT_PUZZLE = window.DP2D_LOCAL_PUZZLE;
-
-var CURRENT_INDEX = {
-  current: 'starry-sky-society-2026-08-21',
-  puzzles: [
-    { id: 'starry-sky-society-2026-08-21', title: 'Starry Sky Society Puzzle', date: '2026-08-21', file: 'starry-sky-society-2026-08-21.json' },
-  ],
-};
+/* file:// previews: index.html loads puzzles/.local-puzzle-fallback.js (gitignored,
+ * generated by tools/publish.py --apply) which sets window.DP2D_LOCAL_PUZZLE to the
+ * current puzzle object. loadRegistry() and loadPuzzleByEntry() use it as a fallback
+ * when fetch() fails so double-click file:// previews still work without a server. */
 
 /* ════════════════════════════════════════════════════════════════════
  * DOM LAYER — top-down desk, strewn pile, drag everything.
@@ -471,6 +403,16 @@ var EDITOR_DRAFT_KEY = SAVE_PREFIX + 'editor-draft';
 /* v3 namespace: earlier layouts' saves must never half-restore here. */
 var SAVE_NS = SAVE_PREFIX + 'save3:';
 var LEGACY_SAVE_NS = [SAVE_PREFIX + 'save:', SAVE_PREFIX + 'save2:'];
+
+/* Asset version — extracted from the script's own ?v= query param (set in
+   index.html as game.js?v=NN) so all fetched assets share the same cache key.
+   Falls back to Date.now() if currentScript is unavailable (deferred). */
+var ASSET_VERSION = (function () {
+  var s = document.currentScript && document.currentScript.src;
+  var m = s && /[?&]v=([^&]+)/.exec(s);
+  return m ? m[1] : String(Date.now());
+})();
+function versioned(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=' + ASSET_VERSION; }
 
 // HINTS_MAX retired in v15 — label printer no longer issues hint labels.
 var TIER_EMOJI = { 1: '🟨', 2: '🟩', 3: '🟪', 4: '🟧' };
@@ -523,7 +465,7 @@ var viewportTipAutoHideTimer = null;
 var viewportTipResizeTimer = null;
 
 var state = {
-  settings: { casual: false, sound: true, theme: 'system', dragAudioWip: false },
+  settings: { casual: false, sound: true, theme: 'system' },
   game: null,
   pieceEls: {},
   desk: null, // { pos, rot, z, zTop, scope }
@@ -536,6 +478,12 @@ var state = {
   textures: null,     // Set of present texture filenames, or null
   editorDraft: null,
   filmLightTimer: null,
+  // Runtime properties added during game load (declared here for clarity):
+  activeMachines: null,   // string[] of machine ids active for current puzzle
+  slideLetters: null,     // { [itemId]: letter } for rack pieces
+  previewMode: false,     // true when loaded via ?preview
+  editorMode: false,      // true when loaded via ?editor
+  previewV: null,         // { w, h } logical preview viewport captured at editor boot
 };
 
 /* ── Small utilities ─────────────────────────────────────────────── */
@@ -596,6 +544,7 @@ function downloadJson(filename, data) {
 function cacheEls() {
   [
     'screen-menu', 'screen-play', 'screen-error', 'screen-editor', 'live-region', 'toast',
+    'menu-title',
     'btn-play-today', 'btn-puzzle-select', 'puzzle-select-panel', 'puzzle-select-list', 'puzzle-select-summary', 'toggle-casual', 'toggle-sound',
     'puzzle-title', 'puzzle-date', 'mistake-tracker', 'btn-shuffle', 'btn-help', 'btn-hints', 'hints-panel', 'btn-menu',
     'play-area', 'wall-area', 'xray-rack', 'xray-rail', 'desk-surface', 'piece-layer', 'trays',
@@ -633,14 +582,6 @@ function loadSettings() {
       state.settings.casual = !!parsed.casual;
       state.settings.sound = parsed.sound !== false;
       if (parsed.theme === 'light' || parsed.theme === 'dark' || parsed.theme === 'system') state.settings.theme = parsed.theme;
-      // The "Experimental drag audio (WIP)" toggle was removed from the
-      // player-facing Settings overlay (round 10) — the round-5 velocity-
-      // bed engine and its SOUND_TUNING entries stay in the codebase for
-      // future tuning, just with no UI path to turn it on anymore, so a
-      // stale localStorage value from before this change must never
-      // silently re-enable it. Always false; the gated scrape grains are
-      // the shipped default.
-      state.settings.dragAudioWip = false;
     }
   } catch (e) { /* corrupt settings — use defaults */ }
 }
@@ -698,7 +639,7 @@ function mergeLayoutLayer(base, layer) {
  */
 function loadLayout() {
   var base = JSON.parse(JSON.stringify(LAYOUT_DEFAULTS));
-  return fetch('layout.json', { cache: 'no-store' })
+  return fetch(versioned('layout.json'))
     .then(function (r) { return r.ok ? r.json() : null; })
     .catch(function () { return null; })
     .then(function (fileLayout) {
@@ -736,6 +677,9 @@ function persistGame() {
   if (!state.game || !state.desk || state.previewMode) return;
   var snap = state.game.snapshot();
   snap.desk = state.desk;
+  // Persist the mode so sanitizeEngineSave can use it on reload instead
+  // of the current (possibly toggled) setting — fixes B2 casual reload bug.
+  snap.casual = !!state.settings.casual;
   try {
     localStorage.setItem(saveKey(state.game.puzzle.id), JSON.stringify(snap));
   } catch (e) { /* storage full/unavailable */ }
@@ -804,9 +748,26 @@ function sanitizeEngineSave(saved, puzzle) {
     });
   }
 
-  var phase = solved.length === puzzle.groups.length
-    ? 'won'
-    : (!state.settings.casual && mistakes >= MAX_MISTAKES ? 'lost' : 'playing');
+  // The mode in force NOW decides whether the game is over. But if the
+  // mistakes were made in casual mode (no limit) and the game was still in
+  // progress, switching casual off must not end it on reload: keep it alive
+  // with one guess left. Saves written before this fix have no casual flag
+  // and fall back to the current setting.
+  var savedCasual = typeof saved.casual === 'boolean' ? saved.casual : !!state.settings.casual;
+  var nowCasual = !!state.settings.casual;
+  var phase;
+  if (solved.length === puzzle.groups.length) {
+    phase = 'won';
+  } else if (!nowCasual && mistakes >= MAX_MISTAKES) {
+    if (savedCasual && saved.phase === 'playing') {
+      phase = 'playing';
+      mistakes = MAX_MISTAKES - 1;
+    } else {
+      phase = 'lost';
+    }
+  } else {
+    phase = 'playing';
+  }
 
   return { caseId: puzzle.id, phase: phase, staging: staging, mistakes: mistakes, solved: solved, attempts: attempts, desk: saved.desk };
 }
@@ -947,21 +908,6 @@ var SOUND_TUNING = {
     },
   },
 
-  /* WIP drag sound (dev toggle): the round-5 velocity bed + travel grains,
-     kept for comparison, with hysteresis + envelopes + speed→lowpass. */
-  dragBed: {
-    paper: { hp: 900, lp: 5200, maxGain: 0.09, speedRef: 900 },
-    slide: { hp: 2200, lp: 7000, maxGain: 0.03, speedRef: 1100 },
-    film:  { hp: 240, lp: 1700, maxGain: 0.11, speedRef: 800 },
-  },
-  dragGrain: {
-    paper: { everyPx: 46, dur: 0.045, hp: 1300, lp: 7000, gain: 0.09 },
-    slide: { everyPx: 95, tick: true, freq: 2600, dur: 0.02, gain: 0.05 },
-    film:  { everyPx: 58, dur: 0.07, hp: 280, lp: 1600, gain: 0.11 },
-    capPerSec: 16,
-    turnBoost: 1.8,
-    turnDot: 0.25,
-  },
 };
 
 var SOUND_DEFAULTS = JSON.parse(JSON.stringify(SOUND_TUNING));
@@ -1090,7 +1036,7 @@ function synthShuffle(ctx, t, o) {
 
 /** Load assets/sounds/manifest.json once; fetch listed override files. */
 function loadSoundOverrides() {
-  fetch('assets/sounds/manifest.json', { cache: 'no-store' })
+  fetch(versioned('assets/sounds/manifest.json'))
     .then(function (r) { return r.ok ? r.json() : { present: [] }; })
     .then(function (m) {
       audio.fileList = {};
@@ -1146,218 +1092,6 @@ function pieceSound(zone, kind) {
   if (zone === 'rack') playSound(kind === 'pickup' ? 'pickup-glass' : 'drop-glass');
   else if (zone === 'tubes') playSound('film-rustle');
   else playSound(kind === 'pickup' ? 'pickup-paper' : 'drop-paper');
-}
-
-/* Dragging is intentionally silent. Pickup/drop cues remain available, but
-   moving a clue across the desk must not generate a continuous sound. */
-function startPieceDrag() {}
-function movePieceDrag() {}
-function stopPieceDrag() {}
-
-/* ── DEFAULT: distance-quantized scrape grains with hysteresis gate ── */
-
-var scrape = { s: null };
-
-function startScrape(zone, x, y) {
-  stopScrape();
-  var ctx = audioCtx();
-  if (!ctx) return;
-  scrape.s = {
-    mat: dragMaterial(zone),
-    ema: 0, moving: false, moved: false,
-    dist: 0, lastX: x, lastY: y, lastT: ctx.currentTime,
-    lastGrain: 0, lastVariant: -1,
-  };
-  state.scrapeStats = { grains: 0, gateOpens: 0, material: scrape.s.mat };
-}
-
-/* four subtle procedural variants per material, rotated no-immediate-repeat */
-var SCRAPE_VARIANTS = [
-  { hpMul: 1.0, durMul: 1.0 },
-  { hpMul: 0.85, durMul: 1.15 },
-  { hpMul: 1.18, durMul: 0.85 },
-  { hpMul: 1.05, durMul: 1.05 },
-];
-
-function scrapeMove(x, y) {
-  var s = scrape.s;
-  var ctx = audio.ctx;
-  if (!s || !ctx) return;
-  var cfg = SOUND_TUNING.scrape;
-  var now = ctx.currentTime;
-  var dt = Math.max(0.004, now - s.lastT);
-  var dx = x - s.lastX, dy = y - s.lastY;
-  var dist = Math.sqrt(dx * dx + dy * dy);
-  var speed = dist / dt;
-  s.ema = s.ema * (1 - cfg.emaAlpha) + speed * cfg.emaAlpha;
-  s.lastX = x; s.lastY = y; s.lastT = now;
-
-  // hysteresis gate
-  if (!s.moving && s.ema > cfg.vOn) {
-    s.moving = true;
-    s.moved = true;
-    if (state.scrapeStats) state.scrapeStats.gateOpens++;
-  } else if (s.moving && s.ema < cfg.vOff) {
-    s.moving = false;
-    s.dist = 0; // micro-adjustments never bank distance
-  }
-  if (!s.moving) return; // total silence below the gate
-
-  s.dist += dist;
-  if (s.dist < cfg.grainPx) return;
-  if ((now - s.lastGrain) * 1000 < cfg.cooldownMs) { s.dist = cfg.grainPx; return; }
-  s.dist -= cfg.grainPx;
-  s.lastGrain = now;
-  fireScrapeGrain(ctx, now, s, cfg);
-  if (state.scrapeStats) state.scrapeStats.grains++;
-}
-
-function fireScrapeGrain(ctx, now, s, cfg) {
-  var mat = SOUND_TUNING.scrape.materials[s.mat];
-  // speed→gain: sqrt curve from the gate to vRef
-  var t = clamp((s.ema - cfg.vOff) / (cfg.vRef - cfg.vOff), 0, 1);
-  var speedGain = cfg.gainLo + (cfg.gainHi - cfg.gainLo) * Math.sqrt(t);
-  // small randomization: ±volJitterDb, pitch within [pitchLo, pitchHi]
-  var vol = Math.pow(10, ((Math.random() * 2 - 1) * cfg.volJitterDb) / 20);
-  var rate = cfg.pitchLo + Math.random() * (cfg.pitchHi - cfg.pitchLo);
-  // rotate variants, never the same twice in a row
-  var vi = Math.floor(Math.random() * SCRAPE_VARIANTS.length);
-  if (vi === s.lastVariant) vi = (vi + 1) % SCRAPE_VARIANTS.length;
-  s.lastVariant = vi;
-  var v = SCRAPE_VARIANTS[vi];
-  if (mat.tick) {
-    synthTick(ctx, now, { freq: mat.freq * rate, dur: mat.dur * v.durMul, gain: mat.gain * speedGain * vol });
-  } else {
-    synthNoise(ctx, now, {
-      hp: mat.hp * v.hpMul, lp: mat.lp,
-      dur: mat.dur * v.durMul,
-      gain: mat.gain * speedGain * vol,
-      attack: 0.003,
-      rate: rate,
-    });
-  }
-}
-
-function stopScrape() {
-  var s = scrape.s;
-  scrape.s = null;
-  if (!s || !audio.ctx) return;
-  // optional soft settle tick, only after real motion
-  if (s.moved && SOUND_TUNING.scrape.settleTick) {
-    var mat = SOUND_TUNING.scrape.materials[s.mat];
-    if (!mat.tick) synthNoise(audio.ctx, audio.ctx.currentTime, { hp: mat.hp * 0.7, lp: mat.lp, dur: 0.04, gain: mat.gain * 0.35, attack: 0.004 });
-  }
-}
-
-/* ── WIP: round-5 bed + travel grains (behind the dev toggle) ────── */
-
-var dragAudio = { session: null };
-
-function dragMaterial(zone) {
-  return zone === 'rack' ? 'slide' : zone === 'tubes' ? 'film' : 'paper';
-}
-
-function startDragAudio(zone, x, y) {
-  stopDragAudio();
-  var ctx = audioCtx();
-  if (!ctx) return;
-  var mat = dragMaterial(zone);
-  var bedCfg = SOUND_TUNING.dragBed[mat];
-  var srcNode = ctx.createBufferSource();
-  srcNode.buffer = noiseBuffer(ctx);
-  srcNode.loop = true;
-  var hp = ctx.createBiquadFilter();
-  hp.type = 'highpass'; hp.frequency.value = bedCfg.hp;
-  var lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass'; lp.frequency.value = bedCfg.lp;
-  var g = ctx.createGain();
-  g.gain.value = 0;
-  srcNode.connect(hp).connect(lp).connect(g).connect(audio.master);
-  srcNode.start();
-  dragAudio.session = {
-    mat: mat, src: srcNode, gain: g, lp: lp,
-    lastX: x, lastY: y, lastT: ctx.currentTime,
-    speed: 0, distAccum: 0, dirX: 0, dirY: 0,
-    grainTimes: [], gateOpen: false,
-  };
-  // instrumentation (acceptance-checkable):
-  state.dragAudioStats = { grains: 0, turnGrains: 0, bedPeak: 0, material: mat };
-}
-
-function dragAudioMove(x, y) {
-  var s = dragAudio.session;
-  var ctx = audio.ctx;
-  if (!s || !ctx) return;
-  var now = ctx.currentTime;
-  var dt = Math.max(0.004, now - s.lastT);
-  var dx = x - s.lastX, dy = y - s.lastY;
-  var dist = Math.sqrt(dx * dx + dy * dy);
-  var speed = dist / dt; // px/s
-  s.speed = s.speed * 0.75 + speed * 0.25; // smoothed
-  var bedCfg = SOUND_TUNING.dragBed[s.mat];
-  // hysteresis gate (research brief Option B): hard zero below the gate
-  var sc = SOUND_TUNING.scrape;
-  if (!s.gateOpen && s.speed > sc.vOn) s.gateOpen = true;
-  else if (s.gateOpen && s.speed < sc.vOff) s.gateOpen = false;
-  var target = s.gateOpen
-    ? Math.min(bedCfg.maxGain, bedCfg.maxGain * (s.speed / bedCfg.speedRef))
-    : 0;
-  // 25ms attack, 120ms release
-  s.gain.gain.setTargetAtTime(target, now, target > s.gain.gain.value ? 0.025 : 0.12);
-  // speed→brightness: lowpass opens with velocity
-  s.lp.frequency.setTargetAtTime(
-    bedCfg.lp * (0.4 + 0.6 * Math.min(1, s.speed / bedCfg.speedRef)), now, 0.08);
-  if (state.dragAudioStats && target > state.dragAudioStats.bedPeak) state.dragAudioStats.bedPeak = target;
-
-  // direction-change accent
-  var turn = false;
-  if (dist > 2) {
-    var nx = dx / dist, ny = dy / dist;
-    if (s.dirX || s.dirY) {
-      var dot = nx * s.dirX + ny * s.dirY;
-      if (dot < SOUND_TUNING.dragGrain.turnDot && s.speed > 240) turn = true;
-    }
-    s.dirX = nx; s.dirY = ny;
-  }
-
-  // travel-distance grains, density-capped
-  s.distAccum += dist;
-  var gcfg = SOUND_TUNING.dragGrain[s.mat];
-  s.grainTimes = s.grainTimes.filter(function (t) { return now - t < 1; });
-  while ((s.distAccum >= gcfg.everyPx || turn) && s.grainTimes.length < SOUND_TUNING.dragGrain.capPerSec) {
-    var boost = turn ? SOUND_TUNING.dragGrain.turnBoost : 1;
-    fireDragGrain(ctx, now, gcfg, boost);
-    s.grainTimes.push(now);
-    if (state.dragAudioStats) {
-      state.dragAudioStats.grains++;
-      if (turn) state.dragAudioStats.turnGrains++;
-    }
-    if (turn) { turn = false; } else { s.distAccum -= gcfg.everyPx; }
-  }
-  if (s.distAccum >= gcfg.everyPx) s.distAccum = gcfg.everyPx; // capped backlog
-
-  s.lastX = x; s.lastY = y; s.lastT = now;
-}
-
-function fireDragGrain(ctx, now, gcfg, boost) {
-  var jitter = 0.7 + Math.random() * 0.6;
-  if (gcfg.tick) {
-    synthTick(ctx, now, { freq: gcfg.freq * (0.9 + Math.random() * 0.2), dur: gcfg.dur, gain: gcfg.gain * jitter * boost });
-  } else {
-    synthNoise(ctx, now, { hp: gcfg.hp * (0.85 + Math.random() * 0.3), lp: gcfg.lp, dur: gcfg.dur * jitter, gain: gcfg.gain * jitter * boost, attack: 0.003 });
-  }
-}
-
-function stopDragAudio() {
-  var s = dragAudio.session;
-  if (!s) return;
-  dragAudio.session = null;
-  var ctx = audio.ctx;
-  if (!ctx) return;
-  try {
-    s.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
-    s.src.stop(ctx.currentTime + 0.15);
-  } catch (e) { /* already stopped */ }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1627,29 +1361,52 @@ function showErrorScreen(message) {
 /* ── Registry + puzzle loading ───────────────────────────────────── */
 
 function fetchJson(url) {
-  return fetch(url, { cache: 'no-store' }).then(function (res) {
+  return fetch(versioned(url)).then(function (res) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
   });
 }
 
 function loadRegistry() {
-  return fetchJson('puzzles/index.json').catch(function () { return CURRENT_INDEX; });
+  return fetchJson('puzzles/index.json').catch(function () {
+    if (window.DP2D_LOCAL_PUZZLE) {
+      var p = window.DP2D_LOCAL_PUZZLE;
+      return { current: p.id, puzzles: [{ id: p.id, title: p.title, date: p.date, file: p.id + '.json' }] };
+    }
+    throw new Error('Could not load the puzzle registry. Check your connection and reload.');
+  });
 }
 
 function loadPuzzleByEntry(entry) {
   return fetchJson('puzzles/' + entry.file).catch(function () {
-    if (entry.id === CURRENT_PUZZLE.id) return CURRENT_PUZZLE;
-    throw new Error('Could not load puzzle "' + entry.id + '" (fetch failed and no embedded fallback matches).');
+    if (window.DP2D_LOCAL_PUZZLE && window.DP2D_LOCAL_PUZZLE.id === entry.id) {
+      return window.DP2D_LOCAL_PUZZLE;
+    }
+    throw new Error('Puzzle "' + entry.id + '" could not be fetched. Check your connection and reload.');
   });
 }
 
 /* ── Menu rendering (puzzle-select dropdown, delegation — no per-item binds) ── */
 
+/** Update document.title, the menu <h1>, and meta description from the
+ *  current puzzle registry entry. og:/twitter: tags are static defaults
+ *  updated at publish time by tools/publish.py. */
+function applyRegistryTitles(entry) {
+  if (!entry) return;
+  var desc = entry.title + ' - a pathology desk puzzle: sort 16 clues into 4 groups.';
+  document.title = entry.title + ' : Desk Puzzle';
+  if (els.menuTitle) els.menuTitle.textContent = entry.title;
+  var metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) metaDesc.setAttribute('content', desc);
+}
+
 function renderMenu(registry) {
   var puzzles = (registry.puzzles || []).slice().sort(function (a, b) {
     return (b.date || '').localeCompare(a.date || '');
   });
+
+  var currentEntry = (registry.puzzles || []).find(function (p) { return p.id === registry.current; });
+  applyRegistryTitles(currentEntry);
 
   // Update the trigger summary text.
   if (els.puzzleSelectSummary) {
@@ -2110,13 +1867,24 @@ function fitOneLabel(textEl, maxLines, item) {
   var lineHeightRatio = lineHeightPx / baseFontPx;
   var floorScale = Math.min(1, LABEL_FIT_MIN_PX / baseFontPx);
 
+  // Measure the natural line count at scale=1 with a single read, then
+  // compute the target scale arithmetically (one write) and verify with
+  // at most 2 extra shrink steps. The old per-step write→read loop
+  // forced a reflow every iteration — this cuts it to ≤3 reads per label.
   var scale = 1;
-  while (scale > floorScale) {
-    var curLineHeightPx = lineHeightRatio * baseFontPx * scale;
-    var linesUsed = textEl.scrollHeight / curLineHeightPx;
-    if (linesUsed <= maxLines * LABEL_FIT_TOLERANCE) break;
-    scale = Math.max(floorScale, +(scale - LABEL_FIT_STEP).toFixed(3));
+  var linesNatural = textEl.scrollHeight / lineHeightPx;
+  if (linesNatural > maxLines * LABEL_FIT_TOLERANCE) {
+    var rawScale = (maxLines * LABEL_FIT_TOLERANCE) / linesNatural;
+    scale = Math.max(floorScale, Math.floor(rawScale / LABEL_FIT_STEP) * LABEL_FIT_STEP);
     textEl.style.setProperty('--fit-scale', String(scale));
+    // Verification: at most 2 extra steps if the linear estimate was off
+    // (word-wrap is non-linear — one or two corrections handle all real cases).
+    for (var pass = 0; pass < 2 && scale > floorScale; pass++) {
+      var curLineHeightPx = lineHeightRatio * baseFontPx * scale;
+      if (textEl.scrollHeight / curLineHeightPx <= maxLines * LABEL_FIT_TOLERANCE) break;
+      scale = Math.max(floorScale, +(scale - LABEL_FIT_STEP).toFixed(3));
+      textEl.style.setProperty('--fit-scale', String(scale));
+    }
   }
 
   var override = item && isFinite(item.labelScale) && item.labelScale > 0 ? item.labelScale : null;
@@ -2895,7 +2663,6 @@ function forceEndStaleDrag() {
   if (d.hotEl) d.hotEl.classList.remove('drop-hot');
   d.el.classList.remove('is-dragging');
   state.drag = null;
-  stopPieceDrag();
   if (d.isFilm) settleOnWall(d.id, null, d.wallRect);
   else settleOnDesk(d.id, null, null, null);
   syncAll();
@@ -2982,7 +2749,6 @@ function onPointerDown(ev) {
   if (wasStaged) state.game.unstage(id);
   if (wasDocked) { state.desk.scope = null; renderScopeView(); }
 
-  startPieceDrag(item.zone, ev.clientX, ev.clientY);
 }
 
 function dragPoint(ev) {
@@ -3009,7 +2775,6 @@ function onPointerMove(ev) {
   d.el.style.left = p.x + 'px';
   d.el.style.top = p.y + 'px';
   updateDropHot(p.x, p.y);
-  movePieceDrag(ev.clientX, ev.clientY);
   if (d.isFilm) updateFilmLighting(); // light-through follows the drag live
 }
 
@@ -3032,7 +2797,6 @@ function onPointerUp(ev) {
   if (d.hotEl) d.hotEl.classList.remove('drop-hot');
   d.el.classList.remove('is-dragging');
   state.drag = null;
-  stopPieceDrag();
   applyDrop(d, p.x, p.y);
   syncAll();
   persistGame();
@@ -3045,7 +2809,6 @@ function onPointerCancel(ev) {
   if (d.hotEl) d.hotEl.classList.remove('drop-hot');
   d.el.classList.remove('is-dragging');
   state.drag = null;
-  stopPieceDrag();
   if (d.isFilm) settleOnWall(d.id, null, d.wallRect);
   else settleOnDesk(d.id, null, null, d.rects.desk);
   syncAll();
@@ -3839,8 +3602,15 @@ function onCopyAnki() {
 
 /* ── Menu / navigation actions ───────────────────────────────────── */
 
+// Shared in-flight guard: prevents double-click races on playToday and
+// onPuzzleSelectEntry. Both set this true before starting a load and clear
+// it in .finally() so a second tap while a fetch is pending is a no-op.
+var puzzleLoadInFlight = false;
+
 function playToday() {
-  els.btnPlayToday.disabled = true; // double-clicks must not double-open
+  if (puzzleLoadInFlight) return;
+  puzzleLoadInFlight = true;
+  els.btnPlayToday.disabled = true; // belt-and-suspenders for keyboard users
   loadRegistry().then(function (registry) {
     var entry = (registry.puzzles || []).find(function (p) { return p.id === registry.current; })
       || { id: registry.current, file: registry.current + '.json' };
@@ -3848,6 +3618,7 @@ function playToday() {
   }).then(openPuzzle).catch(function (err) {
     showErrorScreen(err.message);
   }).finally(function () {
+    puzzleLoadInFlight = false;
     els.btnPlayToday.disabled = false;
   });
 }
@@ -3869,10 +3640,14 @@ function closePuzzleSelect() {
 function onPuzzleSelectEntry(ev) {
   var btn = ev.target.closest ? ev.target.closest('.puzzle-select-entry') : null;
   if (!btn) return;
+  if (puzzleLoadInFlight) return; // ignore second tap while load is in flight
+  puzzleLoadInFlight = true;
   closePuzzleSelect();
   var entry = { id: btn.dataset.puzzleId, file: btn.dataset.puzzleFile };
   loadPuzzleByEntry(entry).then(openPuzzle).catch(function (err) {
     showErrorScreen(err.message);
+  }).finally(function () {
+    puzzleLoadInFlight = false;
   });
 }
 
@@ -3923,11 +3698,7 @@ function tryDeepLink() {
   loadRegistry().then(function (registry) {
     var entry = (registry.puzzles || []).find(function (p) { return p.id === puzzleId; });
     if (!entry) {
-      if (puzzleId === CURRENT_PUZZLE.id) {
-        openPuzzle(CURRENT_PUZZLE);
-        return;
-      }
-      showErrorScreen('No puzzle found for id "' + puzzleId + '".');
+      showErrorScreen('No puzzle found for id "' + puzzleId + '". Check the URL and try reloading.');
       return;
     }
     return loadPuzzleByEntry(entry).then(openPuzzle);
@@ -3998,8 +3769,6 @@ function resetSoundLayer() {
   SOUND_TUNING.master = d.master;
   EDITABLE_CUES.forEach(function (c) { SOUND_TUNING[c] = d[c]; });
   SOUND_TUNING.scrape = d.scrape;
-  SOUND_TUNING.dragBed = d.dragBed;
-  SOUND_TUNING.dragGrain = d.dragGrain;
   if (audio.master) audio.master.gain.value = d.master;
 }
 
@@ -4240,7 +4009,7 @@ function loadEditorDraft() {
     var raw = localStorage.getItem(EDITOR_DRAFT_KEY);
     if (raw) return normalizeDraft(JSON.parse(raw));
   } catch (e) { /* fall through */ }
-  return normalizeDraft(JSON.parse(JSON.stringify(CURRENT_PUZZLE)));
+  return normalizeDraft({});
 }
 
 function saveEditorDraft() {
@@ -4307,7 +4076,7 @@ function normalizeDraft(d) {
     moment ago) prompts a confirm before being overwritten. */
 function draftIsPristine(d) {
   try {
-    var fresh = normalizeDraft(JSON.parse(JSON.stringify(CURRENT_PUZZLE)));
+    var fresh = normalizeDraft({});
     return JSON.stringify(fresh) === JSON.stringify(d);
   } catch (e) { return false; }
 }
@@ -5487,7 +5256,7 @@ function flushPreviewQueue() {
 function bootPreviewDraft() {
   var draft = null;
   try { draft = JSON.parse(localStorage.getItem(SAVE_PREFIX + 'preview-draft')); } catch (e) { /* ignore */ }
-  openPuzzle(draft && typeof draft === 'object' ? draft : JSON.parse(JSON.stringify(CURRENT_PUZZLE)));
+  openPuzzle(draft && typeof draft === 'object' ? draft : normalizeDraft({}));
 }
 
 /* ── Editor UI persistence (drawer width) ────────────────────────── */
@@ -5624,10 +5393,6 @@ async function init() {
   document.querySelectorAll('input[name="theme"]').forEach(function (r) {
     r.addEventListener('change', function () { if (r.checked) setTheme(r.value); });
   });
-  // No UI binding for dragAudioWip anymore — see the comment in
-  // loadSettings(). The engine (startDragAudio/dragAudioMove below) is
-  // still here for future tuning; it's just permanently off by default
-  // with no player-facing way to flip it on.
   els.toggleCasual.addEventListener('change', function () {
     state.settings.casual = els.toggleCasual.checked;
     saveSettings();
@@ -5742,6 +5507,11 @@ async function init() {
   document.addEventListener('pointerup', onPointerUp, { capture: true });
   document.addEventListener('pointercancel', onPointerCancel, { capture: true });
   document.addEventListener('keydown', onKeyDown);
+  // iOS long-press triggers a callout (copy/save) on pieces. Suppress
+  // contextmenu only inside a .piece so right-click elsewhere still works.
+  els.playArea.addEventListener('contextmenu', function (e) {
+    if (e.target.closest && e.target.closest('.piece')) e.preventDefault();
+  });
   window.addEventListener('resize', function () {
     if (state.game && !els.screenPlay.hidden) {
       sizeViewer();

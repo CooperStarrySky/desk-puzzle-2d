@@ -83,9 +83,7 @@ Every piece is focusable:
 
 ## How to run
 
-No build step — plain HTML/CSS/JS. Either double-click `index.html` (an
-embedded copy of the current puzzle covers `file://` fetch limits), or serve
-it:
+No build step — plain HTML/CSS/JS. Serve it locally (recommended):
 
 ```
 python3 -m http.server 4607 --directory "projects/Desk-Puzzle-2D"
@@ -94,6 +92,13 @@ python3 -m http.server 4607 --directory "projects/Desk-Puzzle-2D"
 then open `http://localhost:4607`. A `desk-puzzle-2d` entry for this is in
 the workspace's `.claude/launch.json`. Deep link a puzzle with
 `?puzzle=<id>`.
+
+**File preview (double-click `index.html` without a server).** Run
+`python3 tools/publish.py --apply` first. This writes the gitignored
+`puzzles/.local-puzzle-fallback.js` file that game.js uses when
+`fetch()` fails under the `file://` protocol. The file is derived
+automatically from the current puzzle in `puzzles/index.json`, so
+it is always accurate and never hand-edited.
 
 **Dev pages** (URL-gated, not linked from the menu): `?layout` opens Layout
 Mode: collapsible sections for machines, piece sizes, scatter, and a live
@@ -175,12 +180,24 @@ win, lose`.
 
 ## How to add a puzzle
 
-1. Author it in the `?editor` page (Export Puzzle JSON + Export updated
-   index.json do the packaging for you), or write the JSON by hand.
-2. Drop `<id>.json` into `puzzles/`.
-3. Add its entry to `puzzles/index.json` (`{id, title, date, file}`) and
-   point `current` at it — or use the editor's exported `index.json`.
-4. Reload. Invalid puzzles fail loudly with a readable error screen.
+1. Write `puzzles/<id>.json` by hand or export it from `?editor` (Export
+   Puzzle JSON). Each group may include an optional `"anki": {"nids": [...]}`
+   field — a list of Anki note IDs for that group's cards. When any group
+   has this field, a "Copy Anki tags" button appears on the results screen;
+   clicking it copies an Anki Browse search string to the clipboard.
+2. Point `"current"` at the new id in `puzzles/index.json` and add its
+   `{id, title, date, file}` entry — or use the editor's exported
+   `index.json`.
+3. Run `python3 tools/publish.py --apply` (or `--commit` to also create the
+   git commit). This validates the puzzle, rewrites the five puzzle-specific
+   strings in `index.html` (`<title>`, `og:title`, `twitter:title`,
+   `meta description`, cache-bust `?v=`), and generates
+   `puzzles/.local-puzzle-fallback.js` for file:// preview.
+4. Push: `git push origin main`. Pages redeploys in about a minute.
+
+Invalid puzzles are rejected by `publish.py` with a plain-English error
+list before anything is written. Never edit `index.html` titles or the
+embedded puzzle by hand — there is no embedded copy anymore.
 
 To edit a puzzle that's already live instead of starting from scratch, open
 `?editor` and use **Load from library** (pick it by title) or **Load puzzle

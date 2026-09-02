@@ -368,7 +368,10 @@ img { max-width: 100%; display: block; }
   height: 100dvh;
   max-width: 1720px;
   margin: 0 auto;
-  padding: 10px 16px 12px;
+  padding-top: 10px;
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -401,7 +404,7 @@ img { max-width: 100%; display: block; }
   align-items: center;
   flex-wrap: wrap;
   gap: 14px;
-  padding: 4px 4px 10px;
+  padding: calc(4px + env(safe-area-inset-top)) 4px 10px;
   border-bottom: 1px solid var(--panel-edge);
   margin-bottom: 12px;
 }
@@ -2342,7 +2345,7 @@ body.preview-mode .play-header-title p { display: none; }
   .printer-count { font-size: 0.72rem; }
   .trays { gap: 8px; }
   .tray { padding: 8px; }
-  .tray-slot { min-height: 40px; }
+  .tray-slot { min-height: 44px; }
   .lightbox-screen { width: 124px; height: 160px; }
   .wall-area { flex-basis: 170px; min-height: 164px; }
   .xray-rack { top: 14px; }

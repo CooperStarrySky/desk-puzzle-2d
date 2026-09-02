@@ -8,3 +8,6 @@ assets/textures/overlays/
 # Generated from the authored puzzle for file:// previews; never publish a
 # duplicate of the embedded image payload.
 puzzles/.local-puzzle-fallback.js
+
+# Python bytecode from tools/
+__pycache__/
