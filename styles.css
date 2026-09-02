@@ -2345,7 +2345,7 @@ body.preview-mode .play-header-title p { display: none; }
   .printer-count { font-size: 0.72rem; }
   .trays { gap: 8px; }
   .tray { padding: 8px; }
-  .tray-slot { min-height: 40px; }
+  .tray-slot { min-height: 44px; }
   .lightbox-screen { width: 124px; height: 160px; }
   .wall-area { flex-basis: 170px; min-height: 164px; }
   .xray-rack { top: 14px; }
