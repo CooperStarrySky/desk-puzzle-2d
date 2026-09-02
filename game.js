@@ -5770,6 +5770,11 @@ async function init() {
   document.addEventListener('pointerup', onPointerUp, { capture: true });
   document.addEventListener('pointercancel', onPointerCancel, { capture: true });
   document.addEventListener('keydown', onKeyDown);
+  // iOS long-press triggers a callout (copy/save) on pieces. Suppress
+  // contextmenu only inside a .piece so right-click elsewhere still works.
+  els.playArea.addEventListener('contextmenu', function (e) {
+    if (e.target.closest && e.target.closest('.piece')) e.preventDefault();
+  });
   window.addEventListener('resize', function () {
     if (state.game && !els.screenPlay.hidden) {
       sizeViewer();
