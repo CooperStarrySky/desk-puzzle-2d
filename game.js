@@ -1103,29 +1103,29 @@ function pieceSound(zone, kind) {
  * ════════════════════════════════════════════════════════════════════ */
 
 var TEXTURE_VARS = {
-  'desk.jpg': '--tex-desk',
-  'sticky.png': '--tex-sticky',
-  'sticky-pink.png': '--tex-sticky-pink',
-  'sticky-green.png': '--tex-sticky-green',
-  'sticky-orange.png': '--tex-sticky-orange',
-  'sticky-2.png': '--tex-sticky-2',
-  'sticky-3.png': '--tex-sticky-3',
-  'paper.png': '--tex-paper',
-  'paper-2.png': '--tex-paper-2',
-  'slide.png': '--tex-slide',
-  'film.png': '--tex-film',
-  'photo.png': '--tex-photo',
-  'photo-2.png': '--tex-photo-2',
-  'rx.png': '--tex-rx',
-  'rx-2.png': '--tex-rx-2',
+  'desk.webp': '--tex-desk',
+  'sticky.webp': '--tex-sticky',
+  'sticky-pink.webp': '--tex-sticky-pink',
+  'sticky-green.webp': '--tex-sticky-green',
+  'sticky-orange.webp': '--tex-sticky-orange',
+  'sticky-2.webp': '--tex-sticky-2',
+  'sticky-3.webp': '--tex-sticky-3',
+  'paper.webp': '--tex-paper',
+  'paper-2.webp': '--tex-paper-2',
+  'slide.webp': '--tex-slide',
+  'film.webp': '--tex-film',
+  'photo.webp': '--tex-photo',
+  'photo-2.webp': '--tex-photo-2',
+  'rx.webp': '--tex-rx',
+  'rx-2.webp': '--tex-rx-2',
 };
 
 /* Numbered alternates the per-piece seed may pick from (when present). */
 var TEXTURE_VARIANTS = {
-  corkboard: ['sticky.png', 'sticky-2.png', 'sticky-3.png'],
-  folder: ['paper.png', 'paper-2.png'],
-  photo: ['photo.png', 'photo-2.png'],
-  rx: ['rx.png', 'rx-2.png'],
+  corkboard: ['sticky.webp', 'sticky-2.webp', 'sticky-3.webp'],
+  folder: ['paper.webp', 'paper-2.webp'],
+  photo: ['photo.webp', 'photo-2.webp'],
+  rx: ['rx.webp', 'rx-2.webp'],
 };
 
 /**
@@ -1182,7 +1182,7 @@ function loadTextures() {
       if (!state.textures) state.textures = new Set();
       state.textures.add(f);
       var url = 'url("assets/textures/' + f + '")';
-      if (f !== 'desk.jpg') { // opaque full-frame backgrounds skip the trim
+      if (f !== 'desk.webp') { // opaque full-frame backgrounds skip the trim
         var info = alphaTrimInfo(img);
         if (info) {
           if (info.url) url = 'url("' + info.url + '")';
@@ -1191,7 +1191,7 @@ function loadTextures() {
       }
       root.style.setProperty(TEXTURE_VARS[f], url);
       document.body.classList.add('has-textures');
-      if (f === 'desk.jpg') els.deskSurface.classList.add('textured');
+      if (f === 'desk.webp') els.deskSurface.classList.add('textured');
       if (state.game) { fitPieceLabels(); syncPieces(); }
     };
     img.onerror = function () { /* not present — CSS look stands for this slot */ };
@@ -1201,7 +1201,7 @@ function loadTextures() {
 
 /** Sticky color variant for an authored color (hue-matched). */
 function stickyColorVariant(color) {
-  var pick = 'sticky.png';
+  var pick = 'sticky.webp';
   if (color) {
     var c = color.replace('#', '');
     if (c.length === 3) c = c.replace(/(.)/g, '$1$1');
@@ -1215,9 +1215,9 @@ function stickyColorVariant(color) {
         else hue = (r - g) / (mx - mn) + 4;
         hue = (hue * 60 + 360) % 360;
       }
-      if (hue >= 15 && hue < 45) pick = 'sticky-orange.png';
-      else if (hue >= 90 && hue < 200) pick = 'sticky-green.png';
-      else if (hue >= 260 || hue < 15) pick = 'sticky-pink.png';
+      if (hue >= 15 && hue < 45) pick = 'sticky-orange.webp';
+      else if (hue >= 90 && hue < 200) pick = 'sticky-green.webp';
+      else if (hue >= 260 || hue < 15) pick = 'sticky-pink.webp';
     }
   }
   return pick;
@@ -2177,7 +2177,7 @@ function syncPieces() {
       }
       var hasType = PAPER_FAMILY[item.zone]
         ? !!(skinEl && skinEl.style.getPropertyValue('--skin-tex'))
-        : state.textures.has({ rack: 'slide.png', tubes: 'film.png' }[item.zone]);
+        : state.textures.has({ rack: 'slide.webp', tubes: 'film.webp' }[item.zone]);
       el.classList.toggle('textured', !!hasType);
     }
 

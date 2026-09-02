@@ -576,7 +576,7 @@ img { max-width: 100%; display: block; }
     inset 0 -3px 8px rgba(40, 24, 8, 0.3),
     0 4px 14px rgba(36, 31, 20, 0.18);
 }
-/* Photo desk texture (assets/textures/desk.jpg). */
+/* Photo desk texture (assets/textures/desk.webp). */
 .desk-surface.textured {
   background-image: var(--tex-desk);
   background-size: cover;
@@ -950,7 +950,7 @@ body.has-textures .piece.textured.is-dragging {
   background: transparent;
   border-left: none;
 }
-/* The frosted (writing) end is where the letter belongs — slide.png draws
+/* The frosted (writing) end is where the letter belongs — slide.webp draws
    it on the right, so push the band there with margin-left:auto instead of
    leaving it as the first (left) flex child, which sat over the clear glass. */
 .piece-slide .piece-frost {
@@ -1402,7 +1402,7 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   width: 90px;
   height: 29px;
   border-radius: 2px;
-  background: url("assets/textures/slide.png") center / 100% 100% no-repeat;
+  background: url("assets/textures/slide.webp") center / 100% 100% no-repeat;
   box-shadow: 0 2px 4px rgba(20, 14, 6, 0.35);
   transform: rotate(-2deg);
 }
@@ -1421,7 +1421,7 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   width: 68px;
   height: 116px;
   border-radius: 3px;
-  background: url("assets/textures/film.png") center / 100% 100% no-repeat;
+  background: url("assets/textures/film.webp") center / 100% 100% no-repeat;
   box-shadow: 0 3px 6px rgba(20, 14, 6, 0.38);
 }
 .clue-guide-step h3 {
