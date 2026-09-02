@@ -956,7 +956,7 @@ export function buildHintsPanel() {
   var unsolvedCount = game ? game.puzzle.groups.length - game.solved.length : 0;
   var h2Used = hints && hints.seeds;
   var h2DisabledReason = unsolvedCount <= 1 ? 'Only one group left — every remaining piece belongs to it.' : '';
-  addHintRow(panel, 'Seed the Trays', 'Places one piece from each unsolved group into its tray and pins it. Tap a seeded slide or film to view it.', h2Used, !!h2DisabledReason && !h2Used, h2DisabledReason || (h2Used ? 'Used' : ''), function () {
+  addHintRow(panel, 'Seed the Trays', 'Places one piece from each unsolved group into its correct tray and pins it.', h2Used, !!h2DisabledReason && !h2Used, h2DisabledReason || (h2Used ? 'Used' : ''), function () {
     closeHintsPanel();
     applyH2SeedTrays();
   });
@@ -1846,6 +1846,20 @@ export function onTraysClick(ev) {
       void slotEl.offsetWidth;
       slotEl.classList.add('wrong-shake');
     });
+    var trayWrongEl = trayEls[b];
+    trayWrongEl.classList.remove('is-wrong');
+    void trayWrongEl.offsetWidth;
+    trayWrongEl.classList.add('is-wrong');
+    setTimeout(function () { trayWrongEl.classList.remove('is-wrong'); }, 400);
+    var boxIds = game.staging[b].filter(function (c) { return c !== null; });
+    boxIds.forEach(function (itemId) {
+      var pieceEl = state.pieceEls[itemId];
+      if (!pieceEl) return;
+      pieceEl.classList.remove('is-shake');
+      void pieceEl.offsetWidth;
+      pieceEl.classList.add('is-shake');
+      setTimeout(function () { pieceEl.classList.remove('is-shake'); }, 400);
+    });
     var msg = state.settings.casual
       ? 'Not quite. Mistake ' + game.mistakes + '.'
       : 'Not quite. ' + Math.max(game.mistakesLeft, 0) + ' mistake' + (game.mistakesLeft === 1 ? '' : 's') + ' left.';
@@ -1853,6 +1867,11 @@ export function onTraysClick(ev) {
       msg += ' One away!';
       playSound('one-away');
       toast('One away!');
+      var trayOneAwayEl = trayEls[b];
+      trayOneAwayEl.classList.remove('is-one-away');
+      void trayOneAwayEl.offsetWidth;
+      trayOneAwayEl.classList.add('is-one-away');
+      setTimeout(function () { trayOneAwayEl.classList.remove('is-one-away'); }, 1200);
     }
     announce(msg);
   }
@@ -2016,11 +2035,12 @@ export function showResults() {
   var game = state.game;
   var won = game.phase === 'won';
   var solvedGroupIds = new Set(game.solved.map(function (s) { return s.groupId; }));
+  var casualSuffix = game.casual ? ' Casual mode.' : '';
   showResultsForPuzzle(game.puzzle, {
     title: won ? 'Solved!' : 'Out of mistakes',
     sub: won
-      ? 'Solved with ' + game.mistakes + ' mistake' + (game.mistakes === 1 ? '' : 's') + '.'
-      : 'Here is how the groups fit together.',
+      ? 'Solved with ' + game.mistakes + ' mistake' + (game.mistakes === 1 ? '' : 's') + '.' + casualSuffix
+      : 'Here is how the groups fit together.' + casualSuffix,
     hints: state.desk.hints || {},
     legacyHintsUsed: state.desk.hintsUsed,
     solvedGroupIds: solvedGroupIds,
