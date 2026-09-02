@@ -3855,8 +3855,15 @@ function onCopyAnki() {
 
 /* ── Menu / navigation actions ───────────────────────────────────── */
 
+// Shared in-flight guard: prevents double-click races on playToday and
+// onPuzzleSelectEntry. Both set this true before starting a load and clear
+// it in .finally() so a second tap while a fetch is pending is a no-op.
+var puzzleLoadInFlight = false;
+
 function playToday() {
-  els.btnPlayToday.disabled = true; // double-clicks must not double-open
+  if (puzzleLoadInFlight) return;
+  puzzleLoadInFlight = true;
+  els.btnPlayToday.disabled = true; // belt-and-suspenders for keyboard users
   loadRegistry().then(function (registry) {
     var entry = (registry.puzzles || []).find(function (p) { return p.id === registry.current; })
       || { id: registry.current, file: registry.current + '.json' };
@@ -3864,6 +3871,7 @@ function playToday() {
   }).then(openPuzzle).catch(function (err) {
     showErrorScreen(err.message);
   }).finally(function () {
+    puzzleLoadInFlight = false;
     els.btnPlayToday.disabled = false;
   });
 }
@@ -3885,10 +3893,14 @@ function closePuzzleSelect() {
 function onPuzzleSelectEntry(ev) {
   var btn = ev.target.closest ? ev.target.closest('.puzzle-select-entry') : null;
   if (!btn) return;
+  if (puzzleLoadInFlight) return; // ignore second tap while load is in flight
+  puzzleLoadInFlight = true;
   closePuzzleSelect();
   var entry = { id: btn.dataset.puzzleId, file: btn.dataset.puzzleFile };
   loadPuzzleByEntry(entry).then(openPuzzle).catch(function (err) {
     showErrorScreen(err.message);
+  }).finally(function () {
+    puzzleLoadInFlight = false;
   });
 }
 
