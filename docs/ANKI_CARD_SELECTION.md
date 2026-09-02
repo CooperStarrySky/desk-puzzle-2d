@@ -35,7 +35,7 @@ Pick only notes that meet all of the following:
 ## Output contract
 
 Return one JSON object. Keys are group IDs (strings). Values are lists of note
-IDs as integers — note IDs, not card IDs. Omit groups that have zero matches
+IDs as integers. Use note IDs, not card IDs. Omit groups that have zero matches
 rather than including an empty list.
 
 ```json
@@ -60,6 +60,6 @@ rather than including an empty list.
    Ask it to apply the rules and return the JSON object.
 
 3. Paste the returned JSON values into the spec's `anki:` lists (one flat list per
-   group — `build_puzzle.py` wraps it into `{"nids": [...]}` automatically).
+   group; `build_puzzle.py` wraps it into `{"nids": [...]}` automatically).
 
 4. Rebuild: `python3 tools/build_puzzle.py puzzles/_spec/<name>.yaml --apply`.

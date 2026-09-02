@@ -234,7 +234,7 @@ export again over the old file.
 
 ## Authoring a puzzle
 
-Write a YAML spec in `puzzles/_spec/<name>.yaml` — see
+Write a YAML spec in `puzzles/_spec/<name>.yaml`. See
 `puzzles/_spec/starry-sky-society-2026-08-21.yaml` (worked example) and
 `docs/ANKI_CARD_SELECTION.md` (picking AnKing note IDs). Run
 `python3 tools/build_puzzle.py <spec>` (dry run), then `--apply --set-current`
