@@ -1853,6 +1853,11 @@ export function onTraysClick(ev) {
       msg += ' One away!';
       playSound('one-away');
       toast('One away!');
+      var trayOneAwayEl = trayEls[b];
+      trayOneAwayEl.classList.remove('is-one-away');
+      void trayOneAwayEl.offsetWidth;
+      trayOneAwayEl.classList.add('is-one-away');
+      setTimeout(function () { trayOneAwayEl.classList.remove('is-one-away'); }, 1200);
     }
     announce(msg);
   }
