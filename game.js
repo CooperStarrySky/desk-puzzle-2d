@@ -1394,7 +1394,7 @@ function loadPuzzleByEntry(entry) {
 function applyRegistryTitles(entry) {
   if (!entry) return;
   var desc = entry.title + ' - a pathology desk puzzle: sort 16 clues into 4 groups.';
-  document.title = entry.title + ' - Desk Puzzle';
+  document.title = entry.title + ' : Desk Puzzle';
   if (els.menuTitle) els.menuTitle.textContent = entry.title;
   var metaDesc = document.querySelector('meta[name="description"]');
   if (metaDesc) metaDesc.setAttribute('content', desc);
