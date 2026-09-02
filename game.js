@@ -1176,27 +1176,36 @@ function alphaTrimInfo(img) {
 function loadTextures() {
   var root = document.documentElement;
   state.textureAspect = state.textureAspect || {};
-  Object.keys(TEXTURE_VARS).forEach(function (f) {
-    var img = new Image();
-    img.onload = function () {
-      if (!state.textures) state.textures = new Set();
-      state.textures.add(f);
-      var url = 'url("assets/textures/' + f + '")';
-      if (f !== 'desk.webp') { // opaque full-frame backgrounds skip the trim
-        var info = alphaTrimInfo(img);
-        if (info) {
-          if (info.url) url = 'url("' + info.url + '")';
-          state.textureAspect[f] = info.w / info.h;
-        }
-      }
-      root.style.setProperty(TEXTURE_VARS[f], url);
-      document.body.classList.add('has-textures');
-      if (f === 'desk.webp') els.deskSurface.classList.add('textured');
-      if (state.game) { fitPieceLabels(); syncPieces(); }
-    };
-    img.onerror = function () { /* not present — CSS look stands for this slot */ };
-    img.src = 'assets/textures/' + f;
-  });
+  // Fetch the manifest to learn which files are actually present, then probe
+  // only those — avoids console 404s for variant slots (photo-2, rx-2, etc.)
+  // that haven't been populated yet. Behavior is identical for files that exist.
+  fetch(versioned('assets/textures/manifest.json'))
+    .then(function (r) { return r.ok ? r.json() : { present: [] }; })
+    .then(function (m) {
+      var present = new Set(m.present || []);
+      Object.keys(TEXTURE_VARS).forEach(function (f) {
+        if (!present.has(f)) return; // not listed in manifest — skip probe
+        var img = new Image();
+        img.onload = function () {
+          if (!state.textures) state.textures = new Set();
+          state.textures.add(f);
+          var url = 'url("assets/textures/' + f + '")';
+          if (f !== 'desk.webp') { // opaque full-frame backgrounds skip the trim
+            var info = alphaTrimInfo(img);
+            if (info) {
+              if (info.url) url = 'url("' + info.url + '")';
+              state.textureAspect[f] = info.w / info.h;
+            }
+          }
+          root.style.setProperty(TEXTURE_VARS[f], url);
+          document.body.classList.add('has-textures');
+          if (f === 'desk.webp') els.deskSurface.classList.add('textured');
+          if (state.game) { fitPieceLabels(); syncPieces(); }
+        };
+        img.onerror = function () { /* not in manifest but missing on disk — CSS look stands */ };
+        img.src = 'assets/textures/' + f;
+      });
+    });
 }
 
 /** Sticky color variant for an authored color (hue-matched). */
