@@ -232,6 +232,18 @@ To edit a puzzle that's already live instead of starting from scratch, open
 file** (any exported `.json`) — see the `?editor` section above — then
 export again over the old file.
 
+## Authoring a puzzle
+
+Write a YAML spec in `puzzles/_spec/<name>.yaml`. See
+`puzzles/_spec/starry-sky-society-2026-08-21.yaml` (worked example) and
+`docs/ANKI_CARD_SELECTION.md` (picking AnKing note IDs). Run
+`python3 tools/build_puzzle.py <spec>` (dry run), then `--apply --set-current`
+to write images, the puzzle JSON, and update `index.json`. Optionally open
+`?editor=1` for a test play. Finish with `python3 tools/publish.py --commit`
+(validates, rewrites `index.html`, commits), then `git push origin main`.
+Editor-first alternative: export JSON from `?editor`, run
+`tools/externalize_images.py --apply`, then `publish.py`.
+
 ## Persistence
 
 Progress saves to `localStorage` under `dp2d:save3:<puzzle-id>` after every
