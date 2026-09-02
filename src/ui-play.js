@@ -956,7 +956,7 @@ export function buildHintsPanel() {
   var unsolvedCount = game ? game.puzzle.groups.length - game.solved.length : 0;
   var h2Used = hints && hints.seeds;
   var h2DisabledReason = unsolvedCount <= 1 ? 'Only one group left — every remaining piece belongs to it.' : '';
-  addHintRow(panel, 'Seed the Trays', 'Places one piece from each unsolved group into its tray and pins it. Tap a seeded slide or film to view it.', h2Used, !!h2DisabledReason && !h2Used, h2DisabledReason || (h2Used ? 'Used' : ''), function () {
+  addHintRow(panel, 'Seed the Trays', 'Places one piece from each unsolved group into its correct tray and pins it.', h2Used, !!h2DisabledReason && !h2Used, h2DisabledReason || (h2Used ? 'Used' : ''), function () {
     closeHintsPanel();
     applyH2SeedTrays();
   });
