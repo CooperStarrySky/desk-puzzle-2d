@@ -195,7 +195,7 @@ def current_version(html):
     m = re.search(r'styles\.css\?v=(\d+)', html)
     if m:
         return int(m.group(1))
-    m = re.search(r'game\.js\?v=(\d+)', html)
+    m = re.search(r'(?:src/main|game)\.js\?v=(\d+)', html)
     if m:
         return int(m.group(1))
     return 0
@@ -239,7 +239,12 @@ def rewrite_html(html, entry, new_v):
 
     # Bump ?v= on both stylesheet and script (keep them equal)
     html = re.sub(r'styles\.css\?v=\d+', f'styles.css?v={new_v}', html)
+    html = re.sub(r'src/main\.js\?v=\d+', f'src/main.js?v={new_v}', html)
     html = re.sub(r'game\.js\?v=\d+', f'game.js?v={new_v}', html)
+    # Self-check: every ?v= on the stylesheet and entry script must now agree.
+    versions = set(re.findall(r'(?:styles\.css|src/main\.js|game\.js)\?v=(\d+)', html))
+    if versions != {str(new_v)}:
+        raise SystemExit(f'[FAIL] version tags disagree after bump: {sorted(versions)}')
 
     return html, old_v
 
