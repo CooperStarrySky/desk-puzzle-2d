@@ -43,7 +43,7 @@ failed tray shake sideways and the tray border flashes a danger-red tint (both
 for ~400 ms); if the guess was one piece away from a correct group, the tray
 border additionally pulses in the accent color for ~1200 ms. In Casual mode
 (no mistake limit) the results subtitle and the share-text mistakes line both
-carry a "Casual mode" tag.
+carry a "Casual mode" tag. Staged clues scale to fit their slot.
 
 **Wall lightbox.** The lightbox is fixed above the desk, with a horizontal
 X-ray rail running across the wall to its left. Films slide along the rail;
