@@ -1180,11 +1180,16 @@ function loadTextures() {
   // only those — avoids console 404s for variant slots (photo-2, rx-2, etc.)
   // that haven't been populated yet. Behavior is identical for files that exist.
   fetch(versioned('assets/textures/manifest.json'))
-    .then(function (r) { return r.ok ? r.json() : { present: [] }; })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .catch(function () { return null; })
     .then(function (m) {
-      var present = new Set(m.present || []);
+      // If the manifest is missing or malformed, fall back to probing every
+      // TEXTURE_VARS key so a bad manifest can never blank the desk.
+      var present = (m && Array.isArray(m.present) && m.present.length)
+        ? new Set(m.present)
+        : null;
       Object.keys(TEXTURE_VARS).forEach(function (f) {
-        if (!present.has(f)) return; // not listed in manifest — skip probe
+        if (present && !present.has(f)) return; // not listed in manifest — skip probe
         var img = new Image();
         img.onload = function () {
           if (!state.textures) state.textures = new Set();
