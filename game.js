@@ -472,6 +472,16 @@ var EDITOR_DRAFT_KEY = SAVE_PREFIX + 'editor-draft';
 var SAVE_NS = SAVE_PREFIX + 'save3:';
 var LEGACY_SAVE_NS = [SAVE_PREFIX + 'save:', SAVE_PREFIX + 'save2:'];
 
+/* Asset version — extracted from the script's own ?v= query param (set in
+   index.html as game.js?v=NN) so all fetched assets share the same cache key.
+   Falls back to Date.now() if currentScript is unavailable (deferred). */
+var ASSET_VERSION = (function () {
+  var s = document.currentScript && document.currentScript.src;
+  var m = s && /[?&]v=([^&]+)/.exec(s);
+  return m ? m[1] : String(Date.now());
+})();
+function versioned(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=' + ASSET_VERSION; }
+
 // HINTS_MAX retired in v15 — label printer no longer issues hint labels.
 var TIER_EMOJI = { 1: '🟨', 2: '🟩', 3: '🟪', 4: '🟧' };
 
@@ -698,7 +708,7 @@ function mergeLayoutLayer(base, layer) {
  */
 function loadLayout() {
   var base = JSON.parse(JSON.stringify(LAYOUT_DEFAULTS));
-  return fetch('layout.json', { cache: 'no-store' })
+  return fetch(versioned('layout.json'))
     .then(function (r) { return r.ok ? r.json() : null; })
     .catch(function () { return null; })
     .then(function (fileLayout) {
@@ -1106,7 +1116,7 @@ function synthShuffle(ctx, t, o) {
 
 /** Load assets/sounds/manifest.json once; fetch listed override files. */
 function loadSoundOverrides() {
-  fetch('assets/sounds/manifest.json', { cache: 'no-store' })
+  fetch(versioned('assets/sounds/manifest.json'))
     .then(function (r) { return r.ok ? r.json() : { present: [] }; })
     .then(function (m) {
       audio.fileList = {};
@@ -1643,7 +1653,7 @@ function showErrorScreen(message) {
 /* ── Registry + puzzle loading ───────────────────────────────────── */
 
 function fetchJson(url) {
-  return fetch(url, { cache: 'no-store' }).then(function (res) {
+  return fetch(versioned(url)).then(function (res) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
   });
