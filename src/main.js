@@ -26,7 +26,8 @@ import {
   sizeViewer, fitPieceLabels, syncPieces, renderScopeView,
   buildAnkiSearch, showResults, showResultsForPuzzle,
   showScreen, showPreviewResultsFromDraft,
-  fitFactor,
+  fitFactor, bindResultsEdit,
+  sanitizeRichHtml,
 } from './ui-play.js';
 
 import {
@@ -38,6 +39,8 @@ import {
   onEditorInput, onEditorClick, onEditorChange,
   buildLayoutPanel, buildEditor, bootPreviewDraft, layoutPreviewStage,
   flushPreviewQueue, setPreviewReady,
+  openCtxMenu, onEditorContextMenu,
+  saveEditorDraft, pushPreview,
 } from './editor.js';
 
 /* ── Debug handle (written before init() completes) ──────────────── */
@@ -185,6 +188,7 @@ async function init() {
   els.screenEditor.addEventListener('input', onEditorInput);
   els.screenEditor.addEventListener('change', onEditorChange);
   els.screenEditor.addEventListener('click', onEditorClick);
+  els.screenEditor.addEventListener('contextmenu', onEditorContextMenu);
   // Rich text toolbar: preventDefault on mousedown so the browser never
   // shifts focus to the button before execCommand runs against the
   // field's current selection (a plain click would collapse it first).
@@ -222,8 +226,20 @@ async function init() {
   document.addEventListener('keydown', onKeyDown);
   // iOS long-press triggers a callout (copy/save) on pieces. Suppress
   // contextmenu only inside a .piece so right-click elsewhere still works.
+  // In preview mode, also post a dp2d-context-item message to the parent editor.
   els.playArea.addEventListener('contextmenu', function (e) {
-    if (e.target.closest && e.target.closest('.piece')) e.preventDefault();
+    var piece = e.target.closest && e.target.closest('.piece');
+    if (piece) {
+      e.preventDefault();
+      if (state.previewMode && window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'dp2d-context-item',
+          itemId: piece.dataset.itemId,
+          clientX: e.clientX,
+          clientY: e.clientY,
+        }, '*');
+      }
+    }
   });
   window.addEventListener('resize', function () {
     if (state.game && !els.screenPlay.hidden) {
@@ -237,10 +253,75 @@ async function init() {
 
   // The editor side of the live-preview handshake: once the ?preview
   // iframe signals it's listening, flush whatever got queued before then.
+  // Also handles dp2d-context-item (right-click on preview piece) and
+  // dp2d-results-edit (inline results text edited in the preview iframe).
   window.addEventListener('message', function (ev) {
-    if (ev.data && ev.data.type === 'dp2d-preview-ready') {
+    if (!ev.data) return;
+    if (ev.data.type === 'dp2d-preview-ready') {
       setPreviewReady(true);
       flushPreviewQueue();
+    } else if (ev.data.type === 'dp2d-context-item' && state.editorMode) {
+      // Right-click on a piece in the preview iframe → open context menu
+      var msg = ev.data;
+      var d = state.editorDraft;
+      if (!d) return;
+      var g = -1, m = -1;
+      outer:
+      for (var gi = 0; gi < 4; gi++) {
+        for (var mi = 0; mi < 4; mi++) {
+          if (d.groups[gi].itemIds[mi] === msg.itemId) { g = gi; m = mi; break outer; }
+        }
+      }
+      if (g < 0) return;
+      // Convert iframe client coords → parent page coords using the iframe's visual rect
+      var iframe = document.getElementById('preview-frame');
+      if (!iframe) return;
+      var rect = iframe.getBoundingClientRect();
+      var previewW = state.previewV && state.previewV.w ? state.previewV.w : window.innerWidth;
+      var scale = rect.width / previewW;
+      var pageX = rect.left + msg.clientX * scale;
+      var pageY = rect.top + msg.clientY * scale;
+      openCtxMenu(g, m, pageX, pageY);
+    } else if (ev.data.type === 'dp2d-results-edit' && state.editorMode) {
+      // Inline results edit from preview iframe → patch draft, update sidebar
+      var msg2 = ev.data;
+      var groups = state.editorDraft && state.editorDraft.groups;
+      if (!groups) return;
+      var gIdx = -1;
+      for (var i = 0; i < groups.length; i++) { if (groups[i].id === msg2.groupId) { gIdx = i; break; } }
+      if (gIdx < 0) return;
+      var grp = groups[gIdx];
+      if (msg2.field === 'name') {
+        grp.name = msg2.value;
+        var nameInp = document.querySelector('.group-card[data-g="' + gIdx + '"] input[data-gfield="name"]');
+        if (nameInp && nameInp.value !== msg2.value) nameInp.value = msg2.value;
+      } else if (msg2.field === 'explanation') {
+        grp.explanation = msg2.value;
+        var explInp = document.querySelector('.group-card[data-g="' + gIdx + '"] input[data-gfield="explanation"]');
+        if (explInp && explInp.value !== msg2.value) explInp.value = msg2.value;
+      } else {
+        var artMatch = msg2.field.match(/^article:(\d+):(text|caption)$/);
+        if (artMatch && Array.isArray(grp.article)) {
+          var bi = Number(artMatch[1]);
+          var prop = artMatch[2];
+          if (grp.article[bi]) {
+            if (prop === 'text') {
+              var safe = sanitizeRichHtml(msg2.value);
+              grp.article[bi][prop] = safe;
+              var re = document.querySelector('.article-block[data-g="' + gIdx + '"][data-block-index="' + bi + '"] .rich-editable');
+              if (re && re.innerHTML !== safe) re.innerHTML = safe;
+            } else {
+              grp.article[bi][prop] = msg2.value;
+              if (prop === 'caption') {
+                var ci = document.querySelector('.article-block[data-g="' + gIdx + '"][data-block-index="' + bi + '"] input[data-bfield="caption"]');
+                if (ci && ci.value !== msg2.value) ci.value = msg2.value;
+              }
+            }
+          }
+        }
+      }
+      saveEditorDraft();
+      if (msg2.final) pushPreview();
     }
   });
 
@@ -259,6 +340,8 @@ async function init() {
       else if (ev.data.type === 'dp2d-preview-results') { bootPreviewDraft(); showPreviewResultsFromDraft(); }
     });
     bootPreviewDraft();
+    // Bind delegated listeners for inline results editing (once, on the overlay).
+    bindResultsEdit();
     // Handshake: tell the parent editor we're listening, so its very
     // first pushPreview() isn't silently dropped before we existed.
     if (window.parent && window.parent !== window) {

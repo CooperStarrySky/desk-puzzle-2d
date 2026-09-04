@@ -413,7 +413,7 @@ export function renderEditor() {
   var iframe = document.createElement('iframe');
   iframe.id = 'preview-frame';
   iframe.title = 'Live puzzle preview';
-  iframe.src = '?preview&v=19';
+  iframe.src = '?preview&v=23';
   iframe.addEventListener('load', function () {
     // Belt-and-suspenders: if the ready handshake message was somehow
     // missed, the iframe finishing its own load is a second chance to
@@ -1023,15 +1023,88 @@ export function renderMachineToggles() {
   });
 }
 
+/* ── Originals map: stores the raw (pre-crop) data URI for each image
+ * slot so the user can re-crop from the original at any time.
+ * Key format: "<itemId>:info" | "<itemId>:scope" | "article:<g>:<bi>"
+ * Originals are ONLY in localStorage — never exported in the puzzle JSON.
+ * ──────────────────────────────────────────────────────────────────── */
+
+export var ORIGINALS_KEY = SAVE_PREFIX + 'editor-originals';
+
+export function getOriginals() {
+  try { return JSON.parse(localStorage.getItem(ORIGINALS_KEY) || '{}'); } catch (e) { return {}; }
+}
+export function setOriginal(key, dataUrl) {
+  try {
+    var m = getOriginals();
+    m[key] = dataUrl;
+    localStorage.setItem(ORIGINALS_KEY, JSON.stringify(m));
+  } catch (e) { /* quota — skip silently */ }
+}
+export function clearOriginal(key) {
+  try {
+    var m = getOriginals();
+    delete m[key];
+    localStorage.setItem(ORIGINALS_KEY, JSON.stringify(m));
+  } catch (e) { /* ignore */ }
+}
+
+/**
+ * Remove the original for article block at (gr, idx) and shift down the
+ * keys of all blocks above it so that indices stay aligned after a splice.
+ */
+function removeArticleOriginal(gr, idx) {
+  try {
+    var m = getOriginals();
+    var prefix = 'article:' + gr + ':';
+    delete m[prefix + idx];
+    // Shift: article:gr:(idx+1) → article:gr:idx, etc.
+    var maxShift = 50; // no realistic puzzle has more blocks than this
+    for (var i = idx + 1; i <= idx + maxShift; i++) {
+      var k = prefix + i;
+      if (Object.prototype.hasOwnProperty.call(m, k)) {
+        m[prefix + (i - 1)] = m[k];
+        delete m[k];
+      }
+    }
+    localStorage.setItem(ORIGINALS_KEY, JSON.stringify(m));
+  } catch (e) { /* quota or parse error — skip */ }
+}
+
+/**
+ * Swap the originals keys for two article blocks in the same group
+ * (used after a move-up / move-down swaps the array entries).
+ */
+function remapArticleOriginals(gr, fromIdx, toIdx) {
+  try {
+    var m = getOriginals();
+    var kFrom = 'article:' + gr + ':' + fromIdx;
+    var kTo   = 'article:' + gr + ':' + toIdx;
+    var tmp = m[kFrom];
+    if (Object.prototype.hasOwnProperty.call(m, kTo)) {
+      m[kFrom] = m[kTo];
+    } else {
+      delete m[kFrom];
+    }
+    if (tmp !== undefined) {
+      m[kTo] = tmp;
+    } else {
+      delete m[kTo];
+    }
+    localStorage.setItem(ORIGINALS_KEY, JSON.stringify(m));
+  } catch (e) { /* ignore */ }
+}
+
 /* ── Image upload crop/zoom/reposition modal ─────────────────────────
  * Every editor image upload (article image blocks, item photo/scope
  * image) funnels through openCropModal(): the raw FileReader data URI
  * goes in, the user frames it in a fixed 4:3 viewport (zoom + drag,
  * mouse or touch), and on confirm the ALREADY-CROPPED canvas render —
  * not the original — is what onConfirm(dataUrl) receives and stores.
- * Default framing is "cover" (whole frame filled, centered, no zoom
- * beyond the minimum needed) so confirming immediately with no
- * adjustment still produces a sane result. ──────────────────────── */
+ * Default framing is "cover" (whole frame filled, centered).
+ * Fit/Fill/Reset buttons, wheel-zoom centered on cursor, arrow-key pan,
+ * and zoom-out to 0.2× (with letterbox fill) are all supported.
+ * ──────────────────────────────────────────────────────────────────── */
 
 export var CROP_OUT_W = 640, CROP_OUT_H = 480; // stored/output resolution (4:3)
 var cropCtx = null;   // { onConfirm }
@@ -1059,8 +1132,29 @@ export function buildCropModal() {
   canvas.className = 'crop-canvas';
   canvas.width = CROP_OUT_W;
   canvas.height = CROP_OUT_H;
+  canvas.tabIndex = 0; // make focusable for arrow-key pan
   frame.appendChild(canvas);
   card.appendChild(frame);
+
+  // Preset buttons row
+  var presets = document.createElement('div');
+  presets.className = 'crop-preset-btns';
+  var fitBtn = document.createElement('button');
+  fitBtn.type = 'button'; fitBtn.className = 'btn btn-ghost'; fitBtn.textContent = 'Fit';
+  fitBtn.title = 'Show the whole image (letterboxed)';
+  fitBtn.addEventListener('click', fitCropImage);
+  var fillBtn = document.createElement('button');
+  fillBtn.type = 'button'; fillBtn.className = 'btn btn-ghost'; fillBtn.textContent = 'Fill';
+  fillBtn.title = 'Fill the frame (default cover)';
+  fillBtn.addEventListener('click', fillCropImage);
+  var resetBtn = document.createElement('button');
+  resetBtn.type = 'button'; resetBtn.className = 'btn btn-ghost'; resetBtn.textContent = 'Reset';
+  resetBtn.title = 'Reset to default centered fill';
+  resetBtn.addEventListener('click', resetCropImage);
+  presets.appendChild(fitBtn);
+  presets.appendChild(fillBtn);
+  presets.appendChild(resetBtn);
+  card.appendChild(presets);
 
   var controls = document.createElement('div');
   controls.className = 'crop-controls';
@@ -1068,17 +1162,22 @@ export function buildCropModal() {
   zoomLabel.textContent = 'Zoom ';
   var zoom = document.createElement('input');
   zoom.type = 'range';
-  zoom.min = '1';
+  zoom.min = '0.2';
   zoom.max = '4';
   zoom.step = '0.01';
   zoom.value = '1';
+  var pct = document.createElement('span');
+  pct.className = 'crop-zoom-pct';
+  pct.id = 'crop-zoom-pct';
+  pct.textContent = '100%';
   zoomLabel.appendChild(zoom);
   controls.appendChild(zoomLabel);
+  controls.appendChild(pct);
   card.appendChild(controls);
 
   var instructions = document.createElement('p');
   instructions.className = 'crop-instructions';
-  instructions.textContent = 'Drag to reposition. Scroll, pinch, or use the slider to zoom.';
+  instructions.textContent = 'Drag or use arrow keys to pan. Scroll or use the slider to zoom.';
   card.appendChild(instructions);
 
   var actions = document.createElement('div');
@@ -1101,11 +1200,13 @@ export function buildCropModal() {
   els.cropOverlay = overlay;
   els.cropCanvas = canvas;
   els.cropZoom = zoom;
+  els.cropH2 = h2;
   els.cropCancel = cancel;
   els.cropConfirm = confirm;
 
   canvas.addEventListener('pointerdown', cropPointerDown);
   canvas.addEventListener('wheel', cropWheel, { passive: false });
+  canvas.addEventListener('keydown', cropKeyDown);
   zoom.addEventListener('input', function () { setCropZoom(Number(zoom.value)); });
   cancel.addEventListener('click', closeCropModal);
   confirm.addEventListener('click', confirmCropModal);
@@ -1113,10 +1214,12 @@ export function buildCropModal() {
 }
 
 /** dataUrl: the raw FileReader result. onConfirm(croppedDataUrl) fires
-    once, only on confirm — cancel calls nothing. */
-export function openCropModal(dataUrl, onConfirm) {
+    once, only on confirm — cancel calls nothing.
+    label: optional heading text (omit for the default "Position the image"). */
+export function openCropModal(dataUrl, onConfirm, label) {
   buildCropModal();
   cropCtx = { onConfirm: onConfirm };
+  if (els.cropH2) els.cropH2.textContent = label || 'Position the image';
   els.cropOverlay.hidden = false;
   var img = new Image();
   img.onload = function () {
@@ -1132,6 +1235,7 @@ export function openCropModal(dataUrl, onConfirm) {
     };
     centerCropImage();
     els.cropZoom.value = '1';
+    updateZoomReadout();
     renderCropCanvas();
   };
   img.src = dataUrl;
@@ -1157,41 +1261,102 @@ export function centerCropImage() {
   cropImg.offY = (CROP_OUT_H - cropImg.natH * scale) / 2;
 }
 
+/** Loose clamp: at least 10% of the image must remain inside the frame
+    (can't lose it entirely), but panning far past the edge is allowed. */
 export function clampCropOffsets() {
+  if (!cropImg) return;
   var scale = cropImg.coverScale * cropImg.zoomMul;
-  var w = cropImg.natW * scale, h = cropImg.natH * scale;
-  cropImg.offX = clamp(cropImg.offX, CROP_OUT_W - w, 0);
-  cropImg.offY = clamp(cropImg.offY, CROP_OUT_H - h, 0);
+  var imgW = cropImg.natW * scale, imgH = cropImg.natH * scale;
+  var minW = imgW * 0.1, minH = imgH * 0.1;
+  cropImg.offX = clamp(cropImg.offX, minW - imgW, CROP_OUT_W - minW);
+  cropImg.offY = clamp(cropImg.offY, minH - imgH, CROP_OUT_H - minH);
 }
 
-export function setCropZoom(mul) {
+/** Zoom anchored to (anchorX, anchorY) in canvas-internal coordinates.
+    Omit anchor to use the viewport center. */
+export function setCropZoom(mul, anchorX, anchorY) {
   if (!cropImg) return;
   var prevScale = cropImg.coverScale * cropImg.zoomMul;
-  // Keep the frame's center point anchored while zooming, not the image's
-  // top-left corner, so zooming feels like it's centered on the viewport.
-  var cx = (CROP_OUT_W / 2 - cropImg.offX) / prevScale;
-  var cy = (CROP_OUT_H / 2 - cropImg.offY) / prevScale;
-  cropImg.zoomMul = clamp(mul, 1, 4);
+  var ax = anchorX !== undefined ? anchorX : CROP_OUT_W / 2;
+  var ay = anchorY !== undefined ? anchorY : CROP_OUT_H / 2;
+  var cx = (ax - cropImg.offX) / prevScale;
+  var cy = (ay - cropImg.offY) / prevScale;
+  cropImg.zoomMul = clamp(mul, 0.2, 4);
   var scale = cropImg.coverScale * cropImg.zoomMul;
-  cropImg.offX = CROP_OUT_W / 2 - cx * scale;
-  cropImg.offY = CROP_OUT_H / 2 - cy * scale;
+  cropImg.offX = ax - cx * scale;
+  cropImg.offY = ay - cy * scale;
   clampCropOffsets();
   els.cropZoom.value = String(cropImg.zoomMul);
+  updateZoomReadout();
   renderCropCanvas();
 }
+
+export function updateZoomReadout() {
+  var span = document.getElementById('crop-zoom-pct');
+  if (span && cropImg) span.textContent = Math.round(cropImg.zoomMul * 100) + '%';
+}
+
+/** Fit: show the whole image (letterboxed, centered). Not clamped to the
+    0.2 slider floor — Fit is a special preset that always shows the full image. */
+export function fitCropImage() {
+  if (!cropImg) return;
+  var containMul = Math.min(CROP_OUT_W / cropImg.natW, CROP_OUT_H / cropImg.natH) / cropImg.coverScale;
+  cropImg.zoomMul = Math.max(0.001, containMul);
+  centerCropImage();
+  els.cropZoom.value = String(clamp(cropImg.zoomMul, 0.2, 4));
+  updateZoomReadout();
+  renderCropCanvas();
+}
+
+/** Fill: default cover zoom (zoomMul=1), centered. */
+export function fillCropImage() {
+  if (!cropImg) return;
+  cropImg.zoomMul = 1;
+  centerCropImage();
+  els.cropZoom.value = '1';
+  updateZoomReadout();
+  renderCropCanvas();
+}
+
+/** Reset: same as Fill (returns to the initial default state). */
+export function resetCropImage() { fillCropImage(); }
 
 export function renderCropCanvas() {
   if (!cropImg) return;
   var ctx = els.cropCanvas.getContext('2d');
   var scale = cropImg.coverScale * cropImg.zoomMul;
-  ctx.clearRect(0, 0, CROP_OUT_W, CROP_OUT_H);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, CROP_OUT_W, CROP_OUT_H);
   ctx.drawImage(cropImg.el, cropImg.offX, cropImg.offY, cropImg.natW * scale, cropImg.natH * scale);
 }
 
+/** Mouse-wheel zoom, centered on the cursor position. */
 export function cropWheel(ev) {
   if (!cropImg) return;
   ev.preventDefault();
-  setCropZoom(cropImg.zoomMul + (ev.deltaY < 0 ? 0.08 : -0.08));
+  var canvas = els.cropCanvas;
+  var rect = canvas.getBoundingClientRect();
+  var ratio = CROP_OUT_W / rect.width; // CSS px → canvas-internal px
+  var curX = (ev.clientX - rect.left) * ratio;
+  var curY = (ev.clientY - rect.top) * ratio;
+  var factor = ev.deltaY < 0 ? 1.05 : 1 / 1.05;
+  setCropZoom(cropImg.zoomMul * factor, curX, curY);
+}
+
+/** Arrow-key pan when the canvas is focused (5px per step). */
+export function cropKeyDown(ev) {
+  if (!cropImg) return;
+  var dx = 0, dy = 0;
+  if (ev.key === 'ArrowLeft') dx = 5;
+  else if (ev.key === 'ArrowRight') dx = -5;
+  else if (ev.key === 'ArrowUp') dy = 5;
+  else if (ev.key === 'ArrowDown') dy = -5;
+  else return;
+  ev.preventDefault();
+  cropImg.offX += dx;
+  cropImg.offY += dy;
+  clampCropOffsets();
+  renderCropCanvas();
 }
 
 export function cropPointerDown(ev) {
@@ -1218,6 +1383,32 @@ export function cropPointerDown(ev) {
   canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointercancel', onUp);
+}
+
+/** Re-crop an item's image from the stored original (or from the current
+    stored image if the original is not available). */
+export function recropImage(g, m, which) {
+  var item = draftItem(g, m);
+  var origKey = item.id + ':' + which;
+  var originals = getOriginals();
+  var hasOriginal = !!originals[origKey];
+  var srcUrl = hasOriginal ? originals[origKey]
+    : (which === 'info' ? (item.info && item.info.image) : (item.scope && item.scope.image));
+  if (!srcUrl) { toast('No image set — upload one first.'); return; }
+  var label = hasOriginal ? 'Position the image' : 'Re-cropping from stored image (original not available)';
+  openCropModal(srcUrl, function (croppedDataUrl) {
+    if (which === 'info') {
+      item.info = item.info || {};
+      item.info.image = croppedDataUrl;
+    } else {
+      item.scope = item.scope || {};
+      item.scope.image = croppedDataUrl;
+    }
+    saveEditorDraft();
+    toast(sizeToast(croppedDataUrl, which + ' image'));
+    refreshEditorStatus();
+    pushPreview();
+  }, label);
 }
 
 /** Rough size of a data URI's decoded bytes, for the same >200KB toast
@@ -1369,6 +1560,7 @@ export function onEditorClick(ev) {
     var swapWith = bim + (moveBtn.dataset.articleMove === 'up' ? -1 : 1);
     if (swapWith < 0 || swapWith >= arr.length) return;
     var tmp = arr[bim]; arr[bim] = arr[swapWith]; arr[swapWith] = tmp;
+    remapArticleOriginals(gm, bim, swapWith);
     saveEditorDraft();
     refreshGroupArticle(gm);
     pushPreview();
@@ -1379,6 +1571,7 @@ export function onEditorClick(ev) {
   if (rmBtn) {
     var gr = Number(rmBtn.dataset.g), bir = Number(rmBtn.dataset.blockIndex);
     d.groups[gr].article.splice(bir, 1);
+    removeArticleOriginal(gr, bir);
     saveEditorDraft();
     refreshGroupArticle(gr);
     refreshEditorStatus();
@@ -1410,7 +1603,10 @@ export function onEditorChange(ev) {
     var bfile = t.files[0];
     var breader = new FileReader();
     breader.onload = function () {
-      openCropModal(breader.result, function (croppedDataUrl) {
+      var rawUrl = breader.result;
+      // Store original for re-crop (overwriting any previous original for this slot)
+      setOriginal('article:' + gb + ':' + bi, rawUrl);
+      openCropModal(rawUrl, function (croppedDataUrl) {
         block.src = croppedDataUrl;
         saveEditorDraft();
         toast(sizeToast(croppedDataUrl, bfile.name));
@@ -1430,7 +1626,11 @@ export function onEditorChange(ev) {
     var file = t.files[0];
     var reader = new FileReader();
     reader.onload = function () {
-      openCropModal(reader.result, function (croppedDataUrl) {
+      var rawDataUrl = reader.result;
+      // Store original for re-crop (new file replaces previous original)
+      var origKey = item.id + ':' + (path === 'info.image' ? 'info' : 'scope');
+      setOriginal(origKey, rawDataUrl);
+      openCropModal(rawDataUrl, function (croppedDataUrl) {
         if (path === 'info.image') {
           item.info = item.info || {};
           item.info.image = croppedDataUrl;
@@ -1592,6 +1792,160 @@ export function bindDrawerResize(handle, drawer) {
     handle.addEventListener('pointermove', onMove);
     handle.addEventListener('pointerup', onUp);
   });
+}
+
+/* ── Right-click context menu for editor clues ───────────────────────
+ * Floating panel (panel tokens, z-index 270) triggered by:
+ *   (a) contextmenu on .item-editor in the sidebar (delegated),
+ *   (b) dp2d-context-item postMessage from the preview iframe.
+ * ──────────────────────────────────────────────────────────────────── */
+
+function makeCtxItem(text, disabled, onClick) {
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ctx-item';
+  btn.textContent = text;
+  btn.disabled = !!disabled;
+  if (onClick) btn.addEventListener('click', onClick);
+  return btn;
+}
+
+function makeCtxSep() {
+  var hr = document.createElement('hr');
+  hr.className = 'ctx-sep';
+  return hr;
+}
+
+export function buildCtxMenu() {
+  if (document.getElementById('editor-ctx-menu')) return;
+  var menu = document.createElement('div');
+  menu.id = 'editor-ctx-menu';
+  menu.hidden = true;
+  document.body.appendChild(menu);
+  document.addEventListener('keydown', function (ev) {
+    if (!menu.hidden && ev.key === 'Escape') { ev.preventDefault(); closeCtxMenu(); }
+  });
+  document.addEventListener('click', function (ev) {
+    if (!menu.hidden && !menu.contains(ev.target)) closeCtxMenu();
+  }, true);
+  document.addEventListener('scroll', closeCtxMenu, { capture: true, passive: true });
+}
+
+export function closeCtxMenu() {
+  var m = document.getElementById('editor-ctx-menu');
+  if (m) m.hidden = true;
+}
+
+export function openCtxMenu(g, m, pageX, pageY) {
+  buildCtxMenu();
+  var menu = document.getElementById('editor-ctx-menu');
+  var item = draftItem(g, m);
+  var hasInfo = !!(item.info && item.info.image);
+  var hasScope = !!(item.scope && item.scope.image);
+  var isRack = item.zone === 'rack';
+
+  menu.innerHTML = '';
+
+  // Info image group (all zones)
+  menu.appendChild(makeCtxItem('Replace image…', false, function () {
+    var inp = document.querySelector('.item-editor[data-g="' + g + '"][data-m="' + m + '"] .item-file[data-ifile="info.image"]');
+    if (inp) inp.click();
+    closeCtxMenu();
+  }));
+  menu.appendChild(makeCtxItem('Re-crop image…', !hasInfo, function () {
+    recropImage(g, m, 'info');
+    closeCtxMenu();
+  }));
+  menu.appendChild(makeCtxItem('Remove image', !hasInfo, function () {
+    if (item.info) delete item.info.image;
+    clearOriginal(item.id + ':info');
+    saveEditorDraft();
+    refreshEditorStatus();
+    pushPreview();
+    closeCtxMenu();
+  }));
+
+  // Scope image group (rack zone only)
+  if (isRack) {
+    menu.appendChild(makeCtxSep());
+    menu.appendChild(makeCtxItem('Replace scope image…', false, function () {
+      var inp = document.querySelector('.item-editor[data-g="' + g + '"][data-m="' + m + '"] .item-file[data-ifile="scope.image"]');
+      if (inp) inp.click();
+      closeCtxMenu();
+    }));
+    menu.appendChild(makeCtxItem('Re-crop scope image…', !hasScope, function () {
+      recropImage(g, m, 'scope');
+      closeCtxMenu();
+    }));
+    menu.appendChild(makeCtxItem('Remove scope image', !hasScope, function () {
+      if (item.scope) delete item.scope.image;
+      clearOriginal(item.id + ':scope');
+      saveEditorDraft();
+      refreshEditorStatus();
+      pushPreview();
+      closeCtxMenu();
+    }));
+  }
+
+  menu.appendChild(makeCtxSep());
+  menu.appendChild(makeCtxItem('Edit fields', false, function () {
+    var gc = document.querySelector('.group-card[data-g="' + g + '"]');
+    if (gc) gc.open = true;
+    var ib = document.querySelector('.item-editor[data-g="' + g + '"][data-m="' + m + '"]');
+    if (ib) {
+      ib.scrollIntoView({ behavior: 'smooth' });
+      var lbl = ib.querySelector('input[data-ifield="label"]');
+      if (lbl) setTimeout(function () { lbl.focus(); }, 120);
+    }
+    closeCtxMenu();
+  }));
+
+  // Clue type chips row
+  var typeWrap = document.createElement('div');
+  typeWrap.className = 'ctx-type-row';
+  var typeLbl = document.createElement('span');
+  typeLbl.className = 'ctx-type-label';
+  typeLbl.textContent = 'Set type:';
+  typeWrap.appendChild(typeLbl);
+  KIND_ORDER.forEach(function (kind) {
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'kind-chip' + (item.zone === kind ? ' is-active' : '');
+    chip.dataset.g = String(g);
+    chip.dataset.m = String(m);
+    chip.dataset.kind = kind;
+    chip.textContent = PIECE_KIND_NAMES[kind];
+    chip.addEventListener('click', function () {
+      if (item.zone !== kind) {
+        item.zone = kind;
+        if (kind !== 'rack' && item.scope) delete item.scope;
+        saveEditorDraft();
+        var oldBox = document.querySelector('.item-editor[data-g="' + g + '"][data-m="' + m + '"]');
+        if (oldBox) oldBox.parentNode.replaceChild(renderItemEditor(g, m), oldBox);
+        renderMachineToggles();
+        refreshEditorStatus();
+        pushPreview();
+      }
+      closeCtxMenu();
+    });
+    typeWrap.appendChild(chip);
+  });
+  menu.appendChild(typeWrap);
+
+  // Position: show first (so offsetWidth/offsetHeight are valid), then clamp
+  menu.hidden = false;
+  var vw = window.innerWidth, vh = window.innerHeight;
+  var mw = menu.offsetWidth, mh = menu.offsetHeight;
+  menu.style.left = Math.max(8, Math.min(pageX, vw - mw - 8)) + 'px';
+  menu.style.top = Math.max(8, Math.min(pageY, vh - mh - 8)) + 'px';
+}
+
+/** Delegated contextmenu handler for .item-editor cards in the sidebar. */
+export function onEditorContextMenu(ev) {
+  var box = ev.target.closest ? ev.target.closest('.item-editor') : null;
+  if (!box) return;
+  ev.preventDefault();
+  openCtxMenu(Number(box.dataset.g), Number(box.dataset.m), ev.clientX, ev.clientY);
 }
 
 /* ── Init — the ONLY place any event listener is attached ────────── */

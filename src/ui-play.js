@@ -61,6 +61,9 @@ var LABEL_FIT_TOLERANCE = 1.06; // 6% slack before a line count "counts" as over
 
 var RICH_TAGS = { B: 1, STRONG: 1, I: 1, EM: 1, U: 1, BR: 1, SUB: 1, SUP: 1 };
 
+/* module-level debounce timer for inline results editing */
+var resultsEditTimer = null;
+
 /* ── Announcer + toast ───────────────────────────────────────────── */
 
 export function announce(text) {
@@ -2008,18 +2011,35 @@ export function sanitizeChildrenInto(srcNode, outParent) {
 
 /* ── Results overlay ──────────────────────────────────────────────── */
 
-export function renderArticleBlock(block) {
+/** editCtx: optional { groupId, blockIndex } — when present, adds
+    contenteditable + data attributes for inline preview-mode editing. */
+export function renderArticleBlock(block, editCtx) {
   if (!block) return null;
   if (block.type === 'heading') {
     var h = document.createElement('h4');
     h.className = 'result-article-heading';
     h.innerHTML = sanitizeRichHtml(block.text || '');
+    if (editCtx) {
+      h.contentEditable = 'true';
+      h.className += ' results-editable';
+      h.dataset.editGroup = editCtx.groupId;
+      h.dataset.editField = 'article:' + editCtx.blockIndex + ':text';
+      h.dataset.editRich = '1';
+      h.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); h.blur(); } });
+    }
     return h;
   }
   if (block.type === 'text') {
     var p = document.createElement('p');
     p.className = 'result-article-text';
     p.innerHTML = sanitizeRichHtml(block.text || '');
+    if (editCtx) {
+      p.contentEditable = 'true';
+      p.className += ' results-editable';
+      p.dataset.editGroup = editCtx.groupId;
+      p.dataset.editField = 'article:' + editCtx.blockIndex + ':text';
+      p.dataset.editRich = '1';
+    }
     return p;
   }
   if (block.type === 'image' && block.src) {
@@ -2029,10 +2049,17 @@ export function renderArticleBlock(block) {
     img.src = block.src;
     img.alt = block.caption || '';
     fig.appendChild(img);
-    if (block.caption) {
+    if (block.caption || editCtx) {
       var cap = document.createElement('figcaption');
       cap.className = 'result-article-caption';
-      cap.textContent = block.caption;
+      cap.textContent = block.caption || '';
+      if (editCtx) {
+        cap.contentEditable = 'true';
+        cap.className += ' results-editable';
+        cap.dataset.editGroup = editCtx.groupId;
+        cap.dataset.editField = 'article:' + editCtx.blockIndex + ':caption';
+        cap.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); cap.blur(); } });
+      }
       fig.appendChild(cap);
     }
     return fig;
@@ -2042,16 +2069,34 @@ export function renderArticleBlock(block) {
 
 /** One tier-colored placard: name, tier, items, lede (`explanation`), and
     — if the group has one — its full article body underneath. Groups
-    without an article render exactly as before (placard + explanation). */
+    without an article render exactly as before (placard + explanation).
+    When state.previewMode is true, text nodes are contenteditable so the
+    author can edit them inline; changes post dp2d-results-edit to parent. */
 export function buildResultPlacard(puzzle, g, solvedGroupIds) {
+  var isPreview = !!state.previewMode;
   var card = document.createElement('div');
   card.className = 'result-placard' + (solvedGroupIds.has(g.id) ? ' solved-by-player' : '');
   card.style.setProperty('--group-color', 'var(--tier-' + g.tier + ')');
+
+  if (isPreview) {
+    var hint = document.createElement('p');
+    hint.className = 'results-preview-hint';
+    hint.textContent = 'Preview mode: click any text to edit it — changes save to the draft.';
+    card.appendChild(hint);
+  }
+
   var nameEl = document.createElement('p');
   nameEl.className = 'result-placard-name';
   nameEl.textContent = 'Tier ' + g.tier;
   var h3 = document.createElement('h3');
   h3.textContent = g.name;
+  if (isPreview) {
+    h3.contentEditable = 'true';
+    h3.className = 'results-editable';
+    h3.dataset.editGroup = g.id;
+    h3.dataset.editField = 'name';
+    h3.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); h3.blur(); } });
+  }
   var itemsEl = document.createElement('p');
   itemsEl.className = 'result-placard-items';
   itemsEl.textContent = g.itemIds.map(function (id) {
@@ -2061,6 +2106,13 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds) {
   var explEl = document.createElement('p');
   explEl.className = 'result-placard-explanation';
   explEl.textContent = g.explanation;
+  if (isPreview) {
+    explEl.contentEditable = 'true';
+    explEl.className += ' results-editable';
+    explEl.dataset.editGroup = g.id;
+    explEl.dataset.editField = 'explanation';
+    explEl.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); explEl.blur(); } });
+  }
   card.appendChild(nameEl);
   card.appendChild(h3);
   card.appendChild(itemsEl);
@@ -2069,8 +2121,9 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds) {
   if (Array.isArray(g.article) && g.article.length) {
     var article = document.createElement('div');
     article.className = 'result-article';
-    g.article.forEach(function (block) {
-      var node = renderArticleBlock(block);
+    g.article.forEach(function (block, bi) {
+      var editCtx = isPreview ? { groupId: g.id, blockIndex: bi } : null;
+      var node = renderArticleBlock(block, editCtx);
       if (node) article.appendChild(node);
     });
     card.appendChild(article);
@@ -2139,6 +2192,37 @@ export function showPreviewResultsFromDraft() {
     sub: 'Solved with 0 mistakes.',
     solvedGroupIds: new Set(puzzle.groups.map(function (g) { return g.id; })),
   });
+}
+
+/** Post a results-edit message to the parent editor.
+    final=true signals the editor to push the preview refresh. */
+function postResultsEdit(el, final) {
+  var groupId = el.dataset.editGroup;
+  var field = el.dataset.editField;
+  if (!groupId || !field) return;
+  var isRich = el.dataset.editRich === '1';
+  var value = isRich ? sanitizeRichHtml(el.innerHTML) : el.textContent;
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'dp2d-results-edit', groupId: groupId, field: field, value: value, final: !!final }, '*');
+  }
+}
+
+/** Set up delegated input/blur listeners on the results overlay for
+    inline preview-mode editing. Call once after preview mode is enabled. */
+export function bindResultsEdit() {
+  if (!els.overlayResults) return;
+  els.overlayResults.addEventListener('input', function (ev) {
+    var el = ev.target.closest ? ev.target.closest('[data-edit-group][data-edit-field]') : null;
+    if (!el) return;
+    clearTimeout(resultsEditTimer);
+    resultsEditTimer = setTimeout(function () { postResultsEdit(el, false); }, 250);
+  });
+  els.overlayResults.addEventListener('blur', function (ev) {
+    var el = ev.target.closest ? ev.target.closest('[data-edit-group][data-edit-field]') : null;
+    if (!el) return;
+    clearTimeout(resultsEditTimer);
+    postResultsEdit(el, true); // final=true → editor will pushPreview
+  }, true); // capture so blur (which doesn't bubble) is caught
 }
 
 /* ── Share + Anki ──────────────────────────────────────────────────── */
