@@ -305,6 +305,7 @@ export function normalizeDraft(d) {
       itemIds: [],
     };
     if (Array.isArray(src.article)) grp.article = src.article;
+    if (src.anki !== undefined) grp.anki = src.anki;
     for (var m = 0; m < 4; m++) {
       var iid = Array.isArray(src.itemIds) ? src.itemIds[m] : null;
       var item = (iid && itemsById[iid] && !usedIds.has(iid)) ? itemsById[iid] : null;
