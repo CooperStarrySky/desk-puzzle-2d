@@ -350,7 +350,9 @@ def main():
         print('ERROR: Spec missing "date" field.', file=sys.stderr)
         sys.exit(1)
 
-    puzzle_id = puzzle_id_from_title_date(title, date)
+    # An explicit `id:` keeps a published puzzle's id (and image folder) stable
+    # when its title is renamed later.
+    puzzle_id = spec.get('id') or puzzle_id_from_title_date(title, date)
 
     # Determine output directories
     if args.out_dir:

@@ -24,7 +24,8 @@
 #
 # Build check: python3 tools/build_puzzle.py puzzles/_spec/m1-blocks-cardiopulm-2026-09-24.yaml
 
-title: Repeats, Rebar, and Poison
+title: Things That Expand
+id: repeats-rebar-and-poison-2026-09-24
 date: 2026-09-24
 images: ../repeats-rebar-and-poison-2026-09-24-src/
 
