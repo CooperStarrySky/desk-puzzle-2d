@@ -1,0 +1,214 @@
+# M1 blocks + Cardio/Pulm draft (2026-09-24)
+#
+# Scope plan:
+#   tier 1  M1 Block I   (genetics: inheritance, clinical genetics)
+#   tier 2  M1 Block II  (biochem: connective tissue / collagen synthesis)
+#   tier 3  M1 Block III (action potentials + NMJ: Na+ channels, SNARE)
+#   tier 4  M2 Cardio + Pulm, limited to lectures already given as of
+#           2026-09-24 (Cardio: all; Pulm: Lec 1-11 + Week 1-2 labs)
+#
+# Scope sources:
+#   M1: MBM2026 Block 1/2/3 schedule PDFs (lecture titles only, not slides)
+#   tier 4: asthma = Pulm Lec 7 (sputum findings, methacholine challenge) and
+#           the PFT interpretation lab; propranolol = Cardio Lec 11/24.
+#
+# Tier 3 mixes two toxins with two drugs so tier 4 isn't the obvious "all the
+# drugs" group. Lidocaine is also a Cardio Lec 11 class IB antiarrhythmic, so
+# it looks like it belongs next to propranolol; it has nothing to do with
+# asthma, so the answer stays unique. Each group now holds two drugs.
+#
+# Every clue maps to one AnKing Step 1 note (#AK_Step1_v12, AnKingOverhaul
+# model); the per-item comment gives the note ID. Some carry AnkiHub optional
+# tags (#PANCE, CMSRU mirror), which are not in-house content.
+# No note appears in the two published puzzles.
+#
+# Build check: python3 tools/build_puzzle.py puzzles/_spec/m1-blocks-cardiopulm-2026-09-24.yaml
+
+title: Repeats, Rebar, and Poison
+date: 2026-09-24
+images: ../repeats-rebar-and-poison-2026-09-24-src/
+
+groups:
+  # -- tier 1 : M1 Block I, genetics ----------------------------------------
+  - id: g-trinucleotide-repeat
+    name: Trinucleotide repeat expansion disorders
+    tier: 1
+    explanation: >
+      All four are caused by a DNA repeat of three letters that grows longer each generation, so symptoms start earlier and get worse in children (anticipation).
+    article:
+      - type: text
+        text: "<b>HTT gene, chromosome 4</b>: Huntington disease. A CAG repeat in huntingtin kills neurons in the caudate, causing chorea."
+      - type: text
+        text: "<b>CGG</b>: Fragile X syndrome. This repeat silences the FMR1 gene."
+      - type: text
+        text: "<b>Can't let go after a handshake</b>: Myotonic dystrophy. A CTG repeat stops muscles relaxing after they contract."
+      - type: text
+        text: "<b>Staggering gait with pes cavus</b>: Friedreich ataxia. A GAA repeat causes ataxia and a thickened heart."
+    anki:
+      - 1481857907047  # Huntington: CAG repeat in huntingtin gene, chromosome 4
+      - 1470793844592  # Fragile X: CGG repeat
+      - 1553959885757  # Myotonic dystrophy: impaired relaxation after contraction
+      - 1539283451504  # Friedreich: gait, kyphoscoliosis, pes cavus, HCM, DM
+      - 1469211789678  # group: anticipation = trinucleotide repeat diseases
+    items:
+      - label: HTT gene, chromosome 4
+        zone: folder
+        title: Huntington disease
+        text: "Gene clue: the huntingtin gene on chromosome 4. Expanded CAG repeats kill neurons in the caudate, causing chorea in middle age."
+
+      - label: CGG
+        zone: corkboard
+        title: Fragile X syndrome
+        text: "Sequence clue: a CGG repeat that silences the FMR1 gene, causing a long face, large ears, and macroorchidism."
+
+      - label: Can't let go after a handshake
+        zone: corkboard
+        title: Myotonic dystrophy
+        text: "Exam clue: the muscle can't relax after a single contraction, with cataracts, frontal balding, and gonadal atrophy. The repeat is CTG."
+
+      - label: Staggering gait with pes cavus
+        zone: folder
+        title: Friedreich ataxia
+        text: "Exam clue: a child with ataxia, kyphoscoliosis, pes cavus, diabetes, and hypertrophic cardiomyopathy. The repeat is GAA."
+
+  # -- tier 2 : M1 Block II, connective tissue -------------------------------
+  - id: g-collagen-defects
+    name: Defects of collagen synthesis
+    tier: 2
+    explanation: >
+      All four break a different step of building collagen, so skin, bone, vessels, and gums lose their strength.
+    article:
+      - type: text
+        text: "<b>Swollen, bleeding gums</b>: Scurvy. No vitamin C, so proline and lysine are not hydroxylated."
+      - type: text
+        text: "<b>Blue sclerae</b>: Osteogenesis imperfecta. Bad type I collagen chains cannot form the triple helix."
+      - type: text
+        text: "<b>Hyperextensible skin</b>: Ehlers-Danlos syndrome. Faulty collagen processing and cross-linking make skin and joints too loose."
+      - type: text
+        text: "<b>Kinky, brittle hair in an infant boy</b>: Menkes disease. No copper for lysyl oxidase, so fibers never cross-link."
+      - type: text
+        text: "<i>Images: scorbutic gums, CDC (public domain); blue sclerae, Herbert L. Fred, MD and Hendrik A. van Dijk (CC BY-SA 3.0); stretched skin, Rollcloud (CC0). All via Wikimedia Commons.</i>"
+    anki:
+      - 1476583848657  # Scurvy: swollen gums, bruising, petechiae, hemarthrosis
+      - 1468531768449  # OI: blue sclerae
+      - 1468531824446  # EDS: hyperextensible skin
+      - 1468531871497  # Menkes: brittle, kinky hair
+      - 1468250319201  # group: hydroxylation needs vitamin C
+      - 1468250405805  # group: cross-linking defects = EDS + Menkes
+    items:
+      - label: Swollen, bleeding gums
+        zone: photo
+        title: Scurvy
+        text: "Exam clue: swollen gums, easy bruising, and hemarthrosis in someone living on tea and toast. Vitamin C is missing for proline and lysine hydroxylation."
+        image: scorbutic-gums.jpg
+
+      - label: Blue sclerae
+        zone: photo
+        title: Osteogenesis imperfecta
+        text: "Exam clue: blue sclerae and fractures after minimal trauma. A COL1A1 or COL1A2 defect ruins the type I collagen triple helix."
+        image: blue-sclerae-eye.jpg
+
+      - label: Hyperextensible skin
+        zone: photo
+        title: Ehlers-Danlos syndrome
+        text: "Exam clue: skin that stretches far past normal, hypermobile joints, and easy bruising from faulty collagen synthesis."
+        image: hyperextensible-skin.jpg
+
+      - label: Kinky, brittle hair in an infant boy
+        zone: folder
+        title: Menkes disease
+        text: "Exam clue: an X-linked ATP7A defect blocks copper transport, so lysyl oxidase can't cross-link collagen. The hair is brittle and kinky."
+
+  # -- tier 3 : M1 Block III, action potentials + NMJ ----------------------
+  - id: g-nerve-muscle-block
+    name: Agents that cut the signal from nerve to muscle
+    tier: 3
+    explanation: >
+      Each one stops the message from nerve to muscle. Two block the nerve's Na+ channels, one stops ACh release, and one jams the muscle's ACh receptor.
+    article:
+      - type: text
+        text: "<b>Pufferfish</b>: Tetrodotoxin. Blocks Na<sup>+</sup> channels, so the nerve cannot fire."
+      - type: text
+        text: "<b>Lidocaine</b>: Local anesthetic. Blocks the same Na<sup>+</sup> channels. (It is also a Cardio antiarrhythmic, the decoy.)"
+      - type: text
+        text: "<b>Bulging can</b>: Botulinum toxin. Cuts SNARE proteins, so ACh is never released."
+      - type: text
+        text: "<b>Succinylcholine</b>: Depolarizing blocker. Keeps the muscle ACh receptor switched on until it stops responding."
+      - type: text
+        text: "<i>Images: pufferfish, Dotun55 (CC BY-SA 4.0); bulging can, Kat1100 (CC BY 4.0); succinylcholine vial, Mark Oniffrey (CC BY-SA 4.0). All via Wikimedia Commons.</i>"
+    anki:
+      - 1490137213363  # pufferfish -> tetrodotoxin
+      - 1490137861396  # tetrodotoxin blocks fast Na+ channels
+      - 1484950512131  # lidocaine is an amide local anesthetic
+      - 1484950518844  # local anesthetics block Na+ channels
+      - 1506178501999  # botulinum cleaves SNARE, blocks ACh release
+      - 1485382335147  # succinylcholine: sustained depolarization at the ACh receptor
+    items:
+      - label: Pufferfish
+        zone: photo
+        title: Tetrodotoxin
+        text: "Dinner clue: a diner has tingling lips, then weakness, after a fugu meal. The pufferfish toxin plugs fast Na+ channels so the axon can't fire."
+        image: pufferfish.jpg
+
+      - label: Lidocaine
+        zone: rx
+        title: Lidocaine
+        text: "Rx clue: an amide injected before stitching a laceration. It blocks Na+ channels from the inside so the nerve goes quiet."
+
+      - label: Bulging can
+        zone: photo
+        title: Botulinum toxin
+        text: "Pantry clue: descending flaccid paralysis starting with the eyes. The toxin cleaves SNARE proteins so ACh is never released."
+        image: bulging-can.jpg
+
+      - label: Succinylcholine
+        zone: photo
+        title: Succinylcholine
+        text: "Rx clue: given for rapid intubation. It binds the nicotinic ACh receptor and keeps the end plate depolarized, so the muscle can't contract again."
+        image: succinylcholine.jpg
+
+  # -- tier 4 : M2 Cardio + Pulm (asthma) -----------------------------------
+  - id: g-asthma
+    name: Clues that point to asthma
+    tier: 4
+    explanation: >
+      One disease seen four ways: a drug that sets it off, the test that proves it, and two things found in the sputum.
+    article:
+      - type: text
+        text: "<b>Propranolol</b>: A nonselective beta-blocker. It blocks the beta-2 receptors that keep airways open, so it can set off an attack."
+      - type: text
+        text: "<b>Methacholine</b>: The challenge test. Inhaling it tightens twitchy asthmatic airways when spirometry looks normal."
+      - type: text
+        text: "<b>Sputum smear</b>: Curschmann spirals, coiled mucus casts of the small airways."
+      - type: text
+        text: "<b>Sputum, high power</b>: Charcot-Leyden crystals, needle-shaped crystals left behind by eosinophils."
+      - type: text
+        text: "<i>Images: propranolol boxes, Whispyhistory (CC BY-SA 4.0); Curschmann spirals, uploaded to Wikimedia Commons by a working pathologist (Attribution license); Charcot-Leyden crystals, Atlas of Medical Foreign Bodies (CC BY-SA 2.0), via Wikimedia Commons.</i>"
+    anki:
+      - 1578763814214  # Propranolol contraindicated in asthma
+      - 1578177769973  # Methacholine challenge when FEV1/FVC is normal
+      - 1473628122928  # Curschmann spirals
+      - 1473628127344  # Charcot-Leyden crystals
+    items:
+      - label: Propranolol
+        zone: photo
+        title: Propranolol
+        text: "Rx clue: a nonselective beta-blocker. It blocks beta-2 receptors on airway smooth muscle, so it's avoided in this disease."
+        image: propranolol.jpg
+
+      - label: Methacholine
+        zone: rx
+        title: Methacholine
+        text: "PFT clue: inhaled during a challenge test when the disease is suspected but spirometry comes back normal."
+
+      - label: Sputum smear
+        zone: rack
+        title: Curschmann spirals
+        text: "Sputum clue: coiled, spiral-shaped mucus plugs shed from the small airways."
+        scope_image: curschmann-spirals.jpg
+
+      - label: Sputum, high power
+        zone: rack
+        title: Charcot-Leyden crystals
+        text: "Sputum clue: thin, needle-shaped crystals made from eosinophil protein."
+        scope_image: charcot-leyden-crystals.jpg

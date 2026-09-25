@@ -417,7 +417,12 @@ def main():
         print()
 
     # Validation
-    structural_errors, image_errors, warnings = run_validation(puzzle, puzzle_id, dry_run)
+    structural_errors, image_errors, warnings = run_validation(puzzle, puzzle_id, dry_run=True)
+    # Images this run is about to write are expected to be missing until the
+    # apply step converts them; only paths outside the plan are real errors.
+    planned = {page_rel for _, _, page_rel in image_plan}
+    if not dry_run:
+        image_errors = [e for e in image_errors if not any(pr in e for pr in planned)]
 
     if warnings:
         print(f'  Validation warnings:')

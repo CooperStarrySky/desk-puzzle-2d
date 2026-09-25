@@ -1,0 +1,338 @@
+{
+  "id": "repeats-rebar-and-poison-2026-09-24",
+  "title": "Repeats, Rebar, and Poison",
+  "date": "2026-09-24",
+  "machines": [
+    "scope"
+  ],
+  "groups": [
+    {
+      "id": "g-trinucleotide-repeat",
+      "name": "Trinucleotide repeat expansion disorders",
+      "tier": 1,
+      "explanation": "All four are caused by a DNA repeat of three letters that grows longer each generation, so symptoms start earlier and get worse in children (anticipation).",
+      "anki": {
+        "nids": [
+          1481857907047,
+          1470793844592,
+          1553959885757,
+          1539283451504,
+          1469211789678
+        ]
+      },
+      "article": [
+        {
+          "type": "text",
+          "text": "<b>HTT gene, chromosome 4</b>: Huntington disease. A CAG repeat in huntingtin kills neurons in the caudate, causing chorea."
+        },
+        {
+          "type": "text",
+          "text": "<b>CGG</b>: Fragile X syndrome. This repeat silences the FMR1 gene."
+        },
+        {
+          "type": "text",
+          "text": "<b>Can't let go after a handshake</b>: Myotonic dystrophy. A CTG repeat stops muscles relaxing after they contract."
+        },
+        {
+          "type": "text",
+          "text": "<b>Staggering gait with pes cavus</b>: Friedreich ataxia. A GAA repeat causes ataxia and a thickened heart."
+        }
+      ],
+      "itemIds": [
+        "htt-gene-chromosome-4",
+        "cgg",
+        "can-t-let-go-after-a-handshake",
+        "staggering-gait-with-pes-cavus"
+      ]
+    },
+    {
+      "id": "g-collagen-defects",
+      "name": "Defects of collagen synthesis",
+      "tier": 2,
+      "explanation": "All four break a different step of building collagen, so skin, bone, vessels, and gums lose their strength.",
+      "anki": {
+        "nids": [
+          1476583848657,
+          1468531768449,
+          1468531824446,
+          1468531871497,
+          1468250319201,
+          1468250405805
+        ]
+      },
+      "article": [
+        {
+          "type": "text",
+          "text": "<b>Swollen, bleeding gums</b>: Scurvy. No vitamin C, so proline and lysine are not hydroxylated."
+        },
+        {
+          "type": "text",
+          "text": "<b>Blue sclerae</b>: Osteogenesis imperfecta. Bad type I collagen chains cannot form the triple helix."
+        },
+        {
+          "type": "text",
+          "text": "<b>Hyperextensible skin</b>: Ehlers-Danlos syndrome. Faulty collagen processing and cross-linking make skin and joints too loose."
+        },
+        {
+          "type": "text",
+          "text": "<b>Kinky, brittle hair in an infant boy</b>: Menkes disease. No copper for lysyl oxidase, so fibers never cross-link."
+        },
+        {
+          "type": "text",
+          "text": "<i>Images: scorbutic gums, CDC (public domain); blue sclerae, Herbert L. Fred, MD and Hendrik A. van Dijk (CC BY-SA 3.0); stretched skin, Rollcloud (CC0). All via Wikimedia Commons.</i>"
+        }
+      ],
+      "itemIds": [
+        "swollen-bleeding-gums",
+        "blue-sclerae",
+        "hyperextensible-skin",
+        "kinky-brittle-hair-in-an-infant-boy"
+      ]
+    },
+    {
+      "id": "g-nerve-muscle-block",
+      "name": "Agents that cut the signal from nerve to muscle",
+      "tier": 3,
+      "explanation": "Each one stops the message from nerve to muscle. Two block the nerve's Na+ channels, one stops ACh release, and one jams the muscle's ACh receptor.",
+      "anki": {
+        "nids": [
+          1490137213363,
+          1490137861396,
+          1484950512131,
+          1484950518844,
+          1506178501999,
+          1485382335147
+        ]
+      },
+      "article": [
+        {
+          "type": "text",
+          "text": "<b>Pufferfish</b>: Tetrodotoxin. Blocks Na<sup>+</sup> channels, so the nerve cannot fire."
+        },
+        {
+          "type": "text",
+          "text": "<b>Lidocaine</b>: Local anesthetic. Blocks the same Na<sup>+</sup> channels. (It is also a Cardio antiarrhythmic, the decoy.)"
+        },
+        {
+          "type": "text",
+          "text": "<b>Bulging can</b>: Botulinum toxin. Cuts SNARE proteins, so ACh is never released."
+        },
+        {
+          "type": "text",
+          "text": "<b>Succinylcholine</b>: Depolarizing blocker. Keeps the muscle ACh receptor switched on until it stops responding."
+        },
+        {
+          "type": "text",
+          "text": "<i>Images: pufferfish, Dotun55 (CC BY-SA 4.0); bulging can, Kat1100 (CC BY 4.0); succinylcholine vial, Mark Oniffrey (CC BY-SA 4.0). All via Wikimedia Commons.</i>"
+        }
+      ],
+      "itemIds": [
+        "pufferfish",
+        "lidocaine",
+        "bulging-can",
+        "succinylcholine"
+      ]
+    },
+    {
+      "id": "g-asthma",
+      "name": "Clues that point to asthma",
+      "tier": 4,
+      "explanation": "One disease seen four ways: a drug that sets it off, the test that proves it, and two things found in the sputum.",
+      "anki": {
+        "nids": [
+          1578763814214,
+          1578177769973,
+          1473628122928,
+          1473628127344
+        ]
+      },
+      "article": [
+        {
+          "type": "text",
+          "text": "<b>Propranolol</b>: A nonselective beta-blocker. It blocks the beta-2 receptors that keep airways open, so it can set off an attack."
+        },
+        {
+          "type": "text",
+          "text": "<b>Methacholine</b>: The challenge test. Inhaling it tightens twitchy asthmatic airways when spirometry looks normal."
+        },
+        {
+          "type": "text",
+          "text": "<b>Sputum smear</b>: Curschmann spirals, coiled mucus casts of the small airways."
+        },
+        {
+          "type": "text",
+          "text": "<b>Sputum, high power</b>: Charcot-Leyden crystals, needle-shaped crystals left behind by eosinophils."
+        },
+        {
+          "type": "text",
+          "text": "<i>Images: propranolol boxes, Whispyhistory (CC BY-SA 4.0); Curschmann spirals, uploaded to Wikimedia Commons by a working pathologist (Attribution license); Charcot-Leyden crystals, Atlas of Medical Foreign Bodies (CC BY-SA 2.0), via Wikimedia Commons.</i>"
+        }
+      ],
+      "itemIds": [
+        "propranolol",
+        "methacholine",
+        "sputum-smear",
+        "sputum-high-power"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "htt-gene-chromosome-4",
+      "label": "HTT gene, chromosome 4",
+      "zone": "folder",
+      "info": {
+        "title": "Huntington disease",
+        "text": "Gene clue: the huntingtin gene on chromosome 4. Expanded CAG repeats kill neurons in the caudate, causing chorea in middle age."
+      }
+    },
+    {
+      "id": "cgg",
+      "label": "CGG",
+      "zone": "corkboard",
+      "info": {
+        "title": "Fragile X syndrome",
+        "text": "Sequence clue: a CGG repeat that silences the FMR1 gene, causing a long face, large ears, and macroorchidism."
+      }
+    },
+    {
+      "id": "can-t-let-go-after-a-handshake",
+      "label": "Can't let go after a handshake",
+      "zone": "corkboard",
+      "info": {
+        "title": "Myotonic dystrophy",
+        "text": "Exam clue: the muscle can't relax after a single contraction, with cataracts, frontal balding, and gonadal atrophy. The repeat is CTG."
+      }
+    },
+    {
+      "id": "staggering-gait-with-pes-cavus",
+      "label": "Staggering gait with pes cavus",
+      "zone": "folder",
+      "info": {
+        "title": "Friedreich ataxia",
+        "text": "Exam clue: a child with ataxia, kyphoscoliosis, pes cavus, diabetes, and hypertrophic cardiomyopathy. The repeat is GAA."
+      }
+    },
+    {
+      "id": "swollen-bleeding-gums",
+      "label": "Swollen, bleeding gums",
+      "zone": "photo",
+      "info": {
+        "title": "Scurvy",
+        "text": "Exam clue: swollen gums, easy bruising, and hemarthrosis in someone living on tea and toast. Vitamin C is missing for proline and lysine hydroxylation.",
+        "image": "puzzles/repeats-rebar-and-poison-2026-09-24/swollen-bleeding-gums-info.webp"
+      }
+    },
+    {
+      "id": "blue-sclerae",
+      "label": "Blue sclerae",
+      "zone": "photo",
+      "info": {
+        "title": "Osteogenesis imperfecta",
+        "text": "Exam clue: blue sclerae and fractures after minimal trauma. A COL1A1 or COL1A2 defect ruins the type I collagen triple helix.",
+        "image": "puzzles/repeats-rebar-and-poison-2026-09-24/blue-sclerae-info.webp"
+      }
+    },
+    {
+      "id": "hyperextensible-skin",
+      "label": "Hyperextensible skin",
+      "zone": "photo",
+      "info": {
+        "title": "Ehlers-Danlos syndrome",
+        "text": "Exam clue: skin that stretches far past normal, hypermobile joints, and easy bruising from faulty collagen synthesis.",
+        "image": "puzzles/repeats-rebar-and-poison-2026-09-24/hyperextensible-skin-info.webp"
+      }
+    },
+    {
+      "id": "kinky-brittle-hair-in-an-infant-boy",
+      "label": "Kinky, brittle hair in an infant boy",
+      "zone": "folder",
+      "info": {
+        "title": "Menkes disease",
+        "text": "Exam clue: an X-linked ATP7A defect blocks copper transport, so lysyl oxidase can't cross-link collagen. The hair is brittle and kinky."
+      }
+    },
+    {
+      "id": "pufferfish",
+      "label": "Pufferfish",
+      "zone": "photo",
+      "info": {
+        "title": "Tetrodotoxin",
+        "text": "Dinner clue: a diner has tingling lips, then weakness, after a fugu meal. The pufferfish toxin plugs fast Na+ channels so the axon can't fire.",
+        "image": "puzzles/repeats-rebar-and-poison-2026-09-24/pufferfish-info.webp"
+      }
+    },
+    {
+      "id": "lidocaine",
+      "label": "Lidocaine",
+      "zone": "rx",
+      "info": {
+        "title": "Lidocaine",
+        "text": "Rx clue: an amide injected before stitching a laceration. It blocks Na+ channels from the inside so the nerve goes quiet."
+      }
+    },
+    {
+      "id": "bulging-can",
+      "label": "Bulging can",
+      "zone": "photo",
+      "info": {
+        "title": "Botulinum toxin",
+        "text": "Pantry clue: descending flaccid paralysis starting with the eyes. The toxin cleaves SNARE proteins so ACh is never released.",
+        "image": "puzzles/repeats-rebar-and-poison-2026-09-24/bulging-can-info.webp"
+      }
+    },
+    {
+      "id": "succinylcholine",
+      "label": "Succinylcholine",
+      "zone": "photo",
+      "info": {
+        "title": "Succinylcholine",
+        "text": "Rx clue: given for rapid intubation. It binds the nicotinic ACh receptor and keeps the end plate depolarized, so the muscle can't contract again.",
+        "image": "puzzles/repeats-rebar-and-poison-2026-09-24/succinylcholine-info.webp"
+      }
+    },
+    {
+      "id": "propranolol",
+      "label": "Propranolol",
+      "zone": "photo",
+      "info": {
+        "title": "Propranolol",
+        "text": "Rx clue: a nonselective beta-blocker. It blocks beta-2 receptors on airway smooth muscle, so it's avoided in this disease.",
+        "image": "puzzles/repeats-rebar-and-poison-2026-09-24/propranolol-info.webp"
+      }
+    },
+    {
+      "id": "methacholine",
+      "label": "Methacholine",
+      "zone": "rx",
+      "info": {
+        "title": "Methacholine",
+        "text": "PFT clue: inhaled during a challenge test when the disease is suspected but spirometry comes back normal."
+      }
+    },
+    {
+      "id": "sputum-smear",
+      "label": "Sputum smear",
+      "zone": "rack",
+      "info": {
+        "title": "Curschmann spirals",
+        "text": "Sputum clue: coiled, spiral-shaped mucus plugs shed from the small airways."
+      },
+      "scope": {
+        "image": "puzzles/repeats-rebar-and-poison-2026-09-24/sputum-smear-scope.webp"
+      }
+    },
+    {
+      "id": "sputum-high-power",
+      "label": "Sputum, high power",
+      "zone": "rack",
+      "info": {
+        "title": "Charcot-Leyden crystals",
+        "text": "Sputum clue: thin, needle-shaped crystals made from eosinophil protein."
+      },
+      "scope": {
+        "image": "puzzles/repeats-rebar-and-poison-2026-09-24/sputum-high-power-scope.webp"
+      }
+    }
+  ]
+}

@@ -1,6 +1,12 @@
 {
-  "current": "genetics-and-repair-2026-09-04",
+  "current": "repeats-rebar-and-poison-2026-09-24",
   "puzzles": [
+    {
+      "id": "repeats-rebar-and-poison-2026-09-24",
+      "title": "Repeats, Rebar, and Poison",
+      "date": "2026-09-24",
+      "file": "repeats-rebar-and-poison-2026-09-24.json"
+    },
     {
       "id": "genetics-and-repair-2026-09-04",
       "title": "Genetics and Repair",
