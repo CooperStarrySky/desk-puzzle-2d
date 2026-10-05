@@ -85,7 +85,7 @@
     },
     {
       "id": "g-hemoptysis",
-      "name": "Causes of coughing up blood",
+      "name": "Causes of hemoptysis",
       "tier": 3,
       "explanation": "All four can make a patient cough up blood: scarred, widened airways, a lung fluke, an old cavity, and antibodies against basement membrane.",
       "anki": {
