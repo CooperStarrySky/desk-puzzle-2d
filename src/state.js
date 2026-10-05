@@ -145,6 +145,7 @@ export function cacheEls() {
     'btn-close-settings',
     'overlay-help', 'btn-close-help',
     'overlay-results', 'results-title', 'results-sub', 'results-hints', 'results-groups',
+    'results-eyebrow', 'results-stamp', 'results-found', 'results-hints-k', 'results-path', 'results-path-block',
     'btn-share', 'btn-copy-anki', 'btn-play-again', 'btn-back-menu', 'share-fallback',
     'error-message', 'btn-error-menu', 'layout-panel', 'reveal-note',
   ].forEach(function (id) {

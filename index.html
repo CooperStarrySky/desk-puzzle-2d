@@ -224,16 +224,33 @@
     <!-- ═══════════════════ RESULTS OVERLAY ═══════════════════ -->
     <div id="overlay-results" class="overlay" hidden>
       <div class="overlay-card results-card" role="dialog" aria-modal="true" aria-labelledby="results-title">
-        <h2 id="results-title"></h2>
-        <p id="results-sub"></p>
-        <p id="results-hints" class="results-hints" hidden></p>
-        <div id="results-groups" class="results-groups"></div>
-        <div class="results-actions">
-          <button id="btn-share" class="btn btn-primary" type="button">Share</button>
-          <button id="btn-copy-anki" class="btn btn-ghost" type="button">Copy Anki tags</button>
-          <button id="btn-play-again" class="btn btn-ghost" type="button">Play again</button>
-          <button id="btn-back-menu" class="btn btn-ghost" type="button">Back to menu</button>
+        <section class="results-hero">
+          <p id="results-eyebrow" class="results-eyebrow"></p>
+          <h2 id="results-title"></h2>
+          <p id="results-sub"></p>
+          <div id="results-stamp" class="results-stamp" aria-hidden="true"></div>
+          <div class="results-stats">
+            <div class="results-stat"><div class="results-stat-k">Groups found</div><div id="results-found" class="results-stat-v"></div></div>
+            <div class="results-stat results-stat-hints"><div id="results-hints-k" class="results-stat-k">Hints</div><div id="results-hints" class="results-stat-v results-hint-chips"></div></div>
+          </div>
+          <div class="results-path-wrap">
+            <div id="results-path-block">
+              <div class="results-stat-k">Your solve</div>
+              <div id="results-path" class="results-path"></div>
+            </div>
+            <div class="results-actions">
+              <button id="btn-share" class="btn btn-primary" type="button">Share result</button>
+              <button id="btn-copy-anki" class="btn btn-ghost" type="button">Study these in Anki</button>
+              <button id="btn-play-again" class="btn btn-ghost" type="button">Play again</button>
+              <button id="btn-back-menu" class="btn btn-ghost" type="button">Back to menu</button>
+            </div>
+          </div>
+        </section>
+        <div class="results-section-head">
+          <h3>The four groups</h3>
+          <p>Tap a group to open its teaching notes</p>
         </div>
+        <div id="results-groups" class="results-groups"></div>
         <textarea id="share-fallback" class="share-fallback" readonly hidden aria-label="Share text, copy manually"></textarea>
       </div>
     </div>

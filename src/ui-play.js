@@ -2072,11 +2072,63 @@ export function renderArticleBlock(block, editCtx) {
     without an article render exactly as before (placard + explanation).
     When state.previewMode is true, text nodes are contenteditable so the
     author can edit them inline; changes post dp2d-results-edit to parent. */
-export function buildResultPlacard(puzzle, g, solvedGroupIds) {
+var RESULT_TIER_NAMES = { 1: 'Easiest', 2: 'Medium', 3: 'Hard', 4: 'Trickiest' };
+var RESULT_ZONE_NAMES = { photo: 'photo', tubes: 'X-ray film', rack: 'slide', rx: 'prescription', corkboard: 'note', folder: 'chart' };
+
+/** Draws a clue as the desk object it was: polaroid, lit film, scope
+    view, prescription slip, or sticky note. */
+function buildResultThumb(item, i) {
+  var t = document.createElement('div');
+  t.className = 'rthumb';
+  t.style.setProperty('--r', ((i % 2 ? 1 : -1) * (1.5 + (i % 3))) + 'deg');
+  var infoImg = item.info && item.info.image;
+  var scopeImg = item.scope && item.scope.image;
+  if (item.zone === 'photo' && infoImg) {
+    t.classList.add('rthumb-photo');
+    var s = document.createElement('span');
+    s.style.backgroundImage = 'url("' + infoImg + '")';
+    t.appendChild(s);
+  } else if (item.zone === 'tubes') {
+    t.classList.add('rthumb-film');
+    if (infoImg) t.style.backgroundImage = 'url("' + infoImg + '")';
+  } else if (item.zone === 'rack') {
+    t.classList.add('rthumb-scope');
+    if (scopeImg) t.style.backgroundImage = 'url("' + scopeImg + '")';
+  } else if (item.zone === 'rx') {
+    t.classList.add('rthumb-rx');
+    var rx = document.createElement('b');
+    rx.textContent = '℞';
+    var name = document.createElement('i');
+    name.textContent = item.label;
+    t.appendChild(rx);
+    t.appendChild(name);
+  } else {
+    t.classList.add('rthumb-sticky');
+    t.textContent = item.label;
+  }
+  return t;
+}
+
+/** Pairs each clue with its "<b>Head</b>: body" teaching line from the
+    group's article (same order as itemIds). */
+function resultTeachingRows(puzzle, g) {
+  var texts = (g.article || []).filter(function (a) { return a && a.type === 'text'; }).map(function (a) { return a.text || ''; });
+  return g.itemIds.map(function (id, i) {
+    var item = puzzle.items.find(function (it) { return it.id === id; }) || { id: id, label: id, info: {} };
+    var raw = texts[i] || '';
+    var m = raw.match(/^<b>([\s\S]*?)<\/b>:\s*([\s\S]*)$/);
+    return { item: item, head: m ? m[1] : ((item.info && item.info.title) || item.label), body: m ? m[2] : raw };
+  });
+}
+
+export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
   var isPreview = !!state.previewMode;
   var card = document.createElement('div');
   card.className = 'result-placard' + (solvedGroupIds.has(g.id) ? ' solved-by-player' : '');
   card.style.setProperty('--group-color', 'var(--tier-' + g.tier + ')');
+  card.style.setProperty('--group-ink', 'var(--tier-' + g.tier + '-ink)');
+  card.style.animationDelay = (0.12 + (index || 0) * 0.07) + 's';
+  card.setAttribute('aria-expanded', isPreview ? 'true' : 'false');
 
   if (isPreview) {
     var hint = document.createElement('p');
@@ -2085,9 +2137,24 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds) {
     card.appendChild(hint);
   }
 
-  var nameEl = document.createElement('p');
-  nameEl.className = 'result-placard-name';
-  nameEl.textContent = 'Tier ' + g.tier;
+  // Head row: tier band | name + explanation | four clue objects
+  var head = document.createElement(isPreview ? 'div' : 'button');
+  head.className = 'result-placard-head';
+  if (!isPreview) head.type = 'button';
+
+  var band = document.createElement('span');
+  band.className = 'result-placard-band';
+  var tier = document.createElement('span');
+  tier.className = 'result-placard-name';
+  tier.textContent = RESULT_TIER_NAMES[g.tier] || ('Tier ' + g.tier);
+  var by = document.createElement('span');
+  by.className = 'result-placard-by';
+  by.textContent = solvedGroupIds.has(g.id) ? '✓ found' : 'revealed';
+  band.appendChild(tier);
+  band.appendChild(by);
+
+  var text = document.createElement('span');
+  text.className = 'result-placard-text';
   var h3 = document.createElement('h3');
   h3.textContent = g.name;
   if (isPreview) {
@@ -2097,12 +2164,6 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds) {
     h3.dataset.editField = 'name';
     h3.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); h3.blur(); } });
   }
-  var itemsEl = document.createElement('p');
-  itemsEl.className = 'result-placard-items';
-  itemsEl.textContent = g.itemIds.map(function (id) {
-    var item = puzzle.items.find(function (i) { return i.id === id; });
-    return item ? item.label : id;
-  }).join(' · ');
   var explEl = document.createElement('p');
   explEl.className = 'result-placard-explanation';
   explEl.textContent = g.explanation;
@@ -2113,48 +2174,157 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds) {
     explEl.dataset.editField = 'explanation';
     explEl.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); explEl.blur(); } });
   }
-  card.appendChild(nameEl);
-  card.appendChild(h3);
-  card.appendChild(itemsEl);
-  card.appendChild(explEl);
+  text.appendChild(h3);
+  text.appendChild(explEl);
+  if (!isPreview) {
+    var more = document.createElement('span');
+    more.className = 'result-placard-more';
+    text.appendChild(more);
+  }
 
-  if (Array.isArray(g.article) && g.article.length) {
-    var article = document.createElement('div');
-    article.className = 'result-article';
-    g.article.forEach(function (block, bi) {
-      var editCtx = isPreview ? { groupId: g.id, blockIndex: bi } : null;
-      var node = renderArticleBlock(block, editCtx);
-      if (node) article.appendChild(node);
+  var objs = document.createElement('span');
+  objs.className = 'result-placard-objects';
+  g.itemIds.forEach(function (id, i) {
+    var item = puzzle.items.find(function (it) { return it.id === id; });
+    if (!item) return;
+    var o = document.createElement('span');
+    o.className = 'result-obj';
+    o.appendChild(buildResultThumb(item, i + (index || 0)));
+    var lab = document.createElement('span');
+    lab.className = 'result-obj-label';
+    lab.textContent = item.label;
+    o.appendChild(lab);
+    objs.appendChild(o);
+  });
+
+  head.appendChild(band);
+  head.appendChild(text);
+  head.appendChild(objs);
+  card.appendChild(head);
+
+  // Body: teaching rows (play) or the editable article (editor preview).
+  if (isPreview) {
+    if (Array.isArray(g.article) && g.article.length) {
+      var article = document.createElement('div');
+      article.className = 'result-article';
+      g.article.forEach(function (block, bi) {
+        var node = renderArticleBlock(block, { groupId: g.id, blockIndex: bi });
+        if (node) article.appendChild(node);
+      });
+      card.appendChild(article);
+    }
+  } else {
+    var teach = document.createElement('div');
+    teach.className = 'result-teach';
+    resultTeachingRows(puzzle, g).forEach(function (row, i) {
+      var r = document.createElement('div');
+      r.className = 'result-teach-row';
+      r.appendChild(buildResultThumb(row.item, i));
+      var copy = document.createElement('div');
+      var h4 = document.createElement('h4');
+      h4.innerHTML = sanitizeRichHtml(row.head);
+      var kind = document.createElement('small');
+      kind.textContent = RESULT_ZONE_NAMES[row.item.zone] || '';
+      h4.appendChild(kind);
+      var p = document.createElement('p');
+      p.innerHTML = sanitizeRichHtml(row.body);
+      copy.appendChild(h4);
+      copy.appendChild(p);
+      r.appendChild(copy);
+      teach.appendChild(r);
     });
-    card.appendChild(article);
+    var n = (g.anki && g.anki.nids || []).length;
+    if (n) {
+      var chip = document.createElement('p');
+      chip.className = 'result-anki-chip';
+      chip.textContent = n + ' Anki cards';
+      teach.appendChild(chip);
+    }
+    card.appendChild(teach);
+    head.addEventListener('click', function () {
+      var open = card.getAttribute('aria-expanded') === 'true';
+      card.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
   }
   return card;
 }
 
 /** Renders the results overlay for any puzzle + solved-group set. Both the
     real end-of-game path (showResults) and the editor's "Preview results"
-    button funnel through here, so what you author is exactly what plays. */
+    button use this. */
 export function showResultsForPuzzle(puzzle, opts) {
   opts = opts || {};
-  els.resultsTitle.textContent = opts.title || 'Solved!';
+  var won = opts.won !== false;
+  if (els.resultsEyebrow) {
+    var dateText = '';
+    if (puzzle.date) {
+      var d = new Date(puzzle.date + 'T12:00:00');
+      if (!isNaN(d)) dateText = ' · ' + d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    els.resultsEyebrow.textContent = 'Case file' + dateText;
+  }
+  els.resultsTitle.textContent = puzzle.title || opts.title || 'Solved!';
   els.resultsSub.textContent = opts.sub || '';
-  var hintsObj = opts.hints || {};
-  var hintNames = [];
-  if (hintsObj.labels) hintNames.push('Label Images');
-  if (hintsObj.seeds) hintNames.push('Seed the Trays');
-  if (hintsObj.category) hintNames.push('Reveal a Category');
-  if (els.resultsHints) {
-    els.resultsHints.textContent = hintNames.length
-      ? 'Hints used: ' + hintNames.join(', ')
-      : (opts.legacyHintsUsed ? 'Hints used: ' + opts.legacyHintsUsed : '');
-    els.resultsHints.hidden = !hintNames.length && !opts.legacyHintsUsed;
+  if (els.resultsStamp) {
+    els.resultsStamp.textContent = won ? 'Case closed' : 'Unsolved';
+    els.resultsStamp.classList.remove('is-stamped');
+    void els.resultsStamp.offsetWidth; // restart the stamp animation
+    els.resultsStamp.classList.add('is-stamped');
   }
 
-  els.resultsGroups.innerHTML = '';
   var solvedGroupIds = opts.solvedGroupIds || new Set();
+  if (els.resultsFound) els.resultsFound.textContent = solvedGroupIds.size + ' / ' + puzzle.groups.length;
+
+  var hintsObj = opts.hints || {};
+  var hintDefs = [['labels', 'Label Images'], ['seeds', 'Seed the Trays'], ['category', 'Reveal a Category']];
+  var usedCount = 0;
+  if (els.resultsHints) {
+    els.resultsHints.innerHTML = '';
+    hintDefs.forEach(function (h) {
+      var chip = document.createElement('span');
+      chip.className = 'results-hint-chip' + (hintsObj[h[0]] ? '' : ' is-off');
+      chip.textContent = h[1];
+      if (hintsObj[h[0]]) usedCount++;
+      els.resultsHints.appendChild(chip);
+    });
+    if (!usedCount && opts.legacyHintsUsed) usedCount = opts.legacyHintsUsed;
+  }
+  if (els.resultsHintsK) els.resultsHintsK.textContent = 'Hints · ' + usedCount + ' used';
+
+  // Solve path: one row of tier colors per guess.
+  var attempts = opts.attempts || [];
+  if (els.resultsPath) {
+    els.resultsPath.innerHTML = '';
+    attempts.forEach(function (attempt, r) {
+      var tiers = attempt.itemIds.map(function (id) {
+        var grp = groupOfItem(puzzle, id);
+        return grp ? grp.tier : 0;
+      });
+      var row = document.createElement('div');
+      row.className = 'results-path-row';
+      row.style.animationDelay = (0.25 + r * 0.07) + 's';
+      var counts = {};
+      tiers.forEach(function (t) {
+        counts[t] = (counts[t] || 0) + 1;
+        var sq = document.createElement('span');
+        sq.className = 'results-sq';
+        sq.style.background = t ? 'var(--tier-' + t + ')' : 'var(--panel-edge)';
+        row.appendChild(sq);
+      });
+      var best = Math.max.apply(null, Object.keys(counts).map(function (k) { return counts[k]; }));
+      var note = document.createElement('span');
+      note.className = 'results-path-note' + (best === 4 ? '' : ' is-bad');
+      note.textContent = best === 4 ? 'found ' + (RESULT_TIER_NAMES[tiers[0]] || '').toLowerCase() : (best === 3 ? 'one away' : 'miss');
+      row.appendChild(note);
+      els.resultsPath.appendChild(row);
+    });
+  }
+  if (els.resultsPathBlock) els.resultsPathBlock.hidden = !attempts.length;
+
+  els.resultsGroups.innerHTML = '';
   var ordered = puzzle.groups.slice().sort(function (a, b) { return a.tier - b.tier; });
-  ordered.forEach(function (g) {
-    els.resultsGroups.appendChild(buildResultPlacard(puzzle, g, solvedGroupIds));
+  ordered.forEach(function (g, i) {
+    els.resultsGroups.appendChild(buildResultPlacard(puzzle, g, solvedGroupIds, i));
   });
 
   els.shareFallback.hidden = true;
@@ -2163,6 +2333,8 @@ export function showResultsForPuzzle(puzzle, opts) {
     els.btnCopyAnki.hidden = ankiResult.noteCount === 0;
   }
   showOverlay(els.overlayResults);
+  var card = els.overlayResults.querySelector('.results-card');
+  if (card) card.scrollTop = 0;
 }
 
 export function showResults() {
@@ -2170,14 +2342,16 @@ export function showResults() {
   var won = game.phase === 'won';
   var solvedGroupIds = new Set(game.solved.map(function (s) { return s.groupId; }));
   var casualSuffix = game.casual ? ' Casual mode.' : '';
+  var guesses = game.attempts.length;
   showResultsForPuzzle(game.puzzle, {
-    title: won ? 'Solved!' : 'Out of mistakes',
+    won: won,
     sub: won
-      ? 'Solved with ' + game.mistakes + ' mistake' + (game.mistakes === 1 ? '' : 's') + '.' + casualSuffix
-      : 'Here is how the groups fit together.' + casualSuffix,
+      ? 'Solved in ' + guesses + ' guess' + (guesses === 1 ? '' : 'es') + '.' + casualSuffix
+      : 'Out of mistakes. Here is how the groups fit together.' + casualSuffix,
     hints: state.desk.hints || {},
     legacyHintsUsed: state.desk.hintsUsed,
     solvedGroupIds: solvedGroupIds,
+    attempts: game.attempts,
   });
 }
 
@@ -2189,7 +2363,7 @@ export function showPreviewResultsFromDraft() {
   var puzzle = state.game.puzzle;
   showResultsForPuzzle(puzzle, {
     title: 'Solved!',
-    sub: 'Solved with 0 mistakes.',
+    sub: 'Editor preview.',
     solvedGroupIds: new Set(puzzle.groups.map(function (g) { return g.id; })),
   });
 }
