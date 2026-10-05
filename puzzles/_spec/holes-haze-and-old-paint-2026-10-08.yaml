@@ -44,8 +44,6 @@ groups:
         text: "<b>Air pollution</b>: Ozone, smoke, and fine particles irritate the airway lining."
       - type: text
         text: "<b>Influenza</b>: Viral respiratory infections are among the most common causes of asthma flares."
-      - type: text
-        text: "<i>Images: runners and influenza virus, image from planning doc (source unknown).</i>"
     anki:
       - 1473628085810  # asthma: allergic stimuli, also viral URIs and stress
       - 1496178435881  # bronchospasm + nasal congestion after aspirin = AERD
@@ -89,8 +87,6 @@ groups:
         text: "<b>Blood smear</b>: Microcytic anemia with basophilic stippling. Lead blocks ferrochelatase and ALA dehydratase, so heme isn't made, and it leaves clumps of ribosomal RNA in the red cells."
       - type: text
         text: "<b>Neurodevelopmental delay</b>: Young children absorb lead easily, often from old paint, and it harms the developing brain."
-      - type: text
-        text: "<i>Images: gingival lead line and stippled red cell, image from planning doc (source unknown).</i>"
     anki:
       - 1550690823657  # succimer, dimercaprol, CaNa2EDTA treat lead poisoning
       - 1522980892976  # bluish pigmentation at the gum-tooth line
@@ -136,8 +132,6 @@ groups:
         text: "<b>Chest X-ray</b>: Tuberculosis. Reactivation disease cavitates in the upper lobes and causes cough, night sweats, and hemoptysis."
       - type: text
         text: "<b>Goodpasture syndrome</b>: Anti-GBM antibodies attack type IV collagen in both the lungs and the kidneys, so it causes hemoptysis plus hematuria."
-      - type: text
-        text: "<i>Images: chest CT, parasite egg, and chest X-ray, image from planning doc (source unknown).</i>"
     anki:
       - 1473628206194  # bronchiectasis: dyspnea, hemoptysis, purulent sputum
       - 1509933949416  # Paragonimus: chronic cough with hemoptysis
@@ -178,13 +172,11 @@ groups:
       - type: text
         text: "<b>Brain MRI</b>: Neurocysticercosis. Many small Taenia solium cysts give the brain a \"Swiss cheese\" look on CT or MRI."
       - type: text
-        text: "<b>Vaginal candidiasis</b>: Thick, white, \"cottage cheese\" discharge with itching and a normal vaginal pH."
+        text: "<b>Candidiasis</b>: Thick, white, \"cottage cheese\" discharge with itching and a normal vaginal pH."
       - type: text
         text: "<b>Caseous necrosis</b>: The crumbly, white, cheese-like center of a TB or fungal granuloma. <i>Caseus</i> is Latin for cheese."
       - type: text
         text: "<b>Emphysema</b>: Destroyed alveolar walls leave enlarged air spaces, so the cut lung looks full of holes."
-      - type: text
-        text: "<i>Images: brain MRI and caseous necrosis, image from planning doc (source unknown); centrilobular emphysema, Dr. Edwin P. Ewing, Jr., CDC (public domain), via Wikimedia Commons.</i>"
     anki:
       - 1509925987471  # neurocysticercosis "swiss cheese" brain on CT/MRI
       - 1548722722283  # "cottage cheese" discharge = Candida
@@ -192,14 +184,14 @@ groups:
       - 1473627940622  # emphysema: destruction of alveolar air sacs
     items:
       - label: Brain MRI
-        zone: photo
+        zone: tubes
         title: Neurocysticercosis
         text: "Imaging clue: dozens of small cysts scattered through the brain of a patient with new seizures."
         image: neurocysticercosis.jpg
 
-      - label: Vaginal candidiasis
+      - label: Candidiasis
         zone: corkboard
-        title: Vaginal candidiasis
+        title: Candidiasis
 
       - label: Caseous necrosis
         zone: photo

@@ -36,10 +36,6 @@
         {
           "type": "text",
           "text": "<b>Influenza</b>: Viral respiratory infections are among the most common causes of asthma flares."
-        },
-        {
-          "type": "text",
-          "text": "<i>Images: runners and influenza virus, image from planning doc (source unknown).</i>"
         }
       ],
       "itemIds": [
@@ -78,10 +74,6 @@
         {
           "type": "text",
           "text": "<b>Neurodevelopmental delay</b>: Young children absorb lead easily, often from old paint, and it harms the developing brain."
-        },
-        {
-          "type": "text",
-          "text": "<i>Images: gingival lead line and stippled red cell, image from planning doc (source unknown).</i>"
         }
       ],
       "itemIds": [
@@ -121,10 +113,6 @@
         {
           "type": "text",
           "text": "<b>Goodpasture syndrome</b>: Anti-GBM antibodies attack type IV collagen in both the lungs and the kidneys, so it causes hemoptysis plus hematuria."
-        },
-        {
-          "type": "text",
-          "text": "<i>Images: chest CT, parasite egg, and chest X-ray, image from planning doc (source unknown).</i>"
         }
       ],
       "itemIds": [
@@ -154,7 +142,7 @@
         },
         {
           "type": "text",
-          "text": "<b>Vaginal candidiasis</b>: Thick, white, \"cottage cheese\" discharge with itching and a normal vaginal pH."
+          "text": "<b>Candidiasis</b>: Thick, white, \"cottage cheese\" discharge with itching and a normal vaginal pH."
         },
         {
           "type": "text",
@@ -163,15 +151,11 @@
         {
           "type": "text",
           "text": "<b>Emphysema</b>: Destroyed alveolar walls leave enlarged air spaces, so the cut lung looks full of holes."
-        },
-        {
-          "type": "text",
-          "text": "<i>Images: brain MRI and caseous necrosis, image from planning doc (source unknown); centrilobular emphysema, Dr. Edwin P. Ewing, Jr., CDC (public domain), via Wikimedia Commons.</i>"
         }
       ],
       "itemIds": [
         "brain-mri",
-        "vaginal-candidiasis",
+        "candidiasis",
         "caseous-necrosis",
         "emphysematous-lung"
       ]
@@ -300,7 +284,7 @@
     {
       "id": "brain-mri",
       "label": "Brain MRI",
-      "zone": "photo",
+      "zone": "tubes",
       "info": {
         "title": "Neurocysticercosis",
         "text": "Imaging clue: dozens of small cysts scattered through the brain of a patient with new seizures.",
@@ -308,11 +292,11 @@
       }
     },
     {
-      "id": "vaginal-candidiasis",
-      "label": "Vaginal candidiasis",
+      "id": "candidiasis",
+      "label": "Candidiasis",
       "zone": "corkboard",
       "info": {
-        "title": "Vaginal candidiasis",
+        "title": "Candidiasis",
         "text": ""
       }
     },
