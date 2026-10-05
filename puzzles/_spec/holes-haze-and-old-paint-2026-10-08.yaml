@@ -172,7 +172,7 @@ groups:
       - type: text
         text: "<b>Brain MRI</b>: Neurocysticercosis. Many small Taenia solium cysts give the brain a \"Swiss cheese\" look on CT or MRI."
       - type: text
-        text: "<b>Candidiasis</b>: Thick, white, \"cottage cheese\" discharge with itching and a normal vaginal pH."
+        text: "<b>Candidiasis</b>: <i>Candida albicans</i>. In the vagina it causes itching and a thick, white \"cottage cheese\" discharge. In the mouth (thrush) it leaves a white exudate that scrapes off easily, unlike leukoplakia, and may bleed when scraped."
       - type: text
         text: "<b>Caseous necrosis</b>: The crumbly, white, cheese-like center of a TB or fungal granuloma. <i>Caseus</i> is Latin for cheese."
       - type: text
@@ -180,6 +180,7 @@ groups:
     anki:
       - 1509925987471  # neurocysticercosis "swiss cheese" brain on CT/MRI
       - 1548722722283  # "cottage cheese" discharge = Candida
+      - 1500243661654  # oral thrush: white exudate on mucous membranes = Candida albicans
       - 1487469944925  # caseous necrosis: "cottage cheese-like"
       - 1473627940622  # emphysema: destruction of alveolar air sacs
     items:

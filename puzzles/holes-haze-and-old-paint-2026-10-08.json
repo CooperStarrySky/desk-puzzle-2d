@@ -131,6 +131,7 @@
         "nids": [
           1509925987471,
           1548722722283,
+          1500243661654,
           1487469944925,
           1473627940622
         ]
@@ -142,7 +143,7 @@
         },
         {
           "type": "text",
-          "text": "<b>Candidiasis</b>: Thick, white, \"cottage cheese\" discharge with itching and a normal vaginal pH."
+          "text": "<b>Candidiasis</b>: <i>Candida albicans</i>. In the vagina it causes itching and a thick, white \"cottage cheese\" discharge. In the mouth (thrush) it leaves a white exudate that scrapes off easily, unlike leukoplakia, and may bleed when scraped."
         },
         {
           "type": "text",
