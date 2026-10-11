@@ -37,18 +37,56 @@ public by design.
 
 Don't commit or publish yet. Do the safety check in step 7 first.
 
-## 3. Tell sign-in where the inbox lives
+## 3. Accounts: passwords, 6-digit codes, and who may sign up
 
-In the dashboard, go to **Authentication → URL Configuration**.
+The puzzle group signs in with **email + password**. Making an account and resetting a
+password are confirmed with a **6-digit code** typed into the inbox page. The emails
+never contain a link, because Rowan's email scanner (Microsoft Safe Links) opens links
+before you do and uses them up.
 
-1. **Site URL:** `https://pathologyconnections.org/`
-2. Under **Redirect URLs**, add both of these:
-   - `https://pathologyconnections.org/**`
-   - `http://localhost:4607/**`
-3. Click **Save**.
+**a. Email settings.** Dashboard → **Authentication → Sign In / Providers → Email**:
 
-The inbox signs people in with an emailed link. These settings make that link come back
-to the inbox and nowhere else.
+- **Enable Email provider:** on
+- **Confirm email:** on
+- **Minimum password length:** 8
+- And under **Authentication → Sign In / Providers** (user sign-ups): **Allow new users to sign up:** on.
+  Only emails on the admins list get through, thanks to step c.
+
+**b. Email templates (codes only).** Dashboard → **Authentication → Emails → Templates**.
+Replace the body of **Confirm sign up** and **Reset password** with the code-only versions
+below, and click **Save** on each. Never put `{{ .ConfirmationURL }}` back in.
+
+Confirm sign up:
+
+```html
+<h2>Your Desk Puzzle inbox code</h2>
+<p>Your code is <strong>{{ .Token }}</strong></p>
+<p>Type it on the inbox page to finish making your account.</p>
+```
+
+Reset password:
+
+```html
+<h2>Reset your Desk Puzzle inbox password</h2>
+<p>Your code is <strong>{{ .Token }}</strong></p>
+<p>Type it on the inbox page, then choose a new password.</p>
+```
+
+**c. Only the puzzle group can sign up.** The migration
+`supabase/migrations/20261011180000_signup_admins_only.sql` (applied in step 5) adds a
+check that refuses any new account whose email isn't on the admins list. Once step 5 has
+created it, switch it on:
+dashboard → **Authentication → Hooks** → **Before User Created** → choose
+**Postgres function** → schema `private` → function `hook_signup_admins_only` → **Save**.
+Test it: in the inbox, choose **Create account** with an email that isn't on the list. It
+should say "This inbox is only for the CMSRU puzzle group."
+
+**d. Site URL.** Dashboard → **Authentication → URL Configuration** → **Site URL:**
+`https://pathologyconnections.org/`. (No sign-in links are sent any more, so the
+redirect list doesn't matter for the inbox.)
+
+**Already used the inbox with emailed codes before passwords?** Your account still
+exists. Open the inbox, choose **Forgot password** once, and set a password.
 
 ## 4. Install the Supabase command-line tool
 
@@ -144,8 +182,9 @@ delete from admins where email = 'friend@rowan.edu';
 ## 9. Try the inbox, then publish
 
 1. Commit the filled-in `studio/config.js` and publish the site as usual.
-2. Open `https://pathologyconnections.org/inbox`, type your
-   email, and open the link it sends you on the same device.
+2. Make sure your email is on the admins list (step 8) and the sign-up check is
+   switched on (step 3c). Open `https://pathologyconnections.org/inbox`, choose
+   **Create account**, pick a password, and type the 6-digit code from the email.
 3. You should see the test category. Open it, click **Decline**, and add the note "test".
 4. Send a real one from `studio/?submit` on your phone and check that it shows up.
 
@@ -172,9 +211,13 @@ expected and correct. Test by sending from the Studio instead.
 - **Free projects pause after about a week with no activity.** While paused, sending
   fails and students get the "download a copy instead" option. Open the dashboard
   and click **Restore**. Regular use keeps it awake.
-- **Sign-in emails are rate-limited.** Supabase's built-in email sender only sends a few
-  emails an hour, which is fine for a handful of admins. If someone can't get a link,
-  wait a bit and try again.
+- **Code emails are rate-limited.** Supabase's built-in email sender only sends a few
+  emails an hour, and one per person per minute. That's fine for a handful of admins.
+  Day to day nobody needs an email: sign-in is just email + password. If a code doesn't
+  arrive, check Junk, wait a minute, and press **Resend code**.
+- **Adding someone to the group:** add their email to the admins list (step 8) first,
+  then they choose **Create account** in the inbox. Removing them from the list locks
+  them out of all submissions straight away.
 - **The inbox address is unlisted:** `inbox/` (pathologyconnections.org/inbox). Nothing on the site
   links to it, and search engines are told not to index it. Bookmark it. (Only people
   on the admins list can read anything there anyway.)

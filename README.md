@@ -282,8 +282,9 @@ be credited or stay anonymous.
 
 Once the Supabase inbox is set up (step-by-step in `supabase/SETUP.md`), they
 press **Send to the puzzle group** and get a receipt code. Submissions land in a
-private, unlisted inbox at `inbox/` (pathologyconnections.org/inbox) (nothing links to it), where the puzzle group signs in with an
-emailed link to shortlist, decline, or mark them used, and downloads them for
+private, unlisted inbox at `inbox/` (pathologyconnections.org/inbox) (nothing links to it), where the puzzle group signs in with
+email + password (new accounts and resets are confirmed with an emailed 6-digit
+code, never a link; only emails on the admins list can sign up) to shortlist, decline, or mark them used, and downloads them for
 import. Run `node tools/leak_test.mjs` after setup and after any database
 change; every line must say PASS. Node tests for the server side live in
 `supabase/tests/` (`node supabase/tests/<name>.test.mjs`).
