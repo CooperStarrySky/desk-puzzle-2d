@@ -319,6 +319,15 @@ import { idbSupported, idbGet, idbSet, idbDel } from '../src/idb-kv.js';
 /* ===== PURE-START: draft model (no DOM; extracted for node tests) ===== */
 const ZONES = ['corkboard', 'folder', 'rack', 'tubes', 'photo', 'rx'];
 const ZONE_NAMES = { corkboard: 'Sticky note', folder: 'Paper sheet', rack: 'Microscope slide', tubes: 'X-ray film', photo: 'Photograph', rx: 'Prescription' };
+/* Grey example text per clue type: a clue and a results-screen note that explains that same clue. */
+const CLUE_EXAMPLES = {
+  corkboard: { label: 'Pitting ankle edema', note: 'Fluid backs up into the systemic veins in right heart failure', source: '' },
+  folder: { label: 'Hb 7.2 g/dL, MCV 112 fL', note: 'Macrocytic anemia: think vitamin B12 or folate deficiency', source: '' },
+  rx: { label: 'Lisinopril 10 mg daily', note: 'ACE inhibitor that lowers afterload in heart failure; can cause a dry cough', source: '' },
+  photo: { label: 'Digital clubbing', note: 'Bulbous fingertips with loss of the nail-bed angle, from chronic hypoxia (e.g. lung cancer, bronchiectasis)', source: 'Image source (e.g. my own photo, or Wikimedia Commons, CC BY-SA 4.0, author)' },
+  rack: { label: 'Reed-Sternberg cell', note: 'Large binucleate “owl-eye” cell, the hallmark of classical Hodgkin lymphoma', source: 'Image source (e.g. my own lab slide, or Wikimedia Commons, CC BY-SA 4.0, author)' },
+  tubes: { label: 'Cardiomegaly on chest X-ray', note: 'Heart shadow wider than half the chest on a PA film (cardiothoracic ratio over 0.5)', source: 'Image source (e.g. Radiopaedia case, CC BY-NC-SA 3.0, author)' },
+};
 const IMAGE_ZONES = ['photo', 'tubes', 'rack'];
 /** Where a clue's one picture lives: slides use the microscope view (scope.image), photos and X-rays info.image. */
 function picField(zone) { return zone === 'rack' ? 'scopeImage' : zone === 'photo' || zone === 'tubes' ? 'image' : ''; }
@@ -1010,17 +1019,18 @@ function clueHtml(I, ii, noPatient) {
   const opts = ZONES.map((z) => '<option value="' + z + '"' + (z === I.zone ? ' selected' : '') + '>' + ZONE_NAMES[z] + '</option>').join('');
   const n = 'Clue ' + (ii + 1);
   const fieldLabel = img ? 'What the image shows' : 'Clue (what’s written on it)';
-  const ph = img ? 'e.g. Mesothelioma' : 'e.g. Bronchiectasis';
+  const ex = CLUE_EXAMPLES[I.zone] || CLUE_EXAMPLES.corkboard;
+  const ph = 'e.g. ' + ex.label;
   return '<div class="clue" data-clue="' + ii + '"><div class="drops">' + dropHtml(I, ii) + '</div>' +
     '<div class="stack" style="--gap:8px">' +
     '<div class="row" style="--gap:8px"><span class="clue-num">' + n + '</span>' +
     '<select class="input" data-f="zone" data-i="' + ii + '" style="width:190px; flex:none" aria-label="' + n + ': kind of piece">' + opts + '</select></div>' +
     '<label class="field"><span>' + fieldLabel + '</span><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="' + ph + '" maxlength="' + SEND_LIMITS.label + '"></label>' +
     (img ? '<p class="hint">Players don’t see this while solving unless they use the “Label Images” hint, which tags the piece with it. It’s shown under the image on the results screen.</p>' +
-      '<input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="Image source (e.g. my own photo, or Wikimedia Commons, CC BY-SA 4.0, author)" aria-label="' + n + ': image source">' +
+      '<input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="' + esc(ex.source || CLUE_EXAMPLES.photo.source) + '" aria-label="' + n + ': image source">' +
       '<label class="check"><input type="checkbox" data-np="' + ii + '"' + (noPatient[ii] ? ' checked' : '') + '><span>No patient can be identified in this image (no faces, names, dates, or record numbers)</span></label>' : '') +
     (I.zone === 'rack' ? '<p class="hint">A slide takes one image: the microscope view players study.</p>' : '') +
-    '<label class="field"><span>Note shown on the results screen <em class="opt">(optional)</em></span><input class="input" data-f="note" data-i="' + ii + '" value="' + esc(I.note) + '" placeholder="e.g. Chronic, permanent dilation of the airways" maxlength="' + SEND_LIMITS.note + '"></label>' +
+    '<label class="field"><span>Note shown on the results screen <em class="opt">(optional)</em></span><input class="input" data-f="note" data-i="' + ii + '" value="' + esc(I.note) + '" placeholder="' + esc('e.g. ' + ex.note) + '" maxlength="' + SEND_LIMITS.note + '"></label>' +
     '</div></div>';
 }
 function field(k, label, val, ph, extra, max) {
