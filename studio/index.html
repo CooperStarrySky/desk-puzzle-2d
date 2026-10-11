@@ -6,56 +6,57 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Puzzle Studio · Desk Puzzle</title>
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<script>/* set the theme before first paint (applyTheme below keeps it in sync) */
+try { var t = localStorage.getItem('dp2d:studio-theme'); if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
 <style>
-/* Puzzle Studio: author-only editor. "Paper edition" chrome from the platform mockup. */
+/* Puzzle Studio: author editor in the game's "stain room" look.
+   TOKENS: copied from ../styles.css (:root and :root[data-theme="dark"]), which is the
+   source of truth. Only the tokens the Studio uses are here; if you change a color in
+   styles.css, change it here too. The Studio-only extras (soft status fills, warn) sit
+   at the end of each block. Auto theme is resolved in JS (applyTheme) like the game. */
 :root {
-  --ink: #241f14; --ink-soft: #5b5340; --ink-faint: #8a7f66;
-  --paper: #ede2c6; --paper-2: #e4d7b6; --panel: #faf5e7;
-  --panel-edge: rgba(36, 31, 20, 0.16); --rule: rgba(36, 31, 20, 0.10);
-  --accent: #7a4fc0; --accent-ink: #ffffff; --accent-soft: #efe6fb;
-  --tier-1: #eab635; --tier-2: #4f6b45; --tier-3: #7a4fc0; --tier-4: #a8501f;
-  --ok: #4f6b45; --ok-soft: #e3ead9; --warn: #9a6a07; --warn-soft: #f6e8c4;
-  --danger: #b23a2f; --danger-soft: #f6dcd6;
-  --card: #ffffff; --field-bg: #ffffff; --toast-bg: #241f14; --toast-ink: #fbf6e9;
-  --desk-hi: #a97f52; --desk-mid: #8e6742; --desk-lo: #9b7148;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --ink: #1c1a2e; --ink-soft: #524f6b; --ink-faint: #8a87a0;
+  --paper: #f3f2f7; --paper-2: #e7e5ef;
+  --paper-grain-a: rgba(75, 63, 176, 0.035); --paper-grain-b: rgba(214, 69, 122, 0.025);
+  --panel: #fbfbfd; --panel-edge: rgba(28, 26, 46, 0.13); --rule: rgba(28, 26, 46, 0.08);
+  --accent: #4b3fb0; --accent-hover: #4034a0; --accent-ink: #ffffff; --accent-soft: #e8e5f8;
+  --eosin: #d6457a; --eosin-soft: #fbe3ec; --eosin-ink: #ffffff;
+  --tier-1: #e9b829; --tier-2: #3d8f62; --tier-3: #2e5aa8; --tier-4: #a8306f;
+  --ok: #2f7d55; --danger: #c0392f; --scrim: rgba(16, 14, 30, 0.5); --shadow: rgba(28, 26, 46, 0.14);
+  --serif: "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --hand: "Bradley Hand", "Noteworthy", "Marker Felt", "Segoe Print", cursive;
   --mono: "SF Mono", Menlo, Consolas, monospace;
-  --r-s: 6px; --r-m: 10px; --r-l: 14px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --r-s: 6px; --r-m: 10px; --r-l: 14px;
+  --card: #ffffff; --field-bg: #ffffff; --toast-bg: #1c1a2e; --toast-ink: #f3f2f7;
+  --desk-hi: #4a5060; --desk-mid: #3a3f4c; --desk-lo: #424857; --desk-edge: rgba(16, 18, 26, 0.5);
+  /* Studio-only */
+  --ok-soft: #e1f1e8; --warn: #8a5a00; --warn-soft: #f8edcf; --danger-soft: #f8e0dd;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ink: #ece4d2; --ink-soft: #a99e88; --ink-faint: #7f7562;
-    --paper: #201b15; --paper-2: #2a231a; --panel: #2a241c;
-    --panel-edge: rgba(236, 228, 210, 0.16); --rule: rgba(236, 228, 210, 0.09);
-    --accent: #9b74e0; --accent-ink: #17120c; --accent-soft: rgba(122, 79, 192, 0.24);
-    --ok: #8fb07f; --ok-soft: rgba(79, 107, 69, 0.3); --warn: #e2b450; --warn-soft: rgba(154, 106, 7, 0.25);
-    --danger: #e07263; --danger-soft: rgba(178, 58, 47, 0.25);
-    --card: #322b22; --field-bg: #241f18; --toast-bg: #ece4d2; --toast-ink: #241f14;
-    --desk-hi: #5a412b; --desk-mid: #46321f; --desk-lo: #503924;
-    color-scheme: dark;
-  }
-}
 :root[data-theme="dark"] {
-  --ink: #ece4d2; --ink-soft: #a99e88; --ink-faint: #7f7562;
-  --paper: #201b15; --paper-2: #2a231a; --panel: #2a241c;
-  --panel-edge: rgba(236, 228, 210, 0.16); --rule: rgba(236, 228, 210, 0.09);
-  --accent: #9b74e0; --accent-ink: #17120c; --accent-soft: rgba(122, 79, 192, 0.24);
-  --ok: #8fb07f; --ok-soft: rgba(79, 107, 69, 0.3); --warn: #e2b450; --warn-soft: rgba(154, 106, 7, 0.25);
-  --danger: #e07263; --danger-soft: rgba(178, 58, 47, 0.25);
-  --card: #322b22; --field-bg: #241f18; --toast-bg: #ece4d2; --toast-ink: #241f14;
-  --desk-hi: #5a412b; --desk-mid: #46321f; --desk-lo: #503924;
+  --ink: #eceaf6; --ink-soft: #a9a6c0; --ink-faint: #7b7894;
+  --paper: #13121c; --paper-2: #1c1a29;
+  --paper-grain-a: rgba(157, 147, 240, 0.04); --paper-grain-b: rgba(240, 123, 163, 0.025);
+  --panel: #1b1a27; --panel-edge: rgba(236, 234, 246, 0.13); --rule: rgba(236, 234, 246, 0.07);
+  --accent: #9d93f0; --accent-hover: #b0a8f4; --accent-ink: #13121c; --accent-soft: rgba(75, 63, 176, 0.3);
+  --eosin: #f07ba3; --eosin-soft: rgba(214, 69, 122, 0.22); --eosin-ink: #13121c;
+  --tier-1: #eabb33; --tier-2: #4fa877; --tier-3: #4472c4; --tier-4: #c04588;
+  --ok: #6cc495; --danger: #ef7a6e; --scrim: rgba(0, 0, 0, 0.6); --shadow: rgba(0, 0, 0, 0.4);
+  --card: #222031; --field-bg: #171622; --toast-bg: #eceaf6; --toast-ink: #13121c;
+  --desk-hi: #2f3340; --desk-mid: #252833; --desk-lo: #2a2e39; --desk-edge: rgba(0, 0, 0, 0.55);
+  /* Studio-only */
+  --ok-soft: rgba(47, 125, 85, 0.28); --warn: #e8bf5a; --warn-soft: rgba(233, 184, 41, 0.18); --danger-soft: rgba(192, 57, 47, 0.25);
   color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 var(--sans); overflow-x: hidden;
-  background-image: radial-gradient(rgba(122, 79, 192, 0.035) 1px, transparent 1px), radial-gradient(rgba(36, 31, 20, 0.035) 1px, transparent 1px);
-  background-size: 7px 7px, 11px 11px;
+  background-image: radial-gradient(circle at 15% 20%, var(--paper-grain-a) 0, transparent 45%), radial-gradient(circle at 85% 75%, var(--paper-grain-b) 0, transparent 50%);
+  background-attachment: fixed;
 }
 [hidden] { display: none !important; }
 h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.15; margin: 0; }
@@ -79,7 +80,7 @@ button { cursor: pointer; }
 .site-head { border-bottom: 1px solid var(--panel-edge); background: var(--panel); position: sticky; top: 0; z-index: 20; }
 .site-head .wrap { display: flex; align-items: center; gap: 10px 18px; padding-block: 10px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); }
-.brand-mark { width: 32px; height: 32px; border-radius: 7px; background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid)); position: relative; flex: none; }
+.brand-mark { width: 32px; height: 32px; border-radius: 7px; background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid)); position: relative; flex: none; box-shadow: 0 1px 2px var(--shadow); }
 .brand-mark i { position: absolute; width: 10px; height: 10px; border-radius: 2px; }
 .brand-mark i:nth-child(1) { left: 5px; top: 5px; background: var(--tier-1); }
 .brand-mark i:nth-child(2) { right: 5px; top: 5px; background: var(--tier-2); }
@@ -94,7 +95,7 @@ button { cursor: pointer; }
 .btn:hover { background: var(--paper-2); }
 .btn:active { transform: translateY(1px); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-.btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+.btn.primary:hover { background: var(--accent-hover); }
 .btn.danger { color: var(--danger); }
 .btn.ghost { background: transparent; border-color: transparent; }
 .btn.small { padding: 5px 10px; font-size: 0.8rem; }
@@ -117,6 +118,7 @@ textarea.input { resize: vertical; min-height: 70px; }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--panel-edge); overflow-x: auto; overflow-y: hidden; }
 .tabs button { background: none; border: 0; padding: 9px 14px; color: var(--ink-soft); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: inline-flex; gap: 7px; align-items: center; }
 .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs button:hover { color: var(--ink); }
 </style>
 <style>
 /* editor */
@@ -151,9 +153,9 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .savestate::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .savestate.err { color: var(--danger); }
 /* mini desk preview with the game's real textures */
-.desk { border-radius: var(--r-m); padding: 10px; background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid) 55%, var(--desk-lo)); position: relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15); }
+.desk { border-radius: var(--r-m); padding: 10px; background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid) 55%, var(--desk-lo)); position: relative; box-shadow: inset 0 0 0 1px var(--desk-edge); }
 .pieces { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.mp { position: relative; aspect-ratio: 1; display: flex; align-items: flex-end; justify-content: center; padding: 6px 5px; font-size: 0.6rem; line-height: 1.15; color: #241f14; text-align: center; background: center / 100% 100% no-repeat; transform: rotate(var(--rot, 0deg)); overflow: hidden; word-break: break-word; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+.mp { position: relative; aspect-ratio: 1; display: flex; align-items: flex-end; justify-content: center; padding: 6px 5px; font-size: 0.6rem; line-height: 1.15; color: #1c1a2e; text-align: center; background: center / 100% 100% no-repeat; transform: rotate(var(--rot, 0deg)); overflow: hidden; word-break: break-word; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
 .mp b { font-weight: 600; position: relative; max-height: 3.5em; overflow: hidden; }
 .mp.empty b { opacity: 0.45; font-weight: 400; }
 .mp-corkboard { background-image: url(../assets/textures/sticky.webp); font-family: var(--hand); font-size: 0.68rem; align-items: center; }
@@ -168,8 +170,8 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .mp-rack .pic { width: 34%; aspect-ratio: 1; border-radius: 50%; top: 18%; left: 33%; }
 .mp-sep { grid-column: 1 / -1; height: 2px; border-radius: 2px; opacity: 0.85; }
 /* modal + toast */
-.scrim { position: fixed; inset: 0; background: rgba(20, 16, 10, 0.45); display: grid; place-items: center; padding: 16px; z-index: 50; }
-.modal { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.scrim { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.modal { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; box-shadow: 0 20px 60px var(--shadow); }
 .pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .pick-list button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 10px; }
 .toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--toast-bg); color: var(--toast-ink); padding: 10px 16px; border-radius: var(--r-m); font-weight: 600; font-size: 0.9rem; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,0.25); max-width: calc(100% - 32px); }
@@ -177,7 +179,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .frame-wrap { width: 100%; aspect-ratio: 16 / 10; min-height: 560px; border-radius: var(--r-m); overflow: hidden; border: 1px solid var(--panel-edge); background: var(--desk-mid); }
 @media (max-width: 700px) { .frame-wrap { aspect-ratio: auto; min-height: 0; height: 78vh; } }
 .frame-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
-.frame-empty { height: 100%; display: grid; place-items: center; color: #f4ecd8; text-align: center; padding: 20px; }
+.frame-empty { height: 100%; display: grid; place-items: center; color: #e9ecf4; text-align: center; padding: 20px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 </style>
 </head>
@@ -185,7 +187,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 <header class="site-head">
   <div class="wrap">
     <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-      <span class="brand-name">Puzzle Studio<small>Desk Puzzle · author only</small></span></div>
+      <span class="brand-name">Puzzle Studio<small>Desk Puzzle · CMSRU</small></span></div>
     <nav class="tabs head-tabs" role="tablist" aria-label="Studio views">
       <button role="tab" id="tab-edit" aria-selected="true" aria-controls="view-edit">Edit</button>
       <button role="tab" id="tab-play" aria-selected="false" aria-controls="view-play">Test play</button>
@@ -904,10 +906,13 @@ function showView(which) {
   $('#tab-edit').setAttribute('aria-selected', String(!play));
   $('#tab-play').setAttribute('aria-selected', String(play));
 }
+const darkMq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+/** Like the game: "auto" follows the system setting, resolved here into data-theme. */
 function applyTheme(t) {
-  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-  else document.documentElement.removeAttribute('data-theme');
-  $('#theme-btn').textContent = 'Theme: ' + (t === 'light' || t === 'dark' ? t : 'auto');
+  const mode = t === 'light' || t === 'dark' ? t : 'auto';
+  const dark = mode === 'dark' || (mode === 'auto' && !!(darkMq && darkMq.matches));
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  $('#theme-btn').textContent = 'Theme: ' + mode;
 }
 function bindChrome() {
   $('#tab-edit').addEventListener('click', () => showView('edit'));
@@ -920,6 +925,10 @@ function bindChrome() {
     applyTheme(theme);
     try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* theme just won't persist */ }
   });
+  if (darkMq) {
+    const onSys = () => { if (theme === 'auto') applyTheme('auto'); };
+    if (darkMq.addEventListener) darkMq.addEventListener('change', onSys); else if (darkMq.addListener) darkMq.addListener(onSys);
+  }
 }
 
 draft = loadSaved() || blankDraft();
