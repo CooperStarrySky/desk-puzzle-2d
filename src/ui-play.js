@@ -2121,6 +2121,15 @@ function resultTeachingRows(puzzle, g) {
   });
 }
 
+/** "Priya N. · MS2" from a group's optional submitter credit, or '' when
+    the group has none (or only a blank name). */
+function groupCreditText(g) {
+  var c = g && g.credit;
+  if (!c || typeof c.name !== 'string' || !c.name.trim()) return '';
+  var line = typeof c.line === 'string' ? c.line.trim() : '';
+  return c.name.trim() + (line ? ' · ' + line : '');
+}
+
 export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
   var isPreview = !!state.previewMode;
   var card = document.createElement('div');
@@ -2176,6 +2185,14 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
   }
   text.appendChild(h3);
   text.appendChild(explEl);
+  // Who submitted this category (optional; absent = anonymous)
+  var creditLine = groupCreditText(g);
+  if (creditLine) {
+    var creditEl = document.createElement('p');
+    creditEl.className = 'result-placard-credit';
+    creditEl.textContent = 'Category by ' + creditLine;
+    text.appendChild(creditEl);
+  }
   if (!isPreview) {
     var more = document.createElement('span');
     more.className = 'result-placard-more';

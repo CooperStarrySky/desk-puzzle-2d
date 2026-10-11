@@ -1617,6 +1617,7 @@ div.result-placard-head { cursor: default; }
 .result-placard-text { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 12px 16px; min-width: 0; }
 .result-placard h3 { font: 600 1.1rem/1.25 var(--serif); margin: 0; }
 .result-placard-explanation { font-size: 0.85rem; color: var(--ink-soft); margin: 0; }
+.result-placard-credit { font-size: 0.72rem; color: var(--ink-soft); opacity: 0.85; margin: 0; }
 .result-placard-more { font: 600 0.75rem/1 var(--sans); color: var(--group-color); margin-top: 4px; }
 .result-placard-more::before { content: "Open notes \2192"; }
 .result-placard[aria-expanded="true"] .result-placard-more::before { content: "Close notes \2191"; }

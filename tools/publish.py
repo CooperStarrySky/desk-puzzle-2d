@@ -119,6 +119,25 @@ def validate_puzzle(puzzle, filename):
                             block.get("src"), g_name, f"article image block {bi+1} src"
                         ))
 
+        # credit (who submitted the category) is optional; when present it
+        # needs a name, and both fields must be short plain strings
+        credit = g.get("credit")
+        if credit is not None:
+            if not isinstance(credit, dict):
+                errors.append(f'group "{g_name}" credit must be an object like {{"name": "Priya N.", "line": "MS2"}}')
+            else:
+                c_name = credit.get("name")
+                if not isinstance(c_name, str) or not c_name.strip():
+                    errors.append(f'group "{g_name}" credit needs a non-empty name')
+                elif len(c_name) > 60:
+                    errors.append(f'group "{g_name}" credit name is {len(c_name)} characters (max 60)')
+                c_line = credit.get("line")
+                if c_line is not None:
+                    if not isinstance(c_line, str):
+                        errors.append(f'group "{g_name}" credit line must be text, got {c_line!r}')
+                    elif len(c_line) > 40:
+                        errors.append(f'group "{g_name}" credit line is {len(c_line)} characters (max 40)')
+
         # anki.nids must be positive integers if present
         anki = g.get("anki")
         if anki is not None:

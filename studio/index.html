@@ -312,6 +312,7 @@ function blankItem() {
 }
 function blankGroup(i) {
   return { name: '', tier: i + 1, explanation: '', articleText: '', articleRaw: null, articleRawText: '', credit: '',
+    byName: '', byLine: '', byExtra: null,
     nids: '', ankiExtra: null, srcId: '', srcName: '', keys: [], extra: {}, items: [0, 1, 2, 3].map(blankItem) };
 }
 function blankDraft() {
@@ -343,7 +344,13 @@ function draftFromPuzzle(p) {
     const G = d.groups[gi];
     G.name = g.name || ''; G.tier = [1, 2, 3, 4].indexOf(g.tier) !== -1 ? g.tier : gi + 1;
     G.explanation = g.explanation || ''; G.srcId = g.id || ''; G.srcName = G.name;
-    G.keys = Object.keys(g); G.extra = pick(g, ['id', 'name', 'tier', 'explanation', 'article', 'anki', 'itemIds']);
+    G.keys = Object.keys(g); G.extra = pick(g, ['id', 'name', 'tier', 'explanation', 'article', 'anki', 'credit', 'itemIds']);
+    // Submitter credit (who sent in the category), separate from image credits
+    if (typeof g.credit === 'string') G.byName = g.credit;
+    else if (g.credit && typeof g.credit === 'object') {
+      G.byName = String(g.credit.name || ''); G.byLine = String(g.credit.line || '');
+      G.byExtra = pick(g.credit, ['name', 'line']);
+    }
     if (Array.isArray(g.article)) {
       const art = JSON.parse(JSON.stringify(g.article));
       const last = art[art.length - 1];
@@ -404,6 +411,8 @@ function puzzleFromDraft(d) {
     const nids = String(G.nids || '').split(/[\s,;]+/).filter(Boolean).map(Number).filter((n) => Number.isInteger(n) && n > 0);
     if (nids.length) g.anki = Object.assign({}, G.ankiExtra || {}, { nids });
     else if (G.ankiExtra && Object.keys(G.ankiExtra).length) g.anki = Object.assign({}, G.ankiExtra);
+    const byName = String(G.byName || '').trim(), byLine = String(G.byLine || '').trim();
+    if (byName) g.credit = Object.assign({ name: byName }, byLine ? { line: byLine } : {}, G.byExtra || {});
     g.itemIds = ids[gi].slice();
     G.items.forEach((I, ii) => {
       const info = Object.assign({ title: I.title.trim() || plain(I.label).trim(), text: I.text }, I.infoExtra);
@@ -499,6 +508,9 @@ function authorChecks(d) {
     tiers.add(Number(G.tier));
     if (!t(G.name)) out.push(n + ' needs a name (the hidden answer)');
     if (!t(G.explanation)) out.push(n + ' needs a one-line explanation');
+    if (t(G.byName).length > 60) out.push(n + ': submitter name is too long (60 characters max)');
+    if (t(G.byLine).length > 40) out.push(n + ': submitter year/role is too long (40 characters max)');
+    if (t(G.byLine) && !t(G.byName)) out.push(n + ': add the submitter name too, or clear the year/role');
     const filled = G.items.filter((I) => t(I.label)).length;
     if (filled < 4) out.push(n + ': ' + filled + ' of 4 clue labels filled');
     G.items.forEach((I, ii) => {
@@ -590,6 +602,9 @@ function drawGroup() {
     '<label class="field grow" style="min-width:200px"><span>Group name (the hidden answer)</span><input class="input" data-g-f="name" value="' + esc(G.name) + '" placeholder="e.g. Things that set off an asthma attack"></label>' +
     '<label class="field" style="width:190px"><span>Difficulty tier</span><select class="input" data-g-f="tier">' + tierOpts + '</select></label></div>' +
     '<label class="field"><span>One-line explanation (shown after solving)</span><input class="input" data-g-f="explanation" value="' + esc(G.explanation) + '" placeholder="Why these four belong together"></label>' +
+    '<div class="row" style="--gap:12px; align-items:flex-end">' +
+    '<label class="field grow" style="min-width:200px"><span>Submitted by (name)</span><input class="input" data-g-f="byName" maxlength="60" value="' + esc(G.byName) + '" placeholder="Leave blank to keep it anonymous"></label>' +
+    '<label class="field" style="width:190px"><span>Year/role (optional)</span><input class="input" data-g-f="byLine" maxlength="40" value="' + esc(G.byLine) + '" placeholder="e.g. MS2"></label></div>' +
     G.items.map(clueHtml).join('') +
     '<label class="field"><span>Other image credits for this group (optional)</span><input class="input" data-g-f="credit" value="' + esc(G.credit) + '" placeholder="Used when one credit line covers several images"></label>' +
     '<details' + (G.articleText || G.nids ? ' open' : '') + '><summary>Teaching note and Anki cards (optional)</summary><div class="stack" style="--gap:10px; margin-top:10px">' +

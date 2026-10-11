@@ -95,6 +95,13 @@ puzzle has this field, a "Copy Anki tags" button appears on the results screen; 
 an Anki Browse search string (`nid:id1,id2,...`) to the clipboard so you can open those cards
 directly in Anki. Puzzles without `anki` data on any group never show the button.
 
+Each `group` may also carry an optional `credit` naming who submitted the category:
+`{"credit": {"name": "Priya N.", "line": "MS2"}}` (`name` required, up to 60 characters;
+`line` optional, up to 40). The results screen shows "Category by Priya N. · MS2" under that
+group's explanation. Leave `credit` out for an anonymous group. In a YAML spec,
+`credit: "Priya N."` is shorthand for a name with no line. This is separate from image
+credits, which live in the group's article.
+
 ## Keyboard play
 
 Every piece is focusable:

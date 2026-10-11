@@ -32,6 +32,9 @@ Group id defaults: "g-" + slug(group name).
 Item id defaults: slug(item label).
 Item title defaults to item label.
 Machines: derived from zones used (rack -> scope, tubes -> lightbox).
+Group credit (optional): `credit: {name: "Priya N.", line: "MS2"}` or the
+shorthand `credit: "Priya N."` names who submitted the category; omit it for
+an anonymous group.
 """
 
 import argparse
@@ -189,6 +192,20 @@ def build_puzzle_data(spec, spec_dir, puzzle_id, quality, max_side, out_puzzle_d
         g_explanation = sg.get('explanation', '').strip()
         g_anki_raw = sg.get('anki')
         g_article = sg.get('article')
+        g_credit_raw = sg.get('credit')
+
+        # Submitter credit: `credit: "Priya N."` shorthand or
+        # `credit: {name, line}`. Shape is checked by validate_puzzle.
+        g_credit = None
+        if isinstance(g_credit_raw, str):
+            g_credit = {'name': g_credit_raw.strip()}
+        elif isinstance(g_credit_raw, dict):
+            g_credit = {'name': str(g_credit_raw.get('name') or '').strip()}
+            line = g_credit_raw.get('line')
+            if line is not None and str(line).strip():
+                g_credit['line'] = str(line).strip()
+        elif g_credit_raw is not None:
+            g_credit = g_credit_raw  # wrong type; let validation name it
 
         # Build anki block
         g_anki = None
@@ -265,6 +282,8 @@ def build_puzzle_data(spec, spec_dir, puzzle_id, quality, max_side, out_puzzle_d
             group_obj['anki'] = g_anki
         if g_article is not None:
             group_obj['article'] = g_article
+        if g_credit is not None:
+            group_obj['credit'] = g_credit
         group_obj['itemIds'] = item_ids_for_group
 
         groups_out.append(group_obj)
@@ -397,6 +416,10 @@ def main():
     print('  Derived group ids:')
     for g in puzzle['groups']:
         print(f'    tier {g["tier"]}: {g["id"]}  ({g["name"]})')
+        c = g.get('credit')
+        if isinstance(c, dict):
+            by = ' · '.join(x for x in (c.get('name'), c.get('line')) if x)
+            print(f'      credit: {by}')
     print()
 
     # Image plan
