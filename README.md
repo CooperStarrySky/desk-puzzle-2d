@@ -236,12 +236,21 @@ win, lose`.
 3. Point `"current"` at the new id in `puzzles/index.json` and add its
    `{id, title, date, file}` entry — or use the editor's exported
    `index.json`.
-4. Run `python3 tools/publish.py --apply` (or `--commit` to also create the
+4. Make the menu thumbnail (the card picture: ~9 of the puzzle's real clues
+   on the mini desk, nothing that gives away a group):
+   `node tools/make_thumbnails.mjs <id> --apply`. It needs Node 22+ and
+   Google Chrome, writes `puzzles/thumbs/<id>.webp`, and adds `"thumb"` to the
+   puzzle's `index.json` entry. Without `--apply` it only reports what it
+   would do; rerunning skips puzzles that haven't changed (`--force` redraws,
+   e.g. after restyling the menu's mini desk). A puzzle without a thumbnail
+   still works: its card shows the generated desk. `publish.py --thumbs` runs
+   this step for the current puzzle.
+5. Run `python3 tools/publish.py --apply` (or `--commit` to also create the
    git commit). This validates the puzzle, rewrites the five puzzle-specific
    strings in `index.html` (`<title>`, `og:title`, `twitter:title`,
    `meta description`, cache-bust `?v=`), and generates
    `puzzles/.local-puzzle-fallback.js` for file:// preview.
-5. Push: `git push origin main`. Pages redeploys in about a minute.
+6. Push: `git push origin main`. Pages redeploys in about a minute.
 
 Invalid puzzles are rejected by `publish.py` with a plain-English error
 list before anything is written. Never edit `index.html` titles or the

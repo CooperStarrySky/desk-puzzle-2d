@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="robots" content="noindex" />
+<title>Desk Puzzle thumbnail renderer</title>
+<!-- Render page for tools/make_thumbnails.mjs. Draws one puzzle's menu
+     thumbnail: the same stylized mini desk as the menu's generated
+     placeholder (.mini in styles.css), with ~9 tiles that show real clues.
+     ?id=<puzzleId>   which puzzle (from puzzles/index.json)
+     &bg=1            also paint the slate bench (preview only; the saved
+                      thumbnail is transparent so the card's own themed
+                      bench shows through in light and dark). -->
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html, body { background: transparent !important; background-image: none !important; min-height: 0; }
+  body { margin: 0; padding: 0; display: block !important; }
+  #thumb {
+    position: relative;
+    width: 800px; height: 500px;   /* 16:10, same shape as .mini */
+    overflow: hidden;
+  }
+  #thumb.bg {
+    border-radius: var(--r-m);
+    background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid) 60%, var(--desk-lo));
+  }
+  #thumb.bg::after {
+    content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(95deg, rgba(0, 0, 0, 0.04) 0 3px, transparent 3px 11px);
+  }
+  .t {
+    position: absolute;
+    z-index: 1;
+    box-sizing: border-box;
+    border-radius: 5px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.32), 0 1px 2px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+  }
+  .t img { display: block; width: 100%; height: 100%; object-fit: cover; max-width: none; }
+  .lbl {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 12px 14px; box-sizing: border-box;
+    text-align: center; color: #2b2b33; line-height: 1.12;
+    overflow-wrap: normal; hyphens: manual;
+  }
+  .lbl span { display: block; min-width: 0; max-width: 100%; max-height: 100%; overflow: hidden; }
+  /* sticky note */
+  .t-note { background: var(--mini-note); border-radius: 2px; }
+  .t-note .lbl { font-family: var(--hand); font-weight: 600; }
+  /* prescription slip: green band on top, Rx mark */
+  .t-rx { background: var(--mini-rx); border-top: 14px solid var(--mini-rx-band); }
+  .t-rx .lbl { font-family: var(--serif); font-weight: 600; padding-top: 30px; }
+  .t-rx::before {
+    content: "Rx"; position: absolute; top: 6px; left: 10px;
+    font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 22px; color: var(--mini-rx-band);
+  }
+  /* paper sheet (folder clue) with faint ruled lines */
+  .t-sheet {
+    background: var(--mini-sheet);
+    background-image: repeating-linear-gradient(180deg, transparent 0 25px, rgba(60, 90, 140, 0.13) 25px 26px);
+  }
+  .t-sheet .lbl { font-family: var(--serif); font-weight: 600; }
+  /* photo print in a white frame */
+  .t-photo { background: var(--card); padding: 9px 9px 9px; border-radius: 3px; }
+  .t-photo img { border-radius: 1px; }
+  /* microscope slide: glass with a frosted end and a round stained smear */
+  .t-slide { background: var(--mini-slide-glass); border-radius: 4px; }
+  .t-slide::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 24%;
+    background: repeating-linear-gradient(45deg, #e4e2ea 0 3px, #f6f5f9 3px 6px);
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .t-slide .smear {
+    position: absolute; top: 9%; bottom: 9%; left: 33%; aspect-ratio: 1 / 1;
+    border-radius: 50%; overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  }
+  /* X-ray film: dark film with the image glowing through */
+  .t-film { background: var(--mini-film-a); padding: 8px; border-radius: 3px; }
+  .t-film img { filter: grayscale(1) contrast(1.05); opacity: 0.92; border-radius: 1px; }
+</style>
+</head>
+<body class="screen-menu">
+<div id="thumb" aria-hidden="true"></div>
+<script src="thumb-render.js"></script>
+</body>
+</html>

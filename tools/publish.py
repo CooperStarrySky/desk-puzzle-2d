@@ -7,6 +7,12 @@ Usage:
                                        # write puzzles/.local-puzzle-fallback.js
     python3 tools/publish.py --commit  # implies --apply, then git-commits index.html
                                        # with message "release: <title> (<date>) v<N>"
+    python3 tools/publish.py --thumbs  # also run tools/make_thumbnails.mjs for the
+                                       # current puzzle (needs node + Chrome); it
+                                       # writes only with --apply/--commit
+
+Without --thumbs, the checklist just reminds you when the current puzzle has
+no menu thumbnail yet (node tools/make_thumbnails.mjs <id> --apply).
 
 Exit codes:
     0 — validation passed (dry run printed; apply/commit applied changes)
@@ -17,6 +23,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -24,6 +31,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX_JSON = os.path.join(REPO_ROOT, "puzzles", "index.json")
 INDEX_HTML = os.path.join(REPO_ROOT, "index.html")
 FALLBACK_JS = os.path.join(REPO_ROOT, "puzzles", ".local-puzzle-fallback.js")
+THUMB_TOOL = os.path.join("tools", "make_thumbnails.mjs")
 
 VALID_ZONES = {"corkboard", "folder", "rack", "tubes", "photo", "rx"}
 MACHINE_ZONES = {"rack": "scope", "tubes": "lightbox"}
@@ -312,12 +320,46 @@ def write_fallback_js(puzzle):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def thumbnail_step(entry, run, apply):
+    """Menu thumbnail for the current puzzle: a reminder by default, or (with
+    --thumbs) run tools/make_thumbnails.mjs. Never blocks publishing."""
+    pid = entry["id"]
+    rel = f"puzzles/thumbs/{pid}.webp"
+    have = entry.get("thumb") == rel and os.path.isfile(os.path.join(REPO_ROOT, rel))
+    if not run:
+        if have:
+            print(f"[OK]   menu thumbnail: {rel} (rerun make_thumbnails if the clues changed)")
+        else:
+            print("[TODO] menu thumbnail missing. Run:")
+            print(f"         node {THUMB_TOOL} {pid} --apply")
+            print("       (or pass --thumbs here). Until then the card shows a generated desk.")
+        return
+    if shutil.which("node") is None:
+        print("[WARN] --thumbs: node is not installed, so no thumbnail was made.")
+        print(f"       Later, run: node {THUMB_TOOL} {pid} --apply")
+        return
+    cmd = ["node", THUMB_TOOL, pid] + (["--apply"] if apply else [])
+    print(f"[RUN]  {' '.join(cmd)}", flush=True)
+    try:
+        r = subprocess.run(cmd, cwd=REPO_ROOT, timeout=300)
+        code = r.returncode
+    except subprocess.TimeoutExpired:
+        code = -1
+    if code != 0:
+        print(f"[WARN] make_thumbnails did not finish cleanly (exit {code}); the card keeps its generated desk.")
+    elif apply:
+        print(f"[NOTE] commit {rel}, puzzles/thumbs/manifest.json and puzzles/index.json too.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Desk Puzzle 2D publish helper")
     parser.add_argument("--apply", action="store_true",
                         help="rewrite index.html and write .local-puzzle-fallback.js")
     parser.add_argument("--commit", action="store_true",
                         help="implies --apply; also git-commits index.html")
+    parser.add_argument("--thumbs", action="store_true",
+                        help="also run tools/make_thumbnails.mjs for the current puzzle "
+                             "(dry run unless --apply/--commit)")
     args = parser.parse_args()
     if args.commit:
         args.apply = True
@@ -392,6 +434,8 @@ def main():
     print(f"  meta description -> {title} - a pathology desk puzzle: sort 16 clues into 4 groups.")
     print(f"  ?v=              -> {old_v} -> {new_v}")
     print(f"  .local-puzzle-fallback.js: will {'overwrite' if os.path.exists(FALLBACK_JS) else 'create'}")
+    print()
+    thumbnail_step(current_entry, args.thumbs, args.apply)
     print()
 
     if not args.apply:
