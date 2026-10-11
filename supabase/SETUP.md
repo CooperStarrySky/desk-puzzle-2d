@@ -197,3 +197,73 @@ expected and correct. Test by sending from the Studio instead.
   `node tools/leak_test.mjs --send-sample=puzzle` and decline the two test entries.
 - **Deleting a submission:** the inbox can't delete, on purpose (declined ones stay as
   a record). To really delete one, use the dashboard's **Table Editor**.
+
+## Play stats (class totals on the results screen)
+
+The game sends anonymous results for puzzles released **after Oct 11, 2026** to a
+second server function, `record`, and shows class totals ("How everyone did", the
+difficulty rating, and a line on each menu card) once 10 players have finished. What
+is sent is exactly the list in the game's Settings dialog. Nothing works until you do
+these steps; until then the game simply shows no class totals.
+
+Run these from the site folder (`Desk-Puzzle-2D-site`), the same way as steps 5-7:
+
+1. **Create the tables** (`plays`, `puzzle_stats`, `record_rate`, plus the hourly clean-up):
+
+   ```
+   npx supabase db push
+   ```
+
+   It should list `20261011120000_play_stats.sql`. If it prints a warning that
+   `pg_cron is not available`, do step 4.
+
+2. **Put the record function online:**
+
+   ```
+   npx supabase functions deploy record --no-verify-jwt --use-api
+   ```
+
+   It uses the same secret key you already set for `submit` (`DP_SECRET_KEY`).
+
+3. **Run the safety check** (every line must say PASS):
+
+   ```
+   node tools/leak_test.mjs
+   node tools/leak_test.mjs --send-sample=stats
+   ```
+
+   The second one sends one fake finish for a puzzle called `leak-test-<tomorrow>` and
+   checks it reaches the totals but not as a readable row. Then remove it: dashboard
+   → **SQL Editor** → paste and run (in this order):
+
+   ```
+   delete from public.plays where puzzle_id like 'leak-test-%';
+   delete from public.puzzle_stats where puzzle_id like 'leak-test-%';
+   ```
+
+4. **Check the hourly clean-up job.** The privacy note promises the scrambled network
+   address is deleted after 24 hours. The migration turns on `pg_cron` and schedules
+   a job called `dp-purge-rate-logs` (it also clears the older `submit_rate` log).
+   To check: dashboard → **Integrations** → **Cron** → **Jobs**. You should see
+   `dp-purge-rate-logs` running `select private.purge_rate_logs()` at minute 17 of
+   every hour. If the job is missing:
+   - **Integrations** → **Cron** → **Enable pg_cron** (or **Database** →
+     **Extensions** → search `pg_cron` → turn it on), then
+   - **SQL Editor** → run:
+
+     ```
+     select cron.schedule('dp-purge-rate-logs', '17 * * * *', 'select private.purge_rate_logs()');
+     ```
+
+   Both functions also delete old rows every time they run, so the job is a backstop
+   for quiet weeks.
+
+Good to know:
+- **Limits:** 300 stats events per hour per internet connection (a whole class can
+  share one campus connection). One finish per browser per puzzle; later finishes of
+  the same puzzle are ignored. A rating can be changed.
+- **Totals only:** the public key can read `puzzle_stats` (counts per puzzle) and
+  nothing else. `plays` rows have no names, emails, or IP addresses, only a random
+  per-browser id.
+- **If the project is paused** (free tier, long breaks), the game quietly hides the
+  totals and keeps unsent results for up to 3 days. Restore the project in the dashboard.

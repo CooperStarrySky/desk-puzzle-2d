@@ -5,6 +5,7 @@
 //     node tools/leak_test.mjs                 # read/write checks with the public key
 //     node tools/leak_test.mjs --send-sample   # also sends one test category
 //     node tools/leak_test.mjs --send-sample=puzzle  # ...and one tiny test full puzzle
+//     node tools/leak_test.mjs --send-sample=stats   # sends one test finish to the "record" function
 //
 // It acts like a stranger who copied the public key out of studio/config.js
 // (anyone can) and tries to read, change, or add submissions, admins, the rate
@@ -20,6 +21,12 @@
 // --send-sample=puzzle also sends a tiny full puzzle ("TEST: automated full
 // puzzle", 4 categories, 4 tiny images). Decline them in the inbox afterwards. Run it before turning on Turnstile, or
 // it is refused (correctly) for missing the "are you human" check.
+//
+// Play stats: the public key may read puzzle_stats (totals only) and nothing
+// else. --send-sample=stats posts one finish for a dummy puzzle
+// "leak-test-<tomorrow>" with a random browser id and checks that it shows up
+// in the totals but not as a readable row. Clean it up afterwards in the SQL
+// editor (supabase/SETUP.md, "Play stats").
 
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -30,6 +37,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const SEND_PUZZLE = args.includes('--send-sample=puzzle');
 const SEND = SEND_PUZZLE || args.includes('--send-sample');
+const SEND_STATS = args.includes('--send-sample=stats');
 const ORIGIN = process.env.LEAK_TEST_ORIGIN || 'https://cooperstarrysky.github.io';
 
 function readConfig() {
@@ -108,6 +116,29 @@ r = await fetch(URL_ + `/storage/v1/object/submissions/leak-test-${Date.now()}.w
   .then(async (x) => ({ status: x.status, text: await x.text(), json: null }), (e) => ({ status: 0, text: String(e.message), json: null }));
 result(refused(r), `can't upload into the bucket (${how(r)})`);
 
+// ── Play stats: rows private, totals public ──
+for (const t of ['plays', 'record_rate']) {
+  r = await call('GET', `/rest/v1/${t}?select=*&limit=5`);
+  result(nothing(r), `can't read table ${t} (${how(r)})`);
+}
+r = await call('POST', '/rest/v1/plays', { puzzle_id: 'leak-test-2099-01-01', anon_id: '00000000-0000-4000-8000-000000000000', outcome: 'won', mistakes: 0, guesses: 4 }, { Prefer: 'return=minimal' });
+result(refused(r), `can't add a play directly (${how(r)})`);
+r = await call('POST', '/rest/v1/record_rate', { ip_hash: 'leak-test' }, { Prefer: 'return=minimal' });
+result(refused(r), `can't write the stats rate-limit log (${how(r)})`);
+r = await call('POST', '/rest/v1/puzzle_stats', { puzzle_id: 'leak-test-2099-01-01', plays: 999 }, { Prefer: 'return=minimal' });
+result(refused(r), `can't add totals directly (${how(r)})`);
+r = await call('PATCH', '/rest/v1/puzzle_stats?puzzle_id=not.is.null', { plays: 999 }, { Prefer: 'return=representation' });
+result(nothing(r), `can't change totals (${how(r)})`);
+r = await call('DELETE', '/rest/v1/puzzle_stats?puzzle_id=not.is.null', undefined, { Prefer: 'return=representation' });
+result(nothing(r), `can't delete totals (${how(r)})`);
+const totals = await call('GET', '/rest/v1/puzzle_stats?select=*&limit=50');
+result(totals.status === 200 && Array.isArray(totals.json), `totals table puzzle_stats is readable (${how(totals)})`);
+if (totals.status === 404) console.log('     puzzle_stats is missing: run npx supabase db push first.');
+const cols = new Set((totals.json || []).flatMap((row) => Object.keys(row)));
+result(!cols.has('anon_id'), `totals hold no browser ids (columns: ${cols.size ? [...cols].join(', ') : 'no rows yet'})`);
+r = await call('GET', '/rest/v1/puzzle_stats?select=anon_id&limit=1');
+result(r.status >= 400, `asking puzzle_stats for anon_id is refused (${how(r)})`);
+
 // ── Optional: send one sample through the real function ──
 if (SEND) {
   const { goodSample, goodPuzzleSample } = await import(pathToFileURL(path.join(ROOT, 'supabase', 'tests', 'samples.mjs')).href);
@@ -130,5 +161,27 @@ if (SEND) {
   if (pzRes) console.log(`     Receipt ${pzRes.json.receipt}: find "TEST: automated full puzzle" in the inbox and Decline it.`);
 }
 
-console.log(fails ? `\n${fails} FAIL. Do not open the inbox to students until every line passes.` : '\nAll PASS. The public key can submit but cannot read a single row or image.');
+if (SEND_STATS) {
+  const day = new Date(Date.now() + 86400e3).toISOString().slice(0, 10);
+  const pid = 'leak-test-' + day;
+  const anon = crypto.randomUUID();
+  const fin = { event: 'finish', puzzleId: pid, anonId: anon, outcome: 'won', mistakes: 1, guesses: 5, hints: { labels: false, seeds: false, category: false }, casual: false };
+  let res = await call('POST', '/functions/v1/record', fin, { Origin: ORIGIN });
+  result(res.status === 200 && res.json && res.json.ok === true, `sample finish accepted by the record function (${res.status}${res.json ? ': ' + (res.json.error || 'ok') : ', ' + res.text.slice(0, 120)})`);
+  if (res.status === 404) console.log('     The function is not deployed yet: npx supabase functions deploy record --no-verify-jwt --use-api');
+  res = await call('POST', '/functions/v1/record', { event: 'rate', puzzleId: pid, anonId: anon, rating: 3 }, { Origin: ORIGIN });
+  result(res.status === 200 && res.json && res.json.ok === true, `sample rating accepted (${res.status})`);
+  res = await call('GET', `/rest/v1/puzzle_stats?select=*&puzzle_id=eq.${pid}`);
+  const row = Array.isArray(res.json) ? res.json[0] : null;
+  result(!!row && row.plays >= 1 && row.rating_n >= 1, `the sample shows up in the totals (${row ? 'plays=' + row.plays + ', rating_n=' + row.rating_n : how(res)})`);
+  res = await call('GET', `/rest/v1/plays?select=*&puzzle_id=eq.${pid}`);
+  result(nothing(res), `the sample row itself stays private (${how(res)})`);
+  res = await call('POST', '/functions/v1/record', Object.assign({}, fin, { puzzleId: 'leak-test-2026-10-11' }), { Origin: ORIGIN });
+  result(res.status === 400, `puzzles released on or before Oct 11, 2026 are refused (${res.status})`);
+  res = await call('POST', '/functions/v1/record', fin, { Origin: 'https://not-our-site.example' });
+  result(res.status === 403, `record refuses other websites (${res.status})`);
+  console.log(`     Clean-up (SQL editor): delete from public.plays where puzzle_id like 'leak-test-%'; delete from public.puzzle_stats where puzzle_id like 'leak-test-%';`);
+}
+
+console.log(fails ? `\n${fails} FAIL. Do not open the inbox to students until every line passes.` : '\nAll PASS. The public key can submit and read play totals, but cannot read a single submission, play row, or image.');
 process.exit(fails ? 1 : 0);
