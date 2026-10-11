@@ -265,16 +265,26 @@ Editor-first alternative: export JSON from `?editor`, run
 Anyone at CMSRU can send the puzzle group one category. The menu links to
 `studio/?submit`, where they write a hidden answer, a one-line explanation,
 four clues (with images if they like), a suggested difficulty, and choose to
-be credited or stay anonymous. They download one file,
-`desk-puzzle-submission-<name>-<date>.json`, and send it to the puzzle group.
-The "send it to" text is `SUBMIT_TO` near the top of the submit section in
-`studio/index.html`; put the group's email or GroupMe link there.
+be credited or stay anonymous.
+
+Once the Supabase inbox is set up (step-by-step in `supabase/SETUP.md`), they
+press **Send to the puzzle group** and get a receipt code. Categories land in a
+private inbox at `studio/inbox.html`, where the puzzle group signs in with an
+emailed link to shortlist, decline, or mark them used, and downloads them for
+import. Run `node tools/leak_test.mjs` after setup and after any database
+change; every line must say PASS. Node tests for the server side live in
+`supabase/tests/` (`node supabase/tests/<name>.test.mjs`).
+
+Without the inbox (or if sending fails), they download one file,
+`desk-puzzle-submission-<name>-<date>.json`, and send it in by hand. The
+Supabase address, publishable key, and the "send it to" text (`submitTo`: the
+group's email or GroupMe link) all live in `studio/config.js`.
 
 Submission files can hold a private contact email, and this repo is public.
 Both tools below write only into `submissions/`, which `.gitignore` keeps out
 of git. The email only ever lands in `submissions/<slug>/contact.txt`.
 
-1. Import each file (dry run first, then `--apply`):
+1. Import each file (from the inbox's **Download for import**, or sent by hand; dry run first, then `--apply`):
    `python3 tools/import_submission.py ~/Downloads/desk-puzzle-submission-*.json --apply`.
    Each one becomes `submissions/<slug>/<slug>.yaml` (a one-group spec with a
    `# suggested tier` comment and the submitter's credit, if they asked for
