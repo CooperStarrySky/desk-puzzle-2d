@@ -200,7 +200,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .gtabs button { padding-block: 12px; flex: 1 1 0; min-width: 0; justify-content: center; }
 .gtabs .tn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 560px) { .gtabs button { flex: none; } .gtabs .tn { max-width: 130px; } }
-.sidecard { scrollbar-width: thin; }
+.sidecard { scrollbar-width: thin; scrollbar-gutter: stable; } /* the scrollbar coming and going must not change the preview frame's width */
 /* live preview frame (studio/preview.html draws the game's own pieces and placards) */
 .prev-tabs { margin: -4px -4px 0; }
 .pv-frame { width: 100%; height: 220px; border: 0; display: block; border-radius: var(--r-m); background: transparent; }

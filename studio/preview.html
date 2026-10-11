@@ -104,16 +104,21 @@ function drawResults(msg) {
   const rc = document.getElementById('rcredit');
   rc.textContent = by ? 'Puzzle by ' + by : ''; rc.hidden = !by;
   const box = document.getElementById('rgroups');
+  // Keep whichever placards the author opened across redraws (every edit
+  // redraws). Keyed by tier: a group's id changes while its name is typed.
+  const open = new Set(Array.from(box.querySelectorAll('.result-placard[aria-expanded="true"]')).map((c) => c.dataset.tier));
   box.innerHTML = '';
   puzzle.groups.slice().sort((a, b) => a.tier - b.tier).forEach((g, i) => {
     const card = buildResultPlacard(puzzle, g, new Set([g.id]), i);
-    if (msg.expand) card.setAttribute('aria-expanded', 'true');
+    card.dataset.tier = String(g.tier);
+    if (msg.expand || open.has(String(g.tier))) card.setAttribute('aria-expanded', 'true');
     box.appendChild(card);
   });
 }
 
 function draw(msg) {
   last = msg;
+  drawnW = document.documentElement.clientWidth;
   document.documentElement.setAttribute('data-theme', msg.theme === 'dark' ? 'dark' : 'light');
   const desk = msg.view !== 'results';
   document.getElementById('desk').hidden = !desk;
@@ -121,8 +126,15 @@ function draw(msg) {
   if (desk) drawDesk(msg); else drawResults(msg);
   sendSize();
 }
+// The parent sizes this frame to our content height. Only real changes are
+// sent, and only a WIDTH change redraws (below): the height change the parent
+// makes in answer must never trigger a redraw, or a redraw that re-collapses
+// an opened placard shrinks the frame again (the old flicker loop).
+let sentH = -1;
 function sendSize() {
   const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+  if (h === sentH) return;
+  sentH = h;
   parent.postMessage({ type: 'dp-studio-preview-size', h }, location.origin);
 }
 
@@ -134,8 +146,18 @@ window.addEventListener('message', (ev) => {
 });
 // Placards open and close like in the game; keep the frame height in step.
 document.addEventListener('click', () => setTimeout(sendSize, 0));
-let rz = 0;
-window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (last) draw(last); }, 120); });
+// Late images and fonts change the content height without any event of ours.
+if (window.ResizeObserver) new ResizeObserver(() => sendSize()).observe(document.body);
+let rz = 0, drawnW = document.documentElement.clientWidth;
+window.addEventListener('resize', () => {
+  clearTimeout(rz);
+  rz = setTimeout(() => {
+    const w = document.documentElement.clientWidth;
+    if (w === drawnW) return; // height-only: our own frame resize, nothing to redraw
+    drawnW = w;
+    if (last) draw(last);
+  }, 120);
+});
 // Handwriting fonts and textures arrive late; refit labels (like the game) when they do.
 const refit = () => { if (last && last.view !== 'results') { applyTextures(last.puzzle); fitPieceLabels(); sendSize(); } };
 loadTextures(refit);
