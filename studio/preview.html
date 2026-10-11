@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Studio preview · Desk Puzzle</title>
+<!-- Everything below resolves from the site root, so the game's own CSS,
+     textures, and code load exactly as in the game. -->
+<base href="../">
+<link rel="stylesheet" href="styles.css">
+<style>
+/* Studio-only layout around the game's real pieces and placards. */
+html, body { min-height: 0; background: transparent; background-image: none; overflow: hidden; }
+body { margin: 0; }
+#desk { border-radius: 12px; padding: 14px 10px; }
+#desk .bench { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 6px; }
+#desk .cell { position: relative; height: var(--cell-h, 150px); min-width: 0; }
+#desk .piece { left: 50%; top: 50%; max-width: none; cursor: default; transition: none; --rot: 0deg; }
+#desk .piece:focus-visible { outline: none; }
+#desk .sep { grid-column: 1 / -1; height: 4px; border-radius: 3px; margin: 4px 4px 0; opacity: 0.9; }
+/* Films are shown lit, the way they look on the light box. */
+#desk .film-lit { clip-path: none; }
+#results { padding: 2px; }
+#results .results-groups { display: flex; flex-direction: column; gap: 10px; }
+#results .result-placard { animation: none; }
+</style>
+</head>
+<body>
+<div id="desk" class="desk-surface" hidden><div class="bench" id="bench"></div></div>
+<div id="results" hidden><div class="results-groups" id="rgroups"></div></div>
+<script type="module">
+import { state, els, mulberry32, hashString } from './src/state.js';
+import { buildPieces, fitPieceLabels, buildResultPlacard } from './src/ui-play.js';
+import { loadTextures, pickSkinTexVar } from './src/textures.js';
+
+const PAPER_FAMILY = { corkboard: 1, folder: 1, rx: 1 };
+let last = null;
+
+/** Same texture switch the game does in syncPieces(), minus the desk geometry. */
+function applyTextures(puzzle) {
+  if (!state.textures) return;
+  puzzle.items.forEach((item) => {
+    const el = state.pieceEls[item.id];
+    if (!el) return;
+    const skin = el.querySelector('.piece-skin');
+    if (skin && !skin.style.getPropertyValue('--skin-tex')) {
+      const tex = pickSkinTexVar(item, mulberry32(hashString(item.id)));
+      if (tex) skin.style.setProperty('--skin-tex', tex);
+    }
+    const has = PAPER_FAMILY[item.zone] ? !!(skin && skin.style.getPropertyValue('--skin-tex'))
+      : state.textures.has({ rack: 'slide.webp', tubes: 'film.webp' }[item.zone]);
+    el.classList.toggle('textured', !!has);
+  });
+}
+
+function drawDesk(msg) {
+  const puzzle = msg.puzzle;
+  const bench = document.getElementById('bench');
+  const w = document.body.clientWidth || 360;
+  const cols = msg.cols || (puzzle.groups.length === 1 && w < 420 ? 2 : 4);
+  const cellW = (w - 20 - 6 * (cols - 1)) / cols;
+  // The biggest piece (X-ray film) is 118 x 148 px; scale every piece the same.
+  const scale = Math.min(1.25, Math.max(0.55, (cellW - 6) / 124));
+  bench.style.setProperty('--cols', cols);
+  bench.style.setProperty('--cell-h', Math.round(152 * scale + 8) + 'px');
+  // Slide letters, A, B, C ... in clue order, as the game assigns them.
+  state.slideLetters = {};
+  let n = 0;
+  puzzle.items.forEach((it) => { if (it.zone === 'rack') state.slideLetters[it.id] = String.fromCharCode(65 + n++); });
+  state.game = { puzzle };
+  const layer = document.createElement('div');
+  els.pieceLayer = layer;
+  buildPieces();
+  applyTextures(puzzle);
+  bench.innerHTML = '';
+  puzzle.groups.forEach((g, gi) => {
+    if (puzzle.groups.length > 1) { // a tier-colored rule above each category's row
+      const s = document.createElement('span');
+      s.className = 'sep'; s.style.background = 'var(--tier-' + g.tier + ')';
+      bench.appendChild(s);
+    }
+    g.itemIds.forEach((id) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const p = state.pieceEls[id];
+      if (p) {
+        p.tabIndex = -1;
+        p.style.setProperty('--responsive-scale', scale.toFixed(3));
+        cell.appendChild(p);
+      }
+      bench.appendChild(cell);
+    });
+  });
+  fitPieceLabels();
+}
+
+function drawResults(msg) {
+  const puzzle = msg.puzzle;
+  state.previewMode = false;
+  const box = document.getElementById('rgroups');
+  box.innerHTML = '';
+  puzzle.groups.slice().sort((a, b) => a.tier - b.tier).forEach((g, i) => {
+    const card = buildResultPlacard(puzzle, g, new Set([g.id]), i);
+    if (msg.expand) card.setAttribute('aria-expanded', 'true');
+    box.appendChild(card);
+  });
+}
+
+function draw(msg) {
+  last = msg;
+  document.documentElement.setAttribute('data-theme', msg.theme === 'dark' ? 'dark' : 'light');
+  const desk = msg.view !== 'results';
+  document.getElementById('desk').hidden = !desk;
+  document.getElementById('results').hidden = desk;
+  if (desk) drawDesk(msg); else drawResults(msg);
+  sendSize();
+}
+function sendSize() {
+  const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+  parent.postMessage({ type: 'dp-studio-preview-size', h }, location.origin);
+}
+
+window.addEventListener('message', (ev) => {
+  if (ev.origin !== location.origin || !ev.data || ev.data.type !== 'dp-studio-preview') return;
+  draw(ev.data);
+});
+// Placards open and close like in the game; keep the frame height in step.
+document.addEventListener('click', () => setTimeout(sendSize, 0));
+let rz = 0;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (last) draw(last); }, 120); });
+// Handwriting fonts and textures arrive late; refit labels (like the game) when they do.
+const refit = () => { if (last && last.view !== 'results') { applyTextures(last.puzzle); fitPieceLabels(); sendSize(); } };
+loadTextures(refit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+parent.postMessage({ type: 'dp-studio-preview-ready' }, location.origin);
+</script>
+</body>
+</html>
