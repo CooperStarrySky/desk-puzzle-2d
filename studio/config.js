@@ -1,4 +1,4 @@
-/* Desk Puzzle settings for the Studio (studio/?submit) and the private review inbox (address in supabase/SETUP.md).
+/* Desk Puzzle settings for the Studio (studio/) and the private review inbox (address in supabase/SETUP.md).
  *
  * Everything in this file is PUBLIC. It ships with the website, so anyone can
  * read it. That is fine for the four values below: they are designed to be
@@ -6,8 +6,8 @@
  * key, or the database password here. Those only ever go into Supabase itself
  * (see supabase/SETUP.md).
  *
- * While supabaseUrl or supabasePublishableKey is blank, the Studio works the old way:
- * students download a file and send it to the puzzle group by hand.
+ * While supabaseUrl or supabasePublishableKey is blank, sending is off: the Studio
+ * keeps drafts in the browser and says to try again later.
  */
 window.DESK_PUZZLE_CONFIG = {
   // Supabase dashboard → the "Connect" button at the top (or Project Settings →
@@ -23,9 +23,7 @@ window.DESK_PUZZLE_CONFIG = {
   // widget → Site Key (starts with 0x...). Leave blank to skip the check.
   turnstileSiteKey: '',
 
-  // Where students send a downloaded file when online sending is off or fails.
-  // Put the group's email address or GroupMe link here, for example
-  // 'deskpuzzle@example.com' or 'https://groupme.com/join_group/...'. Emails
-  // and https links become clickable automatically.
+  // Not used by the Studio any more (it has no download). Kept so older copies
+  // of the Studio and the docs that mention it still make sense.
   submitTo: 'the CMSRU Desk Puzzle group',
 };

@@ -123,10 +123,10 @@ textarea.input { resize: vertical; min-height: 70px; }
 </style>
 <style>
 /* editor */
-.editor { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; align-items: start; }
-@media (max-width: 980px) { .editor { grid-template-columns: minmax(0, 1fr); } }
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 22px; align-items: start; }
+@media (max-width: 1060px) { .editor { grid-template-columns: minmax(0, 1fr); } }
 .sidecard { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-@media (min-width: 981px) { .sidecard { position: sticky; top: 72px; } }
+@media (min-width: 1061px) { .sidecard { position: sticky; top: 72px; max-height: calc(100vh - 84px); overflow-y: auto; } }
 .clue { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); }
 @media (max-width: 560px) { .clue { grid-template-columns: minmax(0, 1fr); } }
 .clue-num { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
@@ -134,11 +134,9 @@ textarea.input { resize: vertical; min-height: 70px; }
 @media (max-width: 560px) { .drops { flex-direction: row; } .drops .drop { flex: 1; } }
 .drop { position: relative; border: 1.5px dashed var(--panel-edge); border-radius: var(--r-s); min-height: 96px; display: grid; place-items: center; text-align: center; font-size: 0.74rem; line-height: 1.3; color: var(--ink-faint); padding: 6px; background: var(--paper); width: 100%; }
 button.drop { cursor: pointer; }
-.drop.small { min-height: 54px; }
 .drop.text-only { cursor: default; border-style: dotted; }
 .drop.over { border-color: var(--accent); background: var(--accent-soft); }
 .drop.has { border-style: solid; padding: 0; overflow: hidden; background: #000 center / cover no-repeat; }
-.drop.has.scope { border-radius: 50%; aspect-ratio: 1; min-height: 0; }
 .drop .rm { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 0.8rem; line-height: 1; display: grid; place-items: center; }
 .two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 @media (max-width: 560px) { .two-col { grid-template-columns: minmax(0, 1fr); } }
@@ -154,23 +152,6 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .savestate { font-size: 0.8rem; color: var(--ok); display: inline-flex; gap: 6px; align-items: center; }
 .savestate::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .savestate.err { color: var(--danger); }
-/* mini desk preview with the game's real textures */
-.desk { border-radius: var(--r-m); padding: 10px; background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid) 55%, var(--desk-lo)); position: relative; box-shadow: inset 0 0 0 1px var(--desk-edge); }
-.pieces { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.mp { position: relative; aspect-ratio: 1; display: flex; align-items: flex-end; justify-content: center; padding: 6px 5px; font-size: 0.6rem; line-height: 1.15; color: #1c1a2e; text-align: center; background: center / 100% 100% no-repeat; transform: rotate(var(--rot, 0deg)); overflow: hidden; word-break: break-word; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
-.mp b { font-weight: 600; position: relative; max-height: 3.5em; overflow: hidden; }
-.mp.empty b { opacity: 0.45; font-weight: 400; }
-.mp-corkboard { background-image: url(../assets/textures/sticky.webp); font-family: var(--hand); font-size: 0.68rem; align-items: center; }
-.mp-folder { background-image: url(../assets/textures/paper.webp); align-items: center; }
-.mp-rx { background-image: url(../assets/textures/rx.webp); align-items: center; }
-.mp-rack { background-image: url(../assets/textures/slide.webp); }
-.mp-tubes { background-image: url(../assets/textures/film.webp); color: #eee; }
-.mp-photo { background-image: url(../assets/textures/photo.webp); }
-.mp .pic { position: absolute; background: center / cover no-repeat; }
-.mp-photo .pic { inset: 9% 14% 34%; }
-.mp-tubes .pic { inset: 10% 10% 34%; opacity: 0.85; }
-.mp-rack .pic { width: 34%; aspect-ratio: 1; border-radius: 50%; top: 18%; left: 33%; }
-.mp-sep { grid-column: 1 / -1; height: 2px; border-radius: 2px; opacity: 0.85; }
 /* modal + toast */
 .scrim { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: center; padding: 16px; z-index: 50; }
 .modal { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; box-shadow: 0 20px 60px var(--shadow); }
@@ -182,17 +163,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 @media (max-width: 700px) { .frame-wrap { aspect-ratio: auto; min-height: 0; height: 78vh; } }
 .frame-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
 .frame-empty { height: 100%; display: grid; place-items: center; color: #e9ecf4; text-align: center; padding: 20px; }
-/* start screen + submit-a-category mode */
-.choice { max-width: 760px; margin: 18px auto 0; }
-.choice-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; }
-@media (max-width: 700px) { .choice-grid { grid-template-columns: minmax(0, 1fr); } }
-.choice-card { display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: var(--ink); background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); padding: 20px; transition: border-color 0.15s, transform 0.12s var(--ease); }
-.choice-card:hover { border-color: var(--accent); }
-.choice-card:active { transform: translateY(1px); }
-.choice-card.primary { border: 2px solid var(--accent); box-shadow: 0 6px 18px var(--shadow); }
-.choice-card h2 { font-size: 1.3rem; }
-.choice-card .go { margin-top: auto; color: var(--accent); font-weight: 700; }
-.mode-link { font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+/* tiers, consent */
 .tier-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 @media (max-width: 560px) { .tier-pick { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .tier-pick label { display: flex; align-items: center; gap: 8px; border: 1px solid var(--panel-edge); border-radius: var(--r-s); padding: 8px 10px; background: var(--card); cursor: pointer; font-weight: 600; font-size: 0.9rem; }
@@ -203,7 +174,6 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .consent { border: 1px solid var(--panel-edge); border-left: 3px solid var(--eosin); border-radius: var(--r-s); padding: 10px 12px; background: var(--card); }
 .private-note { font-size: 0.8rem; color: var(--ink-soft); }
 .private-note b { color: var(--ink); }
-.done-file { font-family: var(--mono); font-size: 0.82rem; word-break: break-all; background: var(--paper-2); border-radius: var(--r-s); padding: 6px 9px; }
 /* sending to the inbox */
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .human:empty { display: none; }
@@ -212,6 +182,47 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .sent-list { font-family: var(--mono); font-size: 0.78rem; }
 .btn.busy { position: relative; color: transparent !important; }
 .btn.busy::after { content: "Sending…"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--accent-ink); }
+/* mode switch: one category | full puzzle */
+.modebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 6px; margin-bottom: 20px; background: var(--paper-2); border: 1px solid var(--panel-edge); border-radius: var(--r-l); }
+.modebar button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 2px solid transparent; border-radius: var(--r-m); background: transparent; padding: 12px 16px; color: var(--ink-soft); transition: background 0.15s, border-color 0.15s; }
+.modebar button b { font-family: var(--serif); font-size: 1.2rem; font-weight: 600; color: var(--ink); line-height: 1.2; }
+.modebar button small { font-size: 0.82rem; }
+.modebar button:hover { background: var(--panel); }
+.modebar button[aria-checked="true"] { background: var(--panel); border-color: var(--accent); box-shadow: 0 2px 10px var(--shadow); }
+.modebar button[aria-checked="true"] b { color: var(--accent); }
+@media (max-width: 520px) { .modebar button { padding: 10px 12px; } .modebar button b { font-size: 1.02rem; } .modebar button small { display: none; } }
+/* clue image slots take the piece's real shape */
+.drop[style*="aspect-ratio"] { min-height: 0; }
+.drops .btn.small { width: 100%; }
+@media (max-width: 560px) { .drops { flex-wrap: wrap; align-items: flex-start; } .drops .drop { flex: 0 1 150px; } .drops .btn.small { width: auto; } }
+.gtabs { scrollbar-width: none; }
+.gtabs button { padding-block: 12px; flex: 1 1 0; min-width: 0; justify-content: center; }
+.gtabs .tn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) { .gtabs button { flex: none; } .gtabs .tn { max-width: 130px; } }
+.sidecard { scrollbar-width: thin; }
+/* live preview frame (studio/preview.html draws the game's own pieces and placards) */
+.prev-tabs { margin: -4px -4px 0; }
+.pv-frame { width: 100%; height: 220px; border: 0; display: block; border-radius: var(--r-m); background: transparent; }
+/* crop window */
+.modal:has(.crop-modal) { width: min(960px, 100%); }
+.crop-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 720px) { .crop-grid { grid-template-columns: minmax(0, 1fr); } }
+.crop-stage { width: 100%; max-height: 60vh; margin-inline: auto; border-radius: var(--r-s); overflow: hidden; background: repeating-conic-gradient(var(--paper-2) 0 25%, var(--panel) 0 50%) 0 0 / 18px 18px; border: 1px solid var(--panel-edge); }
+.crop-stage canvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+.crop-stage canvas:active { cursor: grabbing; }
+.cp { margin-inline: auto; position: relative; }
+.cp canvas { width: 100%; height: 100%; display: block; }
+/* photo: the game's 94 x 110 px instant-photo frame, window inset 3 px (shown at 2.2x) */
+.cp-photo { width: 207px; height: 242px; background: #fdfcf6; border: 2px solid rgba(36, 31, 20, 0.2); box-shadow: 0 6px 14px rgba(36, 31, 20, 0.3); transform: rotate(-1.5deg); }
+.cp-photo .cp-win { position: absolute; inset: 6px; border-radius: 3px; overflow: hidden; }
+/* slide: the microscope viewer panel (430 x 300 px on a laptop) */
+.cp-scope { width: 100%; max-width: 360px; padding: 10px; background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); display: flex; flex-direction: column; gap: 6px; }
+.cp-scope-title { font: 600 0.72rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); }
+.cp-scope-wrap { position: relative; aspect-ratio: 430 / 300; border-radius: var(--r-s); overflow: hidden; border: 3px solid #2a2d38; }
+.cp-scope-wrap::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(20, 22, 36, 0) 58%, rgba(20, 22, 36, 0.35)); pointer-events: none; }
+/* X-ray: the 118 x 148 px film on the 220 x 240 px light box (shown at 1.3x) */
+.cp-lightbox { width: 286px; height: 312px; border-radius: 13px; border: 9px solid #2a2d38; background: radial-gradient(ellipse at 50% 40%, #fbfcff, #e9ecf5 70%, #cfd4e2); box-shadow: 0 0 22px rgba(236, 240, 252, 0.5), 0 6px 12px rgba(10, 12, 20, 0.35); display: grid; place-items: center; }
+.cp-film { width: 153px; height: 192px; border-radius: 5px; overflow: hidden; border: 2px solid rgba(232, 236, 244, 0.2); box-shadow: 0 3px 7px rgba(8, 10, 16, 0.45); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 </style>
 </head>
@@ -225,95 +236,45 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
       <button role="tab" id="tab-play" aria-selected="false" aria-controls="view-play">Test play</button>
     </nav>
     <div class="row" style="--gap:14px; margin-left:auto">
-      <a class="mode-link" id="mode-link" href="./" hidden>All options</a>
       <button class="btn small ghost" id="theme-btn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
     </div>
   </div>
 </header>
 
 <main class="wrap section">
-  <section id="view-choice" hidden>
-    <div class="choice stack" style="--gap:18px">
-      <div class="stack" style="--gap:6px"><span class="eyebrow">CMSRU Desk Puzzle</span>
-        <h1>What would you like to make?</h1>
-        <p class="muted">Each weekly puzzle has four hidden groups of four clues. Most people send in one group, and the puzzle group puts four of them together.</p></div>
-      <div class="choice-grid">
-        <a class="choice-card primary" href="?submit"><span class="eyebrow">For everyone</span><h2>Submit a category to the puzzle group</h2>
-          <p class="muted">Write one group: a hidden answer, four clues, and an optional teaching note. <span id="choice-how">You download one file and send it in.</span></p><span class="go">Start a category →</span></a>
-        <div class="stack" style="--gap:16px">
-          <a class="choice-card" href="?build"><span class="eyebrow">For the puzzle group</span><h2>Build a full puzzle</h2>
-            <p class="muted">All four groups, release date, and test play in the real game.</p><span class="go">Open the full editor →</span></a>
-        </div>
-      </div>
-      <p class="hint" id="choice-drafts"></p>
-    </div>
-  </section>
+  <div class="modebar" role="radiogroup" aria-label="What are you making?">
+    <button type="button" role="radio" id="mode-category" data-mode="category" aria-checked="true"><b>One category</b><small>A hidden answer and its four clues</small></button>
+    <button type="button" role="radio" id="mode-puzzle" data-mode="puzzle" aria-checked="false"><b>Full puzzle (4 categories)</b><small>A whole week’s puzzle, ready to play</small></button>
+  </div>
 
-  <section id="view-submit" hidden>
+  <section id="view-edit" role="tabpanel" aria-labelledby="tab-edit">
     <div class="row spread" style="margin-bottom:16px">
       <div class="stack" style="--gap:2px">
-        <span class="eyebrow">Submit a category</span>
-        <span class="savestate" id="s-saved">Saved in this browser</span>
+        <span class="eyebrow" id="e-eyebrow">Your category</span>
+        <span class="savestate" id="saved">Saved in this browser</span>
       </div>
       <div class="row" style="--gap:8px">
-        <button class="btn" type="button" id="s-new">Start over</button>
-        <button class="btn primary" type="button" id="s-download">Download submission</button>
-        <button class="btn primary" type="button" id="s-send" hidden>Send to the puzzle group</button>
+        <button class="btn" type="button" id="btn-new">Start over</button>
+        <button class="btn primary" type="button" id="btn-send">Submit suggestion</button>
+        <input type="file" id="file-img" accept="image/*" hidden>
       </div>
     </div>
     <div class="editor">
-      <div class="stack" style="--gap:16px" id="sbody"></div>
+      <div class="stack" style="--gap:16px" id="ebody"></div>
       <aside class="sidecard">
-        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Live preview</span>
-          <div class="desk"><div class="pieces" id="s-prev"></div></div>
-          <p class="hint">How your four pieces look on the bench. In the puzzle they get mixed in with 12 others.</p></div>
-        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Ready to send?</span><ul class="checklist" id="s-checks"></ul>
+        <div class="placard stack" style="--gap:10px">
+          <div class="tabs prev-tabs" role="tablist" aria-label="Preview">
+            <button role="tab" type="button" id="pv-desk" data-pv="desk" aria-selected="true">Desk</button>
+            <button role="tab" type="button" id="pv-results" data-pv="results" aria-selected="false">Results screen</button>
+          </div>
+          <iframe class="pv-frame" id="pv-frame" title="Live preview" src="preview.html" tabindex="-1"></iframe>
+          <p class="hint" id="pv-hint"></p></div>
+        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Ready to send?</span><ul class="checklist" id="checks"></ul>
           <div class="human" id="s-human"></div>
           <div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" id="s-website" name="website" tabindex="-1" autocomplete="off"></label></div>
           <p class="hint sent-list" id="s-sent" hidden></p></div>
         <div class="placard stack" style="--gap:8px"><span class="eyebrow">Images</span>
           <p style="font-size:.86rem" class="muted">Use your own photos or open-license images (for example Wikimedia Commons, or Radiopaedia cases that allow reuse). Every image needs a source, and nobody in it can be identifiable.</p></div>
-      </aside>
-    </div>
-  </section>
-
-  <section id="view-edit" role="tabpanel" aria-labelledby="tab-edit" hidden>
-    <div class="row spread" style="margin-bottom:16px">
-      <div class="stack" style="--gap:2px">
-        <span class="eyebrow">Draft</span>
-        <span class="savestate" id="saved">Saved in this browser</span>
-      </div>
-      <div class="row" style="--gap:8px">
-        <button class="btn" type="button" id="btn-new">New blank puzzle</button>
-        <button class="btn" type="button" id="btn-pick">Start from a published puzzle</button>
-        <button class="btn" type="button" id="btn-open">Open puzzle file</button>
-        <button class="btn primary" type="button" id="btn-download">Download puzzle file</button>
-        <input type="file" id="file-open" accept=".json,application/json" hidden>
-        <input type="file" id="file-img" accept="image/*" hidden>
-      </div>
-    </div>
-    <div class="editor">
-      <div class="stack" style="--gap:16px">
-        <div class="panel stack" style="--gap:10px">
-          <div class="row" style="--gap:12px; align-items:flex-end">
-            <label class="field grow" style="min-width:200px"><span>Puzzle title</span><input class="input" id="f-title" placeholder="e.g. Holes, Haze, and Old Paint"></label>
-            <label class="field" style="width:170px"><span>Release date</span><input class="input" id="f-date" type="date"></label>
-          </div>
-          <p class="hint">File name: <code id="f-id"></code></p>
-        </div>
-        <div class="panel" style="padding:0">
-          <div class="tabs" role="tablist" id="gtabs" aria-label="Groups" style="padding:0 12px"></div>
-          <div id="gbody" class="stack" role="tabpanel" style="--gap:14px; padding:18px"></div>
-        </div>
-      </div>
-      <aside class="sidecard">
-        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Live preview</span>
-          <div class="desk"><div class="pieces" id="prev"></div></div>
-          <p class="hint">Shown sorted by group. Players see them shuffled.</p></div>
-        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Ready to publish?</span><ul class="checklist" id="checks"></ul></div>
-        <div class="placard stack" style="--gap:8px"><span class="eyebrow">Tip</span>
-          <p style="font-size:.86rem" class="muted">Open-license images are safest: Wikimedia Commons, your own lab photos, or Radiopaedia cases that allow reuse. Every image needs a source.</p>
-          <p class="hint">Images are stored inside the file for now. Running <code>tools/externalize_images.py</code> at publish time turns them into separate .webp files.</p></div>
       </aside>
     </div>
   </section>
@@ -339,7 +300,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
         </div>
       </div>
       <ul class="checklist" id="play-problems" hidden></ul>
-      <p class="hint">Preview mode is the real game with a few changes: nothing is saved to your progress, the Shuffle/Reset/Help/Settings toolbar and the date line are hidden, the clue guide is skipped, and the results-screen text is editable in place (those edits are not saved here, so make them in the editor).</p>
+      <p class="hint">Test play is the real game with a few changes: nothing is saved to your progress, the toolbar and date line are hidden, and the clue guide is skipped. Change things in the editor, not on the results screen.</p>
     </div>
     <div class="frame-wrap" id="frame-wrap"><div class="frame-empty" id="frame-empty">Press “Play it” to load the puzzle into the real game.</div></div>
   </section>
@@ -355,6 +316,11 @@ import { caseProblems, normalizeKinds, PIECE_KIND_NAMES } from '../src/engine.js
 const ZONES = ['corkboard', 'folder', 'rack', 'tubes', 'photo', 'rx'];
 const ZONE_NAMES = { corkboard: 'Sticky note', folder: 'Paper sheet', rack: 'Microscope slide', tubes: 'X-ray film', photo: 'Photograph', rx: 'Prescription' };
 const IMAGE_ZONES = ['photo', 'tubes', 'rack'];
+/** Where a clue's one picture lives: slides use the microscope view (scope.image), photos and X-rays info.image. */
+function picField(zone) { return zone === 'rack' ? 'scopeImage' : zone === 'photo' || zone === 'tubes' ? 'image' : ''; }
+function picOf(I) { const f = picField(I.zone); return f ? I[f] || '' : ''; }
+/** Clue frame shapes as the game draws them (width / height); see crop window. */
+const ZONE_ASPECT = { photo: 86 / 102, tubes: 118 / 148, rack: 430 / 300 };
 const TIER_WORDS = ['easiest', 'medium', 'hard', 'hardest'];
 const CREDIT_RE = /^<i>\s*Images?\s*:\s*([\s\S]*?)\s*<\/i>$/i;
 
@@ -487,7 +453,7 @@ function puzzleFromDraft(d) {
     const credits = [];
     const addCredit = (c) => { c = String(c || '').trim(); if (c && credits.indexOf(c) === -1) credits.push(c); };
     addCredit(G.credit);
-    G.items.forEach((I) => { if (IMAGE_ZONES.indexOf(I.zone) !== -1 && (I.image || I.scopeImage)) addCredit(I.credit); });
+    G.items.forEach((I) => { if (picOf(I)) addCredit(I.credit); });
     if (credits.length) article = article.concat([{ type: 'text', text: '<i>Images: ' + htmlEsc(credits.join('; ')) + '</i>' }]);
     if (article.length || G.articleRaw) g.article = article;
     const nids = String(G.nids || '').split(/[\s,;]+/).filter(Boolean).map(Number).filter((n) => Number.isInteger(n) && n > 0);
@@ -497,8 +463,10 @@ function puzzleFromDraft(d) {
     if (byName) g.credit = Object.assign({ name: byName }, byLine ? { line: byLine } : {}, G.byExtra || {});
     g.itemIds = ids[gi].slice();
     G.items.forEach((I, ii) => {
-      const info = Object.assign({ title: I.title.trim() || plain(I.label).trim(), text: I.text }, I.infoExtra);
-      if (IMAGE_ZONES.indexOf(I.zone) !== -1 && I.image) info.image = I.image;
+      // One field per clue: the label is also the title (v2). info.text is
+      // no longer written by the Studio (the game never shows it).
+      const info = Object.assign({ title: plain(I.label).trim() }, I.infoExtra);
+      if (picField(I.zone) === 'image' && I.image) info.image = I.image;
       const it = Object.assign({ id: ids[gi][ii], label: I.label.trim(), zone: I.zone, info: orderLike(info, I.infoKeys) }, I.extra);
       if (I.zone === 'rack') {
         const scope = Object.assign({}, I.scopeExtra);
@@ -515,62 +483,57 @@ function puzzleFromDraft(d) {
   const out = Object.assign({ id: pid, title, date, machines, groups, items }, d.extra);
   return orderLike(out, d.keys);
 }
-/* ----- Submit-a-category model (one group, sent in by a student) ----- */
+/* ----- Submission model: one category, or a full puzzle (format v2, supabase/SUBMISSION_FORMAT.md) ----- */
 const SUGGESTED_TIERS = ['Easy', 'Medium', 'Hard', 'Hardest'];
 const CREDIT_NAME_MAX = 60, CREDIT_LINE_MAX = 40;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Size limits the inbox enforces. Keep in step with LIMITS in
 // supabase/functions/submit/validate.js (supabase/tests/studio_limits.test.mjs checks).
-const SEND_LIMITS = { maxImageBytes: 700 * 1024, name: 120, explanation: 400, label: 80, title: 120, text: 1500, source: 300, article: 6000 };
+const SEND_LIMITS = { maxImageBytes: 700 * 1024, maxImages: 8, maxBodyBytes: 7 * 1024 * 1024, maxPuzzleImages: 16, maxPuzzleBodyBytes: 9 * 1024 * 1024, puzzleTitle: 120, name: 120, explanation: 400, label: 80, source: 300, article: 6000 };
 /** Decoded size of a data: URI image, in bytes (0 if not a data URI). */
 function dataUriBytes(src) {
   const i = String(src || '').indexOf(';base64,');
   return /^data:/.test(String(src || '')) && i !== -1 ? Math.floor((String(src).length - i - 8) * 3 / 4) : 0;
 }
+/** Who sent it: credit, private contact, consent. Shared by both kinds. */
+function blankWho() { return { creditMode: '', name: '', line: '', email: '', consent: false }; }
 function blankCategory() {
-  return { v: 1, group: blankGroup(0), suggestedTier: 0, creditMode: '', name: '', line: '', email: '',
-    consent: false, noPatient: [false, false, false, false] };
+  return Object.assign({ v: 1, group: blankGroup(0), suggestedTier: 0, noPatient: [false, false, false, false] }, blankWho());
 }
-function itemHasImage(I) { return IMAGE_ZONES.indexOf(I.zone) !== -1 && !!(I.image || I.scopeImage); }
-/**
- * Plain-English checks for one category. `problems` block the download; `notes` do not.
- * Mirrors the per-group and per-item rules of tools/publish.py validate_puzzle
- * (name, explanation, zone, label, title for photo/slide/film, Anki IDs, credit
- * lengths) but not the whole-puzzle counts (16 clues, 4 groups, unique tiers).
- */
-function categoryChecks(c) {
-  const problems = [], notes = [];
+/** A full puzzle draft: the editor draft plus who-sent-it and per-clue patient checks. */
+function blankPuzzleSub() {
+  return Object.assign(blankDraft(), blankWho(), { noPatient: [0, 1, 2, 3].map(() => [false, false, false, false]) });
+}
+function itemHasImage(I) { return !!picOf(I); }
+/** Plain-English problems for one category's fields and clues. pre is '' or 'Category 2: '. */
+function groupProblems(G, noPatient, pre, problems, notes) {
   const t = (s) => String(s || '').trim();
-  const G = c.group;
-  if (!t(G.name)) problems.push('Name the category (the hidden answer)');
-  if (!t(G.explanation)) problems.push('Add a one-line explanation');
-  const cap = (what, v, max) => { if (t(v).length > max) problems.push(what + ' is too long (' + t(v).length + ' characters; ' + max + ' max)'); };
+  const cap = (what, v, max) => { if (t(v).length > max) problems.push(pre + what + ' is too long (' + t(v).length + ' characters; ' + max + ' max)'); };
+  if (!t(G.name)) problems.push(pre + 'Name the category (the hidden answer)');
+  if (!t(G.explanation)) problems.push(pre + 'Add a one-line explanation');
   cap('The category name', G.name, SEND_LIMITS.name);
   cap('The explanation', G.explanation, SEND_LIMITS.explanation);
   cap('The teaching note', G.articleText, SEND_LIMITS.article);
-  if ([1, 2, 3, 4].indexOf(Number(c.suggestedTier)) === -1) problems.push('Pick a suggested difficulty');
   G.items.forEach((I, ii) => {
-    const n = 'Clue ' + (ii + 1);
+    const n = pre + 'Clue ' + (ii + 1);
     if (ZONES.indexOf(I.zone) === -1) { problems.push(n + ': pick what kind of piece it is'); return; }
-    if (!t(I.label)) { problems.push(n + ': write the label on the piece'); return; }
-    if (IMAGE_ZONES.indexOf(I.zone) !== -1 && !t(I.title)) problems.push(n + ': a ' + ZONE_NAMES[I.zone].toLowerCase() + ' needs a title');
-    if ((I.zone === 'photo' || I.zone === 'tubes') && !I.image) notes.push(n + ': no image yet, so the puzzle group will look for one');
-    if (I.zone === 'rack' && !I.scopeImage) notes.push(n + ': no microscope image yet, so the puzzle group will look for one');
+    const img = picField(I.zone);
+    if (!t(I.label)) { problems.push(n + (img ? ': say what the image shows' : ': write the clue')); return; }
+    if (img && !I[img]) notes.push(n + ': no image yet, so the puzzle group will look for one');
     if (itemHasImage(I)) {
       if (!t(I.credit)) problems.push(n + ': say where the image came from');
-      if (!c.noPatient[ii]) problems.push(n + ': confirm no patient can be identified in the image');
+      if (!noPatient[ii]) problems.push(n + ': confirm no patient can be identified in the image');
       cap(n + ': the image source', I.credit, SEND_LIMITS.source);
-      ['image', 'scopeImage'].forEach((f) => {
-        const kb = Math.round(dataUriBytes(I[f]) / 1024);
-        if (kb > SEND_LIMITS.maxImageBytes / 1024) problems.push(n + ': the ' + (f === 'scopeImage' ? 'microscope image' : 'image') + ' is too big (' + kb + ' KB; ' + (SEND_LIMITS.maxImageBytes / 1024) + ' KB max). Try a smaller or simpler image');
-      });
+      const kb = Math.round(dataUriBytes(picOf(I)) / 1024);
+      if (kb > SEND_LIMITS.maxImageBytes / 1024) problems.push(n + ': the image is too big (' + kb + ' KB; ' + (SEND_LIMITS.maxImageBytes / 1024) + ' KB max). Crop it or try a simpler image');
     }
-    cap(n + ': the label', I.label, SEND_LIMITS.label);
-    cap(n + ': the title', I.title, SEND_LIMITS.title);
-    cap(n + ': the short text', I.text, SEND_LIMITS.text);
+    cap(n + ': the ' + (img ? 'description' : 'clue'), I.label, SEND_LIMITS.label);
   });
   const badNid = String(G.nids || '').split(/[\s,;]+/).filter(Boolean).find((x) => !/^[1-9]\d*$/.test(x));
-  if (badNid) problems.push('Anki note IDs are numbers only (check “' + badNid + '”)');
+  if (badNid) problems.push(pre + 'AnKing card IDs are numbers only (check “' + badNid + '”)');
+}
+function whoProblems(c, problems) {
+  const t = (s) => String(s || '').trim();
   if (c.creditMode === 'named') {
     if (!t(c.name)) problems.push('Add your name for the credit, or choose to stay anonymous');
     else if (t(c.name).length > CREDIT_NAME_MAX) problems.push('Your name is too long (' + CREDIT_NAME_MAX + ' characters max)');
@@ -578,13 +541,35 @@ function categoryChecks(c) {
   } else if (c.creditMode !== 'anonymous') problems.push('Choose “Credit me” or “Stay anonymous”');
   if (t(c.email) && !EMAIL_RE.test(t(c.email))) problems.push('Check the contact email, or leave it blank');
   if (!c.consent) problems.push('Tick the box that says the puzzle group can use it');
+}
+/**
+ * Plain-English checks for one category. `problems` block sending; `notes` do not.
+ * Mirrors the per-group and per-item rules of supabase/functions/submit/validate.js.
+ */
+function categoryChecks(c) {
+  const problems = [], notes = [];
+  groupProblems(c.group, c.noPatient, '', problems, notes);
+  if ([1, 2, 3, 4].indexOf(Number(c.suggestedTier)) === -1) problems.push('Pick a suggested difficulty');
+  whoProblems(c, problems);
   return { problems, notes };
 }
-/** Category draft -> the submission file (format "desk-puzzle-submission", version 1). */
-function submissionFromCategory(c, nowIso) {
+/** Same for a full puzzle: title, 4 categories, each difficulty once, 16 images max. */
+function puzzleChecks(p) {
+  const problems = [], notes = [];
+  const t = (s) => String(s || '').trim();
+  if (!t(p.title)) problems.push('Give the puzzle a title');
+  else if (t(p.title).length > SEND_LIMITS.puzzleTitle) problems.push('The puzzle title is too long (' + SEND_LIMITS.puzzleTitle + ' characters max)');
+  p.groups.forEach((G, gi) => groupProblems(G, p.noPatient[gi], 'Category ' + (gi + 1) + ': ', problems, notes));
+  const tiers = p.groups.map((G) => Number(G.tier)).sort().join(',');
+  if (tiers !== '1,2,3,4') problems.push('Use each difficulty (Easy, Medium, Hard, Hardest) once');
+  whoProblems(p, problems);
+  return { problems, notes };
+}
+/** One editor group -> { name, explanation, article?, anki?, items: [4 v2 clues] }. */
+function submitGroup(G) {
   const t = (s) => String(s || '').trim();
   const d = blankDraft();
-  d.groups[0] = Object.assign({}, c.group, { byName: '', byLine: '', byExtra: null, tier: 1 });
+  d.groups[0] = Object.assign({}, G, { byName: '', byLine: '', byExtra: null, tier: 1 });
   const p = puzzleFromDraft(d);
   const g = p.groups[0];
   const byId = new Map(p.items.map((it) => [it.id, it]));
@@ -592,28 +577,52 @@ function submissionFromCategory(c, nowIso) {
   if (g.article && g.article.length) group.article = g.article;
   if (g.anki) group.anki = g.anki;
   group.items = g.itemIds.map((id, ii) => {
-    const it = byId.get(id), I = c.group.items[ii];
-    const o = { label: it.label, zone: it.zone, info: it.info };
-    if (it.scope) o.scope = it.scope;
+    const it = byId.get(id), I = G.items[ii];
+    const o = { label: it.label, zone: it.zone, info: { title: it.label } };
+    if (it.zone === 'rack' && it.scope && it.scope.image) o.scope = { image: it.scope.image };
+    if ((it.zone === 'photo' || it.zone === 'tubes') && it.info.image) o.info.image = it.info.image;
     if (itemHasImage(I) && t(I.credit)) o.source = t(I.credit);
     return o;
   });
+  return group;
+}
+function submitWho(c, kind, nowIso) {
+  const t = (s) => String(s || '').trim();
   const credit = c.creditMode === 'named'
     ? Object.assign({ mode: 'named', name: t(c.name) }, t(c.line) ? { line: t(c.line) } : {})
     : { mode: 'anonymous' };
-  return { format: 'desk-puzzle-submission', version: 1, kind: 'category', submittedAt: nowIso,
-    credit, contact: t(c.email) ? { email: t(c.email) } : null, consent: c.consent === true,
-    suggestedTier: Number(c.suggestedTier), group };
+  return { format: 'desk-puzzle-submission', version: 2, kind, submittedAt: nowIso,
+    credit, contact: t(c.email) ? { email: t(c.email) } : null, consent: c.consent === true };
 }
-function submissionFileName(sub, ymd) {
-  return 'desk-puzzle-submission-' + (slug(sub.group && sub.group.name) || 'category') + '-' + ymd + '.json';
+/** Category draft -> submission (version 2, kind "category"). */
+function submissionFromCategory(c, nowIso) {
+  return Object.assign(submitWho(c, 'category', nowIso), { suggestedTier: Number(c.suggestedTier), group: submitGroup(c.group) });
+}
+/** Full puzzle draft -> submission (version 2, kind "puzzle"). No date: the puzzle group sets it. */
+function submissionFromPuzzle(p, nowIso) {
+  return Object.assign(submitWho(p, 'puzzle', nowIso), { puzzle: { title: String(p.title || '').trim(),
+    groups: p.groups.map((G) => Object.assign(submitGroup(G), { tier: Number(G.tier) })) } });
+}
+/** Puzzle tiers: give group gi tier t, swapping with the group that had t. Returns the other group's index or -1. */
+function setTierSwap(groups, gi, t) {
+  const other = groups.findIndex((G, j) => j !== gi && Number(G.tier) === t);
+  if (other !== -1) groups[other].tier = Number(groups[gi].tier);
+  groups[gi].tier = t;
+  return other;
+}
+/** Make tiers a permutation of 1-4 (older drafts could repeat one). */
+function fixTiers(groups) {
+  const seen = groups.map((G) => Number(G.tier));
+  if (seen.slice().sort().join(',') !== '1,2,3,4') groups.forEach((G, gi) => { G.tier = gi + 1; });
 }
 /* ===== PURE-END ===== */
 
 /* ===== DOM helpers, state, storage ===== */
-const DRAFT_KEY = 'dp2d:studio-draft';
+const PUZZLE_KEY = 'dp2d:studio-draft';      // full puzzle draft (same key as the old puzzle editor)
+const CATEGORY_KEY = 'dp2d:studio-category'; // one-category draft
 const PREVIEW_KEY = 'dp2d:preview-draft';
 const THEME_KEY = 'dp2d:studio-theme';
+const CLIENT_KEY = 'dp2d:studio-client-id';
 const $ = (s, root) => (root || document).querySelector(s);
 const $$ = (s, root) => Array.from((root || document).querySelectorAll(s));
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -621,10 +630,20 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 const imgUrl = (src) => (!src ? '' : /^(data:|blob:|https?:|\/)/.test(src) ? src : '../' + src);
 const cssUrl = (src) => 'url("' + imgUrl(src).replace(/["\\\n]/g, (c) => '\\' + c) + '")';
 
-let draft = blankDraft();
-let tab = 0;
-let saveTimer = 0;
+let mode = 'category';         // 'category' | 'puzzle'
+let cat = blankCategory();
+let puz = blankPuzzleSub();
+let tab = 0;                   // which category is open in puzzle mode
+const saveTimers = {};
+const saveFailed = {};
 let toastTimer = 0;
+
+/* What the editor is working on right now. */
+const isPuz = () => mode === 'puzzle';
+const cur = () => (isPuz() ? puz : cat);
+const groupAt = (gi) => (isPuz() ? puz.groups[gi] : cat.group);
+const curGi = () => (isPuz() ? tab : 0);
+const npList = (gi) => (isPuz() ? puz.noPatient[gi] : cat.noPatient);
 
 function toast(msg, ms) {
   const t = $('#toast');
@@ -636,271 +655,254 @@ function setSaved(text, isErr) {
   const s = $('#saved');
   s.textContent = text; s.classList.toggle('err', !!isErr);
 }
-function saveNow() {
+function saveNow(which) {
+  which = which || mode;
+  const key = which === 'puzzle' ? PUZZLE_KEY : CATEGORY_KEY;
   try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-    setSaved('Saved in this browser');
+    localStorage.setItem(key, JSON.stringify(which === 'puzzle' ? puz : cat));
+    saveFailed[which] = false;
+    if (which === mode) setSaved('Saved in this browser');
   } catch (e) {
     const quota = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
-    setSaved(quota ? 'Not saved: browser storage is full' : 'Not saved: browser storage unavailable', true);
-    toast(quota ? 'Draft too big for browser storage. Download the puzzle file to keep your work.' : 'Could not save the draft in this browser. Download the file to keep it.', 5000);
+    if (which === mode) setSaved(quota ? 'Not saved: browser storage is full' : 'Not saved: browser storage unavailable', true);
+    if (!saveFailed[which]) toast(quota ? 'Your images are too big to keep in this browser. Send your suggestion soon, or crop the images smaller, so you don’t lose your work.' : 'Could not save your draft in this browser. Keep this tab open until you send it.', 7000);
+    saveFailed[which] = true;
   }
 }
+/** Something changed: save soon (per mode) and redraw the sidebar. */
 function bump() {
-  setSaved('Saving…');
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveNow, 400);
+  const which = mode;
+  if (!saveFailed[which]) setSaved('Saving…');
+  clearTimeout(saveTimers[which]);
+  saveTimers[which] = setTimeout(() => saveNow(which), 400);
   drawSide();
 }
-function loadSaved() {
+function fillItems(items) {
+  return (items || []).slice(0, 4).concat([0, 1, 2, 3].map(blankItem)).slice(0, 4).map((I) => migrateItem(Object.assign(blankItem(), I)));
+}
+/** Older drafts: a slide's only picture belongs under the microscope; drop the old optional card image. */
+function migrateItem(I) {
+  if (I.zone === 'rack') {
+    if (!I.scopeImage && I.image) I.scopeImage = I.image;
+    I.image = '';
+  }
+  return I;
+}
+function loadCategory() {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    const raw = localStorage.getItem(CATEGORY_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    if (!c || c.v !== 1 || !c.group || !Array.isArray(c.group.items)) return null;
+    const out = Object.assign(blankCategory(), c);
+    out.group = Object.assign(blankGroup(0), c.group, { items: fillItems(c.group.items) });
+    out.noPatient = [0, 1, 2, 3].map((i) => !!(c.noPatient && c.noPatient[i]));
+    return out;
+  } catch (e) { return null; }
+}
+function loadPuzzle() {
+  try {
+    const raw = localStorage.getItem(PUZZLE_KEY);
     if (!raw) return null;
     const d = JSON.parse(raw);
     if (!d || d.v !== 1 || !Array.isArray(d.groups) || d.groups.length !== 4) return null;
-    // Fill any fields added after the draft was saved.
-    const base = blankDraft();
-    const merged = Object.assign(base, d);
-    merged.groups = d.groups.map((G, gi) => Object.assign(blankGroup(gi), G, {
-      items: (G.items || []).slice(0, 4).concat([0, 1, 2, 3].map(blankItem)).slice(0, 4).map((I) => Object.assign(blankItem(), I)),
-    }));
-    return merged;
+    const out = Object.assign(blankPuzzleSub(), d);
+    out.date = ''; // no release date in submissions; the puzzle group sets it
+    out.groups = d.groups.map((G, gi) => Object.assign(blankGroup(gi), G, { items: fillItems(G.items) }));
+    fixTiers(out.groups);
+    out.noPatient = [0, 1, 2, 3].map((gi) => [0, 1, 2, 3].map((ii) => !!(d.noPatient && d.noPatient[gi] && d.noPatient[gi][ii])));
+    return out;
   } catch (e) { return null; }
 }
-
-/* ===== Checks: the game's own validator plus plain-English author checks ===== */
-function gameProblems(p) {
-  return caseProblems(p).map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+/** A random id kept per browser, so the inbox can apply its per-browser hourly limit. */
+function clientId() {
+  let id = '';
+  try { id = localStorage.getItem(CLIENT_KEY) || ''; } catch (e) { id = ''; }
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(id)) {
+    id = window.crypto && crypto.randomUUID ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => { const r = Math.random() * 16 | 0; return (ch === 'x' ? r : (r & 3 | 8)).toString(16); });
+    try { localStorage.setItem(CLIENT_KEY, id); } catch (e) { /* still fine for this visit */ }
+  }
+  return id;
 }
-function authorChecks(d) {
-  const out = [];
-  const t = (s) => String(s || '').trim();
-  if (!t(d.title)) out.push('Give the puzzle a title');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(t(d.date))) out.push('Pick a release date');
-  const tiers = new Set();
-  d.groups.forEach((G, gi) => {
-    const n = 'Group ' + (gi + 1);
-    tiers.add(Number(G.tier));
-    if (!t(G.name)) out.push(n + ' needs a name (the hidden answer)');
-    if (!t(G.explanation)) out.push(n + ' needs a one-line explanation');
-    if (t(G.byName).length > 60) out.push(n + ': submitter name is too long (60 characters max)');
-    if (t(G.byLine).length > 40) out.push(n + ': submitter year/role is too long (40 characters max)');
-    if (t(G.byLine) && !t(G.byName)) out.push(n + ': add the submitter name too, or clear the year/role');
-    const filled = G.items.filter((I) => t(I.label)).length;
-    if (filled < 4) out.push(n + ': ' + filled + ' of 4 clue labels filled');
-    G.items.forEach((I, ii) => {
-      const c = n + ', clue ' + (ii + 1);
-      if (!t(I.label)) return;
-      if ((I.zone === 'photo' || I.zone === 'tubes') && !I.image) out.push(c + ': add an image for the ' + ZONE_NAMES[I.zone].toLowerCase());
-      if (I.zone === 'rack' && !I.scopeImage) out.push(c + ': add the microscope image for the slide');
-      const hasImg = IMAGE_ZONES.indexOf(I.zone) !== -1 && (I.image || I.scopeImage);
-      if (hasImg && !t(I.credit) && !t(G.credit)) out.push(c + ': say where the image came from');
-    });
+function readJsonFile(file) { return file.text().then((t) => JSON.parse(t)); }
+function hasWork(which) {
+  if (which === 'puzzle') return !!(puz.title.trim() || puz.groups.some((G) => G.name.trim() || G.items.some((I) => I.label.trim() || picOf(I))));
+  return !!(cat.group.name.trim() || cat.group.items.some((I) => I.label.trim() || picOf(I)));
+}
+/* ===== Images: resize to WebP, keep the original for re-cropping ===== */
+const MAX_SIDE = 1200;
+// Originals stay in memory for this visit only (keyed by mode, category, clue), so
+// cropping again always starts from the full picture rather than a crop of a crop.
+const originals = new Map();
+const origKey = (gi, ii) => mode + ':' + gi + ':' + ii;
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Could not read that image.'));
+    img.src = src;
   });
-  if (tiers.size < 4) out.push('Give each group its own difficulty tier');
+}
+/** Canvas -> WebP data URL (JPEG where the browser can't encode WebP, e.g. older Safari). */
+function encodeCanvas(c, q) {
+  let out = c.toDataURL('image/webp', q);
+  if (!/^data:image\/webp/.test(out)) out = c.toDataURL('image/jpeg', q);
   return out;
 }
-
-/* ===== Image intake: resize to max 1200px long edge, WebP data URL ===== */
-function fileToWebp(file) {
-  return new Promise((resolve, reject) => {
-    if (!file || !/^image\//.test(file.type)) { reject(new Error('That file is not an image.')); return; }
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      const max = 1200, s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-      const c = document.createElement('canvas');
-      c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url);
-      let out = c.toDataURL('image/webp', 0.85);
-      if (!/^data:image\/webp/.test(out)) out = c.toDataURL('image/jpeg', 0.85); // Safari without WebP encode
-      resolve({ src: out, w: c.width, h: c.height });
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that image.')); };
-    img.src = url;
-  });
+/** Draw img (or part of it) scaled so its long side is at most max px. */
+function resizeTo(img, max, q) {
+  const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return { src: encodeCanvas(c, q), w: c.width, h: c.height };
 }
-
-/* ===== Rendering: editor ===== */
-function drawTop() {
-  $('#f-title').value = draft.title;
-  $('#f-date').value = draft.date;
-  drawId();
-}
-function drawId() {
-  let id = '';
-  try { id = puzzleFromDraft(draft).id; } catch (e) { id = 'untitled'; }
-  $('#f-id').textContent = id + '.json';
-}
-function drawTabs() {
-  $('#gtabs').innerHTML = draft.groups.map((G, i) =>
-    '<button role="tab" type="button" id="gtab-' + i + '" data-g="' + i + '" aria-selected="' + (i === tab) + '" tabindex="' + (i === tab ? 0 : -1) + '">' +
-    '<span class="tierdot" style="background:var(--tier-' + esc(G.tier) + ')" aria-hidden="true"></span>Group ' + (i + 1) +
-    (G.name.trim() ? '' : ' <span class="badge">empty</span>') + '</button>').join('');
-  $('#gbody').setAttribute('aria-labelledby', 'gtab-' + tab);
-}
-function dropHtml(I, ii, field, label, extraCls) {
-  const src = I[field];
-  if (src) {
-    return '<div class="drop has ' + (extraCls || '') + '" role="button" tabindex="0" data-drop="' + field + '" data-i="' + ii + '" style="background-image:' + esc(cssUrl(src)) + '" aria-label="' + esc(label) + ': replace image">' +
-      '<button type="button" class="rm" data-rm="' + field + '" data-i="' + ii + '" aria-label="Remove ' + esc(label.toLowerCase()) + '">✕</button></div>';
+async function fileToWebp(file) {
+  if (!file || !/^image\//.test(file.type)) throw new Error('That file is not an image.');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url);
+    let r = resizeTo(img, MAX_SIDE, 0.85);
+    // Busy pictures can come out over the inbox's per-image cap; step down until they fit.
+    for (const [max, q] of [[1100, 0.75], [1000, 0.65], [900, 0.55], [800, 0.5]]) {
+      if (dataUriBytes(r.src) <= SEND_LIMITS.maxImageBytes) break;
+      r = resizeTo(img, max, q);
+    }
+    return Object.assign(r, { url });
   }
-  return '<div class="drop ' + (extraCls ? extraCls.replace('scope', '') : '') + '" role="button" tabindex="0" data-drop="' + field + '" data-i="' + ii + '" aria-label="' + esc(label) + ': add image">' +
-    esc(label) + '<br>Drop, paste, or click</div>';
+  catch (e) { URL.revokeObjectURL(url); throw e; }
 }
-function clueHtml(I, ii) {
-  let drops;
-  if (I.zone === 'rack') drops = dropHtml(I, ii, 'scopeImage', 'Microscope view', 'scope') + dropHtml(I, ii, 'image', 'Optional card image', 'small');
-  else if (I.zone === 'photo' || I.zone === 'tubes') drops = dropHtml(I, ii, 'image', I.zone === 'photo' ? 'Photo' : 'X-ray film image', '');
-  else drops = '<div class="drop text-only">Text clue<br>(no image)</div>';
-  const opts = ZONES.map((z) => '<option value="' + z + '"' + (z === I.zone ? ' selected' : '') + '>' + ZONE_NAMES[z] + '</option>').join('');
-  const hasImgSlot = IMAGE_ZONES.indexOf(I.zone) !== -1;
-  return '<div class="clue" data-clue="' + ii + '"><div class="drops">' + drops + '</div>' +
-    '<div class="stack" style="--gap:8px">' +
-    '<div class="row" style="--gap:8px"><span class="clue-num">Clue ' + (ii + 1) + '</span>' +
-    '<select class="input" data-f="zone" data-i="' + ii + '" style="width:170px; flex:none" aria-label="Clue ' + (ii + 1) + ' piece type">' + opts + '</select></div>' +
-    '<div class="two-col"><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="Label on the piece" aria-label="Clue ' + (ii + 1) + ' label on the piece">' +
-    '<input class="input" data-f="title" data-i="' + ii + '" value="' + esc(I.title) + '" placeholder="Clue title (when opened)" aria-label="Clue ' + (ii + 1) + ' title"></div>' +
-    '<textarea class="input" data-f="text" data-i="' + ii + '" rows="2" style="min-height:56px" placeholder="Clue text, e.g. Imaging clue: …" aria-label="Clue ' + (ii + 1) + ' text">' + esc(I.text) + '</textarea>' +
-    (hasImgSlot ? '<input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="Image source (e.g. Wikimedia Commons, CC BY-SA 4.0, author)" aria-label="Clue ' + (ii + 1) + ' image source">' : '') +
-    (I.zone === 'photo' ? '<p class="hint">Photos sit in a portrait frame (about 6 wide by 7 tall) and get cropped to fill it, so crop wide photos first.</p>' : '') +
-    (I.zone === 'rack' ? '<p class="hint">The round microscope view is what players study; the card image is optional.</p>' : '') +
-    '</div></div>';
+/** Shrink one data-URI image further (used when a whole send is over the size cap). */
+async function recompress(src, max, q) {
+  return resizeTo(await loadImage(src), max, q).src;
 }
-function drawGroup() {
-  drawTabs();
-  const G = draft.groups[tab];
-  const tierOpts = [1, 2, 3, 4].map((t) => '<option value="' + t + '"' + (t === Number(G.tier) ? ' selected' : '') + '>Tier ' + t + ' · ' + TIER_WORDS[t - 1] + '</option>').join('');
-  $('#gbody').innerHTML =
-    '<div class="row" style="--gap:12px; align-items:flex-end">' +
-    '<label class="field grow" style="min-width:200px"><span>Group name (the hidden answer)</span><input class="input" data-g-f="name" value="' + esc(G.name) + '" placeholder="e.g. Things that set off an asthma attack"></label>' +
-    '<label class="field" style="width:190px"><span>Difficulty tier</span><select class="input" data-g-f="tier">' + tierOpts + '</select></label></div>' +
-    '<label class="field"><span>One-line explanation (shown after solving)</span><input class="input" data-g-f="explanation" value="' + esc(G.explanation) + '" placeholder="Why these four belong together"></label>' +
-    '<div class="row" style="--gap:12px; align-items:flex-end">' +
-    '<label class="field grow" style="min-width:200px"><span>Submitted by (name)</span><input class="input" data-g-f="byName" maxlength="60" value="' + esc(G.byName) + '" placeholder="Leave blank to keep it anonymous"></label>' +
-    '<label class="field" style="width:190px"><span>Year/role (optional)</span><input class="input" data-g-f="byLine" maxlength="40" value="' + esc(G.byLine) + '" placeholder="e.g. MS2"></label></div>' +
-    G.items.map(clueHtml).join('') +
-    '<label class="field"><span>Other image credits for this group (optional)</span><input class="input" data-g-f="credit" value="' + esc(G.credit) + '" placeholder="Used when one credit line covers several images"></label>' +
-    '<details' + (G.articleText || G.nids ? ' open' : '') + '><summary>Teaching note and Anki cards (optional)</summary><div class="stack" style="--gap:10px; margin-top:10px">' +
-    '<label class="field"><span>Teaching note (results screen)</span><textarea class="input" data-g-f="articleText" style="min-height:120px" placeholder="One paragraph per block. Leave a blank line between paragraphs.">' + esc(G.articleText) + '</textarea></label>' +
-    '<p class="hint">Blank lines split paragraphs. A line starting with “## ” becomes a heading. Simple tags like &lt;b&gt; and &lt;i&gt; work. Image credits are added at the end automatically.</p>' +
-    '<label class="field"><span>Anki note IDs</span><input class="input" data-g-f="nids" inputmode="numeric" value="' + esc(G.nids) + '" placeholder="e.g. 1473628085810, 1496178435881"></label>' +
-    '</div></details>';
-}
-
-/* ===== Sidebar: live mini desk + checklist ===== */
-function pieceHtml(I, rot) {
-  const pic = I.zone === 'rack' ? (I.scopeImage || I.image) : (I.zone === 'photo' || I.zone === 'tubes') ? I.image : '';
-  return '<div class="mp mp-' + esc(I.zone) + (I.label.trim() ? '' : ' empty') + '" style="--rot:' + rot + 'deg" title="' + esc(ZONE_NAMES[I.zone] + (I.label ? ': ' + plain(I.label) : '')) + '">' +
-    (pic ? '<span class="pic" style="background-image:' + esc(cssUrl(pic)) + '"></span>' : '') +
-    '<b>' + (I.label.trim() ? esc(plain(I.label)) : 'empty') + '</b></div>';
-}
-function drawSide() {
-  $('#prev').innerHTML = draft.groups.map((G, gi) =>
-    (gi ? '<span class="mp-sep" style="background:var(--tier-' + esc(G.tier) + ')" aria-hidden="true"></span>' : '') +
-    G.items.map((I, ii) => pieceHtml(I, (((gi * 4 + ii) * 37) % 5) - 2)).join('')).join('');
-  const game = gameProblems(puzzleFromDraft(draft));
-  const author = authorChecks(draft);
-  const li = (cls, mark, t) => '<li><span class="ic ' + cls + '" aria-hidden="true">' + mark + '</span><span>' + esc(t) + '</span></li>';
-  let html = game.map((t) => li('bad', '!', 'Game check: ' + t)).join('');
-  html += author.slice(0, 8).map((t) => li('no', '!', t)).join('');
-  if (author.length > 8) html += '<li class="hint">…and ' + (author.length - 8) + ' more</li>';
-  if (!game.length) html += li('ok', '✓', 'Passes the game’s own file check');
-  if (!author.length) html += li('ok', '✓', 'Every title, label, explanation, image, and source is filled in');
-  $('#checks').innerHTML = html;
-  drawId();
-}
-
-/* ===== Editor events (delegated once) ===== */
-let imgTarget = null;
-let lastClue = null;
-function itemAt(i) { return draft.groups[tab].items[Number(i)]; }
-async function setImage(target, file) {
+async function setImage(gi, ii, file) {
   try {
     const r = await fileToWebp(file);
-    const I = target.cat ? cat.group.items[target.i] : draft.groups[target.g].items[target.i];
-    I[target.field] = r.src;
-    if (target.cat) { cat.noPatient[target.i] = false; drawCat(); catBump(); }
-    else { if (target.g === tab) drawGroup(); bump(); }
-    const zone = I.zone;
-    toast(zone === 'photo' && r.w > r.h * 1.05 ? 'Image added. It is wide, so the portrait photo frame will crop its sides.' : 'Image added (' + r.w + '×' + r.h + ', WebP)');
+    const I = groupAt(gi).items[ii];
+    const f = picField(I.zone);
+    if (!f) { URL.revokeObjectURL(r.url); toast('That clue is text only. Switch it to a photo, slide, or X-ray first.'); return; }
+    const old = originals.get(origKey(gi, ii));
+    if (old) URL.revokeObjectURL(old);
+    originals.set(origKey(gi, ii), r.url);
+    I[f] = r.src;
+    npList(gi)[ii] = false;
+    drawBody(); bump();
+    toast('Image added. Use “Crop” to frame it the way players will see it.', 4000);
   } catch (e) { toast(e.message || 'Could not add that image.'); }
 }
-function bindEditor() {
-  $('#f-title').addEventListener('input', (e) => { draft.title = e.target.value; bump(); });
-  $('#f-date').addEventListener('input', (e) => { draft.date = e.target.value; bump(); });
-  $('#gtabs').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-g]');
-    if (b) { tab = Number(b.dataset.g); drawGroup(); }
-  });
-  $('#gtabs').addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    tab = (tab + (e.key === 'ArrowRight' ? 1 : 3)) % 4;
-    drawGroup(); $('#gtab-' + tab).focus();
-  });
-  const body = $('#gbody');
-  body.addEventListener('input', (e) => {
-    const el = e.target, G = draft.groups[tab];
-    if (el.dataset.gF) {
-      const f = el.dataset.gF;
-      if (f === 'tier') return;
-      G[f] = el.value;
-      if (f === 'name') drawTabs();
-      bump();
-    } else if (el.dataset.f && el.dataset.f !== 'zone') {
-      itemAt(el.dataset.i)[el.dataset.f] = el.value; bump();
-    }
-  });
-  body.addEventListener('change', (e) => {
-    const el = e.target, G = draft.groups[tab];
-    if (el.dataset.gF === 'tier') { G.tier = Number(el.value); drawTabs(); bump(); }
-    else if (el.dataset.f === 'zone') {
-      itemAt(el.dataset.i).zone = el.value;
-      drawGroup(); bump();
-      const sel = $('[data-f="zone"][data-i="' + el.dataset.i + '"]', body); if (sel) sel.focus();
-    }
-  });
-  body.addEventListener('click', (e) => {
-    const rm = e.target.closest('[data-rm]');
-    if (rm) { itemAt(rm.dataset.i)[rm.dataset.rm] = ''; drawGroup(); bump(); toast('Image removed'); return; }
-    const d = e.target.closest('[data-drop]');
-    if (d) { imgTarget = { g: tab, i: Number(d.dataset.i), field: d.dataset.drop }; $('#file-img').click(); }
-  });
-  body.addEventListener('keydown', (e) => {
-    const d = e.target.closest('[data-drop]');
-    if (d && e.target === d && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); d.click(); }
-  });
-  body.addEventListener('dragover', (e) => {
-    const d = e.target.closest('[data-drop]');
-    if (d) { e.preventDefault(); d.classList.add('over'); }
-  });
-  body.addEventListener('dragleave', (e) => { const d = e.target.closest('[data-drop]'); if (d) d.classList.remove('over'); });
-  body.addEventListener('drop', (e) => {
-    const d = e.target.closest('[data-drop]');
-    if (!d) return;
-    e.preventDefault(); d.classList.remove('over');
-    const f = e.dataTransfer && e.dataTransfer.files[0];
-    if (f) setImage({ g: tab, i: Number(d.dataset.i), field: d.dataset.drop }, f);
-  });
-  const track = (e) => { const c = e.target.closest && e.target.closest('[data-clue]'); if (c) lastClue = { g: tab, i: Number(c.dataset.clue) }; };
-  body.addEventListener('focusin', track);
-  body.addEventListener('pointerover', track);
-  document.addEventListener('paste', (e) => {
-    if ($('#view-edit').hidden || !lastClue || lastClue.g !== tab) return;
-    const file = Array.from((e.clipboardData && e.clipboardData.files) || []).find((f) => /^image\//.test(f.type));
-    if (!file) return;
-    const I = draft.groups[tab].items[lastClue.i];
-    if (IMAGE_ZONES.indexOf(I.zone) === -1) { toast('That clue type is text only. Switch it to a photo, slide, or film first.'); return; }
-    e.preventDefault();
-    setImage({ g: tab, i: lastClue.i, field: I.zone === 'rack' ? 'scopeImage' : 'image' }, file);
-  });
-  $('#file-img').addEventListener('change', (e) => {
-    const f = e.target.files[0]; e.target.value = '';
-    if (f && imgTarget) setImage(imgTarget, f);
+
+/* ===== Crop window: crop on the left, the real piece on the right ===== */
+const CROP_W = 600;
+const ZONE_PREVIEW = {
+  photo: { title: 'Photograph', hint: 'The photo fills the window of a small instant-photo frame on the bench.' },
+  rack: { title: 'Microscope view', hint: 'Players put the slide on the microscope and study this view. Phones show a little more or less at the edges.' },
+  tubes: { title: 'X-ray on the light box', hint: 'The film shows its image when players lay it on the light box.' },
+};
+let crop = null; // { img, gi, ii, field, ar, cw, ch, cover, zoom, offX, offY, bg }
+function cropScale() { return crop.cover * crop.zoom; }
+function clampCrop() {
+  const s = cropScale(), w = crop.img.naturalWidth * s, h = crop.img.naturalHeight * s;
+  crop.offX = w >= crop.cw ? Math.min(0, Math.max(crop.cw - w, crop.offX)) : (crop.cw - w) / 2;
+  crop.offY = h >= crop.ch ? Math.min(0, Math.max(crop.ch - h, crop.offY)) : (crop.ch - h) / 2;
+}
+function setCropZoom(z, cx, cy) {
+  const before = cropScale();
+  crop.zoom = Math.min(5, Math.max(crop.minZoom, z));
+  const after = cropScale();
+  if (cx === undefined) { cx = crop.cw / 2; cy = crop.ch / 2; }
+  crop.offX = cx - (cx - crop.offX) * (after / before);
+  crop.offY = cy - (cy - crop.offY) * (after / before);
+  clampCrop(); drawCrop();
+}
+function paintCrop(ctx, k) {
+  ctx.fillStyle = crop.bg;
+  ctx.fillRect(0, 0, crop.cw * k, crop.ch * k);
+  const s = cropScale() * k;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(crop.img, crop.offX * k, crop.offY * k, crop.img.naturalWidth * s, crop.img.naturalHeight * s);
+}
+function drawCrop() {
+  const c = $('#cr-canvas'), p = $('#cr-prev');
+  if (!c || !crop) return;
+  paintCrop(c.getContext('2d'), 1);
+  const pc = p.getContext('2d');
+  pc.drawImage(c, 0, 0, p.width, p.height);
+  $('#cr-zoom').value = String(crop.zoom);
+  $('#cr-pct').textContent = Math.round(crop.zoom * 100) + '%';
+}
+function cropPreviewHtml(zone) {
+  const pw = 300, ph = Math.round(pw / ZONE_ASPECT[zone]);
+  const cv = '<canvas id="cr-prev" width="' + pw + '" height="' + ph + '"></canvas>';
+  if (zone === 'photo') return '<div class="cp cp-photo"><span class="cp-win">' + cv + '</span></div>';
+  if (zone === 'rack') return '<div class="cp cp-scope"><span class="cp-scope-title">Slide A</span><span class="cp-scope-wrap">' + cv + '</span></div>';
+  return '<div class="cp cp-lightbox"><span class="cp-film">' + cv + '</span></div>';
+}
+async function openCrop(gi, ii) {
+  const I = groupAt(gi).items[ii];
+  const field = picField(I.zone);
+  const src = originals.get(origKey(gi, ii)) || I[field];
+  if (!field || !src) return;
+  let img;
+  try { img = await loadImage(imgUrl(src)); } catch (e) { toast('Could not open that image for cropping.'); return; }
+  const ar = ZONE_ASPECT[I.zone], cw = CROP_W, ch = Math.round(CROP_W / ar);
+  const cover = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+  const contain = Math.min(cw / img.naturalWidth, ch / img.naturalHeight);
+  crop = { img, gi, ii, field, ar, cw, ch, cover, zoom: 1, minZoom: Math.min(1, contain / cover), offX: 0, offY: 0,
+    bg: I.zone === 'photo' ? '#fdfcf6' : '#111318' };
+  const zp = ZONE_PREVIEW[I.zone];
+  openModal('<div class="stack crop-modal" style="--gap:14px"><h2>Crop the image</h2>' +
+    '<div class="crop-grid"><div class="stack" style="--gap:10px">' +
+    '<div class="crop-stage" style="aspect-ratio:' + cw + ' / ' + ch + '"><canvas id="cr-canvas" tabindex="0" width="' + cw + '" height="' + ch + '" aria-label="Crop area. Drag or use the arrow keys to move the image."></canvas></div>' +
+    '<label class="row" style="--gap:10px"><span class="hint" style="flex:none">Zoom</span><input type="range" id="cr-zoom" class="grow" min="' + crop.minZoom.toFixed(3) + '" max="5" step="0.01" value="1"><span id="cr-pct" class="hint" style="width:44px">100%</span></label>' +
+    '<div class="row" style="--gap:6px"><button class="btn small" type="button" id="cr-fit">Fit whole image</button><button class="btn small" type="button" id="cr-fill">Fill the frame</button></div>' +
+    '<p class="hint">Drag to move the image. Scroll, pinch, or use the slider to zoom.</p></div>' +
+    '<div class="stack" style="--gap:8px"><span class="eyebrow">In the game: ' + esc(zp.title) + '</span>' + cropPreviewHtml(I.zone) +
+    '<p class="hint">' + esc(zp.hint) + '</p></div></div>' +
+    '<div class="row" style="justify-content:flex-end"><button class="btn ghost" type="button" data-dismiss>Cancel</button><button class="btn primary" type="button" id="cr-ok">Use this crop</button></div></div>',
+  (m, close) => {
+    const c = $('#cr-canvas', m);
+    const toCanvas = (e) => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * crop.cw / r.width, (e.clientY - r.top) * crop.ch / r.height]; };
+    const ptrs = new Map(); let pinch = 0;
+    c.addEventListener('pointerdown', (e) => { c.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, toCanvas(e)); pinch = 0; });
+    c.addEventListener('pointermove', (e) => {
+      if (!ptrs.has(e.pointerId) || !crop) return;
+      const p = toCanvas(e), prev = ptrs.get(e.pointerId);
+      ptrs.set(e.pointerId, p);
+      if (ptrs.size === 2) {
+        const [a, b] = Array.from(ptrs.values()), d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+        if (pinch) setCropZoom(crop.zoom * d / pinch, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+        pinch = d; return;
+      }
+      crop.offX += p[0] - prev[0]; crop.offY += p[1] - prev[1];
+      clampCrop(); drawCrop();
+    });
+    const up = (e) => { ptrs.delete(e.pointerId); pinch = 0; };
+    c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+    c.addEventListener('wheel', (e) => { e.preventDefault(); const p = toCanvas(e); setCropZoom(crop.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08), p[0], p[1]); }, { passive: false });
+    c.addEventListener('keydown', (e) => {
+      const d = { ArrowLeft: [12, 0], ArrowRight: [-12, 0], ArrowUp: [0, 12], ArrowDown: [0, -12] }[e.key];
+      if (!d) return;
+      e.preventDefault(); crop.offX += d[0]; crop.offY += d[1]; clampCrop(); drawCrop();
+    });
+    $('#cr-zoom', m).addEventListener('input', (e) => setCropZoom(Number(e.target.value)));
+    $('#cr-fit', m).addEventListener('click', () => setCropZoom(crop.minZoom));
+    $('#cr-fill', m).addEventListener('click', () => { crop.zoom = 1; crop.offX = (crop.cw - crop.img.naturalWidth * crop.cover) / 2; crop.offY = (crop.ch - crop.img.naturalHeight * crop.cover) / 2; clampCrop(); drawCrop(); });
+    $('#cr-ok', m).addEventListener('click', () => {
+      // Output at the frame's shape, up to 1200 px on the long side, never upscaled past the original.
+      const k = Math.max(0.2, Math.min(MAX_SIDE / Math.max(crop.cw, crop.ch), 1 / cropScale()));
+      const out = document.createElement('canvas');
+      out.width = Math.round(crop.cw * k); out.height = Math.round(crop.ch * k);
+      paintCrop(out.getContext('2d'), k);
+      const I2 = groupAt(crop.gi).items[crop.ii];
+      if (picField(I2.zone) === crop.field) I2[crop.field] = encodeCanvas(out, 0.85);
+      close(); drawBody(); bump();
+      toast('Cropped (' + out.width + '×' + out.height + ')');
+    });
+    $('#cr-fill', m).click();
   });
 }
-
 /* ===== Modal ===== */
 function openModal(html, onOpen) {
   const prevFocus = document.activeElement;
@@ -929,78 +931,263 @@ function confirmModal(title, text, okLabel) {
     });
   });
 }
-
-/* ===== Files: open, download, published picker, new ===== */
-function hasWork() {
-  return !!(draft.title.trim() || draft.groups.some((G) => G.name.trim() || G.items.some((I) => I.label.trim() || I.image || I.scopeImage)));
+/* ===== Rendering: the editor (both modes) ===== */
+const IMAGE_SLOT = { photo: 'Photo', rack: 'Microscope view', tubes: 'X-ray image' };
+function dropHtml(I, ii) {
+  const f = picField(I.zone);
+  if (!f) return '<div class="drop text-only">Text clue<br>(no image)</div>';
+  const label = IMAGE_SLOT[I.zone], src = I[f];
+  const shape = 'aspect-ratio:' + ZONE_ASPECT[I.zone].toFixed(4);
+  if (src) {
+    return '<div class="drop has" role="button" tabindex="0" data-drop="' + ii + '" style="' + shape + ';background-image:' + esc(cssUrl(src)) + '" aria-label="' + esc(label) + ': replace image">' +
+      '<button type="button" class="rm" data-rm="' + ii + '" aria-label="Remove ' + esc(label.toLowerCase()) + '">✕</button></div>' +
+      '<button type="button" class="btn small" data-crop="' + ii + '">Crop</button>';
+  }
+  return '<div class="drop" role="button" tabindex="0" data-drop="' + ii + '" style="' + shape + '" aria-label="' + esc(label) + ': add image">' +
+    esc(label) + '<br>Drop, paste, or click</div>';
 }
-function loadPuzzle(p, what) {
-  if (!p || typeof p !== 'object' || Array.isArray(p)) throw new Error('That file is not a puzzle.');
-  normalizeKinds(p);
-  const r = draftFromPuzzle(p);
-  draft = r.draft; tab = 0;
-  drawTop(); drawGroup(); drawSide(); saveNow();
-  toast(r.warnings.length ? what + ' loaded. ' + r.warnings.join(' ') : what + ' loaded into the editor.', r.warnings.length ? 6000 : 2600);
+function clueHtml(I, ii, noPatient) {
+  const img = picField(I.zone);
+  const opts = ZONES.map((z) => '<option value="' + z + '"' + (z === I.zone ? ' selected' : '') + '>' + ZONE_NAMES[z] + '</option>').join('');
+  const n = 'Clue ' + (ii + 1);
+  const fieldLabel = img ? 'What the image shows' : 'Clue (what’s written on it)';
+  const ph = img ? 'e.g. Mesothelioma' : 'e.g. Bronchiectasis';
+  return '<div class="clue" data-clue="' + ii + '"><div class="drops">' + dropHtml(I, ii) + '</div>' +
+    '<div class="stack" style="--gap:8px">' +
+    '<div class="row" style="--gap:8px"><span class="clue-num">' + n + '</span>' +
+    '<select class="input" data-f="zone" data-i="' + ii + '" style="width:190px; flex:none" aria-label="' + n + ': kind of piece">' + opts + '</select></div>' +
+    '<label class="field"><span>' + fieldLabel + '</span><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="' + ph + '" maxlength="' + SEND_LIMITS.label + '"></label>' +
+    (img ? '<p class="hint">Players don’t see this while solving unless they use the “Label Images” hint, which tags the piece with it. It’s shown under the image on the results screen.</p>' +
+      '<input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="Image source (e.g. my own photo, or Wikimedia Commons, CC BY-SA 4.0, author)" aria-label="' + n + ': image source">' +
+      '<label class="check"><input type="checkbox" data-np="' + ii + '"' + (noPatient[ii] ? ' checked' : '') + '><span>No patient can be identified in this image (no faces, names, dates, or record numbers)</span></label>' : '') +
+    (I.zone === 'rack' ? '<p class="hint">A slide takes one image: the microscope view players study.</p>' : '') +
+    '</div></div>';
 }
-function readJsonFile(file) {
-  return file.text().then((t) => JSON.parse(t));
+function field(k, label, val, ph, extra, max) {
+  return '<label class="field"' + (extra || '') + '><span>' + label + '</span><input class="input" data-k="' + k + '" value="' + esc(val) + '" placeholder="' + esc(ph) + '"' + (max ? ' maxlength="' + max + '"' : '') + '></label>';
 }
-function download() {
-  const p = puzzleFromDraft(draft);
-  const blob = new Blob([JSON.stringify(p, null, 2) + '\n'], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = p.id + '.json';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  const n = caseProblems(p).length;
-  toast(n ? 'Downloaded ' + p.id + '.json, but the game check found ' + n + ' problem' + (n > 1 ? 's' : '') + '.' : 'Downloaded ' + p.id + '.json', n ? 5000 : 2600);
+function tierPick(name, value) {
+  return '<div class="tier-pick" role="radiogroup" aria-label="Difficulty">' + SUGGESTED_TIERS.map((w, i) => '<label><input type="radio" name="' + name + '" value="' + (i + 1) + '"' + (Number(value) === i + 1 ? ' checked' : '') + '>' +
+    '<span class="tierdot" style="background:var(--tier-' + (i + 1) + ')" aria-hidden="true"></span>' + w + '</label>').join('') + '</div>';
 }
-async function pickPublished() {
-  let index;
-  try {
-    const r = await fetch('../puzzles/index.json', { cache: 'no-store' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    index = await r.json();
-  } catch (e) { toast('Could not load the puzzle list (' + e.message + ').'); return; }
-  const list = (index.puzzles || []).filter((x) => x && x.file);
-  openModal('<div class="stack" style="--gap:12px"><h2>Start from a published puzzle</h2><p class="muted">This copies it into the editor. The live puzzle is not changed.</p>' +
-    '<ul class="pick-list">' + list.map((x, i) => '<li><button class="btn" type="button" data-pick="' + i + '"><span>' + esc(x.title || x.id) + '</span><span class="badge">' + esc(x.date || '') + '</span></button></li>').join('') + '</ul>' +
-    '<div class="row" style="justify-content:flex-end"><button class="btn ghost" type="button" data-dismiss>Cancel</button></div></div>',
-  (m, close) => {
-    $$('[data-pick]', m).forEach((b) => b.addEventListener('click', async () => {
-      const x = list[Number(b.dataset.pick)];
-      close();
-      if (hasWork() && !(await confirmModal('Replace your draft?', 'Your current draft will be replaced by “' + (x.title || x.id) + '”. Download it first if you want to keep it.', 'Replace draft'))) return;
-      try {
-        const r = await fetch('../puzzles/' + encodeURIComponent(x.file), { cache: 'no-store' });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        loadPuzzle(await r.json(), '“' + (x.title || x.id) + '”');
-      } catch (e) { toast('Could not load that puzzle (' + e.message + ').'); }
-    }));
+/** Name, explanation, clues, teaching note, AnKing IDs for one category. */
+function groupHtml(G, gi) {
+  const tierHtml = isPuz()
+    ? '<div class="field"><span>Difficulty</span>' + tierPick('g-tier', G.tier) + '<p class="hint">Each of the four categories uses a different difficulty. Picking one that’s taken swaps the two.</p></div>'
+    : '<div class="field"><span>Suggested difficulty</span>' + tierPick('s-tier', cat.suggestedTier) + '<p class="hint">Just a suggestion. The puzzle group makes the final call when it puts the week’s puzzle together.</p></div>';
+  return '<div class="panel stack" style="--gap:12px">' + (isPuz() ? '' : '<h2>Your category</h2>') +
+    field('g.name', 'Category name (the hidden answer players figure out)', G.name, 'e.g. Things that set off an asthma attack', '', SEND_LIMITS.name) +
+    field('g.explanation', 'One-line explanation (shown after it’s solved)', G.explanation, 'Why these four belong together', '', SEND_LIMITS.explanation) +
+    tierHtml + '</div>' +
+    '<div class="panel stack" style="--gap:12px"><h2>The four clues</h2>' +
+    '<p class="hint">Pick what each piece is. Sticky notes, paper, and prescriptions carry written clues. Photos, microscope slides, and X-rays carry an image.</p>' +
+    G.items.map((I, ii) => clueHtml(I, ii, npList(gi))).join('') +
+    '<details' + (G.articleText || G.nids ? ' open' : '') + '><summary>Teaching note and AnKing cards (optional)</summary><div class="stack" style="--gap:10px; margin-top:10px">' +
+    '<label class="field"><span>Teaching note (shown on the results screen)</span><textarea class="input" data-k="g.articleText" style="min-height:110px" placeholder="A few lines on why each clue fits. Leave a blank line between paragraphs.">' + esc(G.articleText) + '</textarea></label>' +
+    field('g.nids', 'AnKing card IDs (optional)', G.nids, 'e.g. 1473628085810, 1496178435881') + '</div></details></div>';
+}
+function whoHtml() {
+  const c = cur(), named = c.creditMode === 'named';
+  return '<div class="panel stack" style="--gap:12px"><h2>Credit</h2>' +
+    '<div class="row" style="--gap:18px" role="radiogroup" aria-label="Credit">' +
+    '<label class="radio"><input type="radio" name="s-credit" value="named"' + (named ? ' checked' : '') + '> Credit me</label>' +
+    '<label class="radio"><input type="radio" name="s-credit" value="anonymous"' + (c.creditMode === 'anonymous' ? ' checked' : '') + '> Stay anonymous</label></div>' +
+    (named ? '<div class="row" style="--gap:12px; align-items:flex-end">' +
+      field('c.name', 'Name to show', c.name, 'e.g. John Doe', ' style="flex:1; min-width:200px"', CREDIT_NAME_MAX) +
+      field('c.line', 'Year or role (optional)', c.line, 'e.g. MS2', ' style="width:180px"', CREDIT_LINE_MAX) + '</div>' +
+      '<p class="hint">Shown on the results screen as “Category by …”' + (isPuz() ? ' for each of your four categories' : '') + '.</p>' : '') +
+    field('c.email', 'Contact email (optional, private)', c.email, 'you@example.com') +
+    '<p class="private-note"><b>Never shown on the puzzle.</b> Only the puzzle group sees it, in case they have a question.</p>' +
+    '<label class="check consent"><input type="checkbox" id="s-consent"' + (c.consent ? ' checked' : '') + '><span>I made this or can share it, no patient can be identified, and the puzzle group may edit it.</span></label></div>';
+}
+function drawTabs() {
+  const el = $('#gtabs');
+  if (!el) return;
+  el.innerHTML = puz.groups.map((G, i) =>
+    '<button role="tab" type="button" id="gtab-' + i + '" data-g="' + i + '" aria-selected="' + (i === tab) + '" tabindex="' + (i === tab ? 0 : -1) + '">' +
+    '<span class="tierdot" style="background:var(--tier-' + esc(G.tier) + ')" aria-hidden="true"></span>' +
+    '<span class="tn">' + (G.name.trim() ? esc(G.name.trim()) : 'Category ' + (i + 1)) + '</span>' + (G.name.trim() ? '' : ' <span class="badge">empty</span>') + '</button>').join('');
+}
+function drawBody() {
+  const body = $('#ebody');
+  const keep = document.activeElement && body.contains(document.activeElement) ? document.activeElement : null;
+  const sel = keep && (keep.dataset.k || keep.dataset.f) ? '[data-' + (keep.dataset.k ? 'k="' + keep.dataset.k : 'f="' + keep.dataset.f + '"][data-i="' + keep.dataset.i) + '"]' : '';
+  if (isPuz()) {
+    body.innerHTML = '<div class="panel stack" style="--gap:10px">' +
+      field('p.title', 'Puzzle title', puz.title, 'e.g. Holes, Haze, and Old Paint', '', SEND_LIMITS.puzzleTitle) +
+      '<p class="hint">No release date needed: the puzzle group picks the week when it publishes.</p></div>' +
+      '<div class="panel" style="padding:0"><div class="tabs gtabs" role="tablist" id="gtabs" aria-label="Your four categories" style="padding:0 12px; border-bottom:0"></div></div>' +
+      '<div class="stack" role="tabpanel" aria-labelledby="gtab-' + tab + '" style="--gap:16px">' + groupHtml(puz.groups[tab], tab) + '</div>' +
+      whoHtml();
+    drawTabs();
+  } else body.innerHTML = groupHtml(cat.group, 0) + whoHtml();
+  $$('#ebody [data-k="c.email"]').forEach((el) => { el.type = 'email'; el.autocomplete = 'email'; });
+  if (sel) { const el = $(sel, body); if (el) el.focus(); }
+  drawSide();
+}
+/* ===== Sidebar: live preview (the game's own pieces and results placards) + checklist ===== */
+let pvView = 'desk';
+let pvReady = false;
+let pvTimer = 0;
+/** The draft as the game would load it, with stand-in text where fields are still empty. */
+function previewPuzzle() {
+  const c = cur(), t = (s) => String(s || '').trim();
+  const named = c.creditMode === 'named' && t(c.name);
+  const groups = isPuz() ? puz.groups : [Object.assign({}, cat.group, { tier: Number(cat.suggestedTier) || 1 })];
+  const d = blankDraft();
+  d.title = isPuz() ? t(puz.title) : '';
+  d.groups = groups.map((G) => Object.assign({}, G, {
+    name: t(G.name) || 'Category name', explanation: t(G.explanation) || 'Your one-line explanation',
+    byName: named ? t(c.name) : '', byLine: named ? t(c.line) : '', byExtra: null, srcId: '', keys: [], extra: {},
+    items: G.items.map((I, ii) => Object.assign({}, I, { label: t(I.label) || 'Clue ' + (ii + 1), srcId: '', keys: [], extra: {} })),
+  }));
+  return puzzleFromDraft(d);
+}
+function postPreview() {
+  const f = $('#pv-frame');
+  if (!pvReady || !f || !f.contentWindow) return;
+  f.contentWindow.postMessage({ type: 'dp-studio-preview', view: pvView, puzzle: previewPuzzle(),
+    theme: document.documentElement.getAttribute('data-theme'), expand: !isPuz() }, location.origin);
+}
+function schedulePreview() { clearTimeout(pvTimer); pvTimer = setTimeout(postPreview, 120); }
+function setPreviewView(v) {
+  pvView = v;
+  $$('.prev-tabs [data-pv]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pv === v)));
+  $('#pv-hint').textContent = v === 'desk'
+    ? 'Your pieces on the bench, drawn by the game itself. Slides show only a letter until they go under the microscope; X-ray films are shown lit, as on the light box.' + (isPuz() ? ' Players get all 16 shuffled.' : ' In the puzzle they get mixed in with 12 others.')
+    : 'The results screen players see at the end' + (isPuz() ? ', easiest first' : '') + '. Click a placard to open or close its teaching notes.';
+  postPreview();
+}
+function bindPreview() {
+  $$('.prev-tabs [data-pv]').forEach((b) => b.addEventListener('click', () => setPreviewView(b.dataset.pv)));
+  window.addEventListener('message', (ev) => {
+    const f = $('#pv-frame');
+    if (!f || ev.source !== f.contentWindow || !ev.data) return;
+    if (ev.data.type === 'dp-studio-preview-ready') { pvReady = true; postPreview(); }
+    if (ev.data.type === 'dp-studio-preview-size') f.style.height = Math.max(120, ev.data.h) + 'px';
   });
 }
-function bindFiles() {
-  $('#btn-download').addEventListener('click', download);
-  $('#btn-pick').addEventListener('click', pickPublished);
-  $('#btn-open').addEventListener('click', () => $('#file-open').click());
-  $('#file-open').addEventListener('change', async (e) => {
+function checks() { return isPuz() ? puzzleChecks(puz) : categoryChecks(cat); }
+function drawSide() {
+  const r = checks();
+  const li = (cls, mark, t) => '<li><span class="ic ' + cls + '" aria-hidden="true">' + mark + '</span><span>' + esc(t) + '</span></li>';
+  let html = r.problems.slice(0, 8).map((t) => li('no', '!', t)).join('');
+  if (r.problems.length > 8) html += '<li class="hint">…and ' + (r.problems.length - 8) + ' more</li>';
+  if (!r.problems.length) html += li('ok', '✓', 'Ready to send');
+  html += r.notes.slice(0, 6).map((t) => li('info', 'i', t)).join('');
+  $('#checks').innerHTML = html;
+  schedulePreview();
+}
+/* ===== Editor events (delegated once, both modes) ===== */
+let lastClue = null;
+function setZone(I, zone) {
+  // Carry the picture across when switching between picture pieces.
+  const from = picField(I.zone), to = picField(zone);
+  if (from && to && from !== to && I[from] && !I[to]) { I[to] = I[from]; I[from] = ''; }
+  I.zone = zone;
+}
+function bindEditor() {
+  const body = $('#ebody');
+  body.addEventListener('input', (e) => {
+    const el = e.target, k = el.dataset.k;
+    if (k) {
+      const f = k.slice(2);
+      if (k.startsWith('g.')) groupAt(curGi())[f] = el.value;
+      else if (k === 'p.title') puz.title = el.value;
+      else cur()[f] = el.value;
+      if (k === 'g.name' && isPuz()) drawTabs();
+      bump();
+    } else if (el.dataset.f && el.dataset.f !== 'zone') {
+      groupAt(curGi()).items[Number(el.dataset.i)][el.dataset.f] = el.value; bump();
+    }
+  });
+  body.addEventListener('change', (e) => {
+    const el = e.target;
+    if (el.name === 'g-tier') {
+      const t = Number(el.value), other = setTierSwap(puz.groups, tab, t);
+      drawBody(); bump();
+      if (other !== -1) toast('Swapped: Category ' + (other + 1) + ' is now ' + SUGGESTED_TIERS[puz.groups[other].tier - 1] + '. Each difficulty is used once.', 4000);
+      const r = $('#ebody input[name="g-tier"][value="' + t + '"]'); if (r) r.focus();
+    } else if (el.name === 's-tier') { cat.suggestedTier = Number(el.value); bump(); }
+    else if (el.name === 's-credit') {
+      cur().creditMode = el.value; drawBody(); bump();
+      const r = $('#ebody input[name="s-credit"][value="' + el.value + '"]'); if (r) r.focus();
+    } else if (el.id === 's-consent') { cur().consent = el.checked; bump(); }
+    else if (el.dataset.np) { npList(curGi())[Number(el.dataset.np)] = el.checked; bump(); }
+    else if (el.dataset.f === 'zone') {
+      setZone(groupAt(curGi()).items[Number(el.dataset.i)], el.value);
+      drawBody(); bump();
+      const s = $('#ebody [data-f="zone"][data-i="' + el.dataset.i + '"]'); if (s) s.focus();
+    }
+  });
+  body.addEventListener('click', (e) => {
+    const tb = e.target.closest('#gtabs [data-g]');
+    if (tb) { tab = Number(tb.dataset.g); drawBody(); $('#gtab-' + tab).focus(); return; }
+    const rm = e.target.closest('[data-rm]');
+    if (rm) {
+      const gi = curGi(), i = Number(rm.dataset.rm), I = groupAt(gi).items[i];
+      I[picField(I.zone)] = ''; npList(gi)[i] = false;
+      const o = originals.get(origKey(gi, i)); if (o) { URL.revokeObjectURL(o); originals.delete(origKey(gi, i)); }
+      drawBody(); bump(); toast('Image removed'); return;
+    }
+    const cr = e.target.closest('[data-crop]');
+    if (cr) { openCrop(curGi(), Number(cr.dataset.crop)); return; }
+    const d = e.target.closest('[data-drop]');
+    if (d) { imgTarget = { mode, gi: curGi(), i: Number(d.dataset.drop) }; $('#file-img').click(); }
+  });
+  body.addEventListener('keydown', (e) => {
+    if (e.target.closest('#gtabs') && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+      tab = (tab + (e.key === 'ArrowRight' ? 1 : 3)) % 4; drawBody(); $('#gtab-' + tab).focus(); return;
+    }
+    const d = e.target.closest('[data-drop]');
+    if (d && e.target === d && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); d.click(); }
+  });
+  body.addEventListener('dragover', (e) => { const d = e.target.closest('[data-drop]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+  body.addEventListener('dragleave', (e) => { const d = e.target.closest('[data-drop]'); if (d) d.classList.remove('over'); });
+  body.addEventListener('drop', (e) => {
+    const d = e.target.closest('[data-drop]');
+    if (!d) return;
+    e.preventDefault(); d.classList.remove('over');
+    const f = e.dataTransfer && e.dataTransfer.files[0];
+    if (f) setImage(curGi(), Number(d.dataset.drop), f);
+  });
+  const track = (e) => { const c = e.target.closest && e.target.closest('[data-clue]'); if (c) lastClue = { mode, gi: curGi(), i: Number(c.dataset.clue) }; };
+  body.addEventListener('focusin', track);
+  body.addEventListener('pointerover', track);
+  document.addEventListener('paste', (e) => {
+    if ($('#view-edit').hidden || !lastClue || lastClue.mode !== mode || lastClue.gi !== curGi()) return;
+    const file = Array.from((e.clipboardData && e.clipboardData.files) || []).find((f) => /^image\//.test(f.type));
+    if (!file) return;
+    if (!picField(groupAt(lastClue.gi).items[lastClue.i].zone)) { toast('That clue is text only. Switch it to a photo, slide, or X-ray first.'); return; }
+    e.preventDefault();
+    setImage(lastClue.gi, lastClue.i, file);
+  });
+  $('#file-img').addEventListener('change', (e) => {
     const f = e.target.files[0]; e.target.value = '';
-    if (!f) return;
-    try {
-      const p = await readJsonFile(f);
-      if (hasWork() && !(await confirmModal('Replace your draft?', 'Opening “' + f.name + '” replaces what is in the editor now.', 'Open file'))) return;
-      loadPuzzle(p, f.name);
-    } catch (err) { toast('Could not open that file: ' + (err.message || err), 5000); }
+    if (f && imgTarget && imgTarget.mode === mode) setImage(imgTarget.gi, imgTarget.i, f);
   });
-  $('#btn-new').addEventListener('click', async () => {
-    if (hasWork() && !(await confirmModal('Start a new blank puzzle?', 'This clears the editor. Download your draft first if you want to keep it.', 'Clear and start over'))) return;
-    draft = blankDraft(); tab = 0;
-    drawTop(); drawGroup(); drawSide(); saveNow();
-    toast('New blank puzzle');
-  });
+  $('#btn-new').addEventListener('click', startOver);
+  $('#btn-send').addEventListener('click', send);
 }
-
+let imgTarget = null;
+async function startOver() {
+  const which = mode;
+  if (hasWork(which) && !(await confirmModal('Start over?', 'This clears the ' + (which === 'puzzle' ? 'whole puzzle' : 'category') + '. Send it first if you haven’t yet. Your name, credit choice, and email stay.', 'Clear and start over'))) return;
+  clearDraft(which);
+  toast(which === 'puzzle' ? 'Blank puzzle ready' : 'Blank category ready');
+}
+/** Clear one mode's draft but keep who you are, so the next one is quicker. */
+function clearDraft(which) {
+  const src = which === 'puzzle' ? puz : cat;
+  const keep = { creditMode: src.creditMode, name: src.name, line: src.line, email: src.email };
+  if (which === 'puzzle') { puz = Object.assign(blankPuzzleSub(), keep); tab = 0; } else cat = Object.assign(blankCategory(), keep);
+  Array.from(originals.keys()).forEach((k) => { if (k.startsWith(which + ':')) { URL.revokeObjectURL(originals.get(k)); originals.delete(k); } });
+  saveFailed[which] = false;
+  if (which === mode) drawBody();
+  saveNow(which);
+}
 /* ===== Test play: the real game in preview mode ===== */
+function gameProblems(p) { return caseProblems(p).map((m) => m.charAt(0).toUpperCase() + m.slice(1)); }
 let playFile = null;
 let warnedResultsEdit = false;
 function playSource() { return ($('input[name="play-src"]:checked') || {}).value || 'draft'; }
@@ -1015,17 +1202,17 @@ function stagePreview() {
   if (playSource() === 'file') {
     if (!playFile) { showPlayProblems([['no', 'Choose a .json file first.']]); return false; }
     p = JSON.parse(JSON.stringify(playFile));
-  } else p = puzzleFromDraft(draft);
+  } else p = puzzleFromDraft(puz);
   normalizeKinds(p);
   const bad = gameProblems(p);
   if (bad.length) {
     showPlayProblems([['bad', 'The game would refuse this puzzle. Fix these first:']].concat(bad.map((t) => ['bad', t])));
     return false;
   }
-  const heads = playSource() === 'draft' ? authorChecks(draft) : [];
+  const heads = playSource() === 'draft' ? puzzleChecks(puz).problems : [];
   showPlayProblems(heads.length ? [['no', 'Playable, but not ready to publish yet (' + heads.length + ' item' + (heads.length > 1 ? 's' : '') + ' on the Edit checklist).']] : []);
   try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(p)); } catch (e) {
-    showPlayProblems([['bad', 'This puzzle is too big for browser storage, so it cannot be test played here. Externalize the images or use smaller ones.']]);
+    showPlayProblems([['bad', 'This puzzle is too big for browser storage, so it cannot be test played here. Try smaller images.']]);
     return false;
   }
   return true;
@@ -1072,14 +1259,11 @@ function bindPlay() {
     }
   });
 }
-
-/* ===== Submit a category (what students use) ===== */
+/* ===== Sending settings ===== */
 // Settings live in studio/config.js (window.DESK_PUZZLE_CONFIG). With a Supabase
-// URL and public key there, "Send to the puzzle group" posts straight to the
-// private inbox; without them the Studio only offers the download.
+// URL and public key there, "Submit suggestion" posts straight to the puzzle
+// group's private inbox; without them sending is off and drafts just stay saved.
 const CFG = Object.assign({ supabaseUrl: '', supabasePublishableKey: '', turnstileSiteKey: '', submitTo: '' }, window.DESK_PUZZLE_CONFIG || {});
-// Where students send a downloaded file (email or link), shown after a download.
-const SUBMIT_TO = String(CFG.submitTo || '').trim() || 'the CMSRU Desk Puzzle group';
 // Publishable key (sb_publishable_...); an older anon JWT under supabaseAnonKey still works.
 const SEND_KEY = String(CFG.supabasePublishableKey || CFG.supabaseAnonKey || '').trim();
 // Only a JWT (three dot-separated parts, i.e. a legacy anon key) goes in Authorization;
@@ -1090,149 +1274,6 @@ const SEND_URL = String(CFG.supabaseUrl || '').trim() && SEND_KEY ? String(CFG.s
 const SEND_ON = !!SEND_URL;
 const TURNSTILE_KEY = SEND_ON ? String(CFG.turnstileSiteKey || '').trim() : '';
 const SENT_KEY = 'dp2d:studio-sent';
-const CATEGORY_KEY = 'dp2d:studio-category';
-let cat = blankCategory();
-let catTimer = 0;
-let catSaveFailed = false;
-let lastCatClue = null;
-
-function loadCategory() {
-  try {
-    const raw = localStorage.getItem(CATEGORY_KEY);
-    if (!raw) return null;
-    const c = JSON.parse(raw);
-    if (!c || c.v !== 1 || !c.group || !Array.isArray(c.group.items)) return null;
-    const out = Object.assign(blankCategory(), c);
-    out.group = Object.assign(blankGroup(0), c.group, {
-      items: c.group.items.slice(0, 4).concat([0, 1, 2, 3].map(blankItem)).slice(0, 4).map((I) => Object.assign(blankItem(), I)),
-    });
-    out.noPatient = [0, 1, 2, 3].map((i) => !!(c.noPatient && c.noPatient[i]));
-    return out;
-  } catch (e) { return null; }
-}
-function catSaveNow() {
-  const s = $('#s-saved');
-  try {
-    localStorage.setItem(CATEGORY_KEY, JSON.stringify(cat));
-    s.textContent = 'Saved in this browser'; s.classList.remove('err');
-    catSaveFailed = false;
-  } catch (e) {
-    const quota = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
-    s.textContent = quota ? 'Not saved: browser storage is full' : 'Not saved: browser storage unavailable';
-    s.classList.add('err');
-    if (!catSaveFailed) toast(quota ? 'Your images are too big to keep in this browser. Download the submission now so you don’t lose your work.' : 'Could not save your draft in this browser. Download the submission to keep it.', 7000);
-    catSaveFailed = true;
-  }
-}
-function catBump() {
-  if (!catSaveFailed) { $('#s-saved').textContent = 'Saving…'; $('#s-saved').classList.remove('err'); }
-  clearTimeout(catTimer);
-  catTimer = setTimeout(catSaveNow, 400);
-  drawCatSide();
-}
-function catClueHtml(I, ii) {
-  const hasSlot = IMAGE_ZONES.indexOf(I.zone) !== -1;
-  let drops;
-  if (I.zone === 'rack') drops = dropHtml(I, ii, 'scopeImage', 'Microscope view', 'scope') + dropHtml(I, ii, 'image', 'Optional card image', 'small');
-  else if (I.zone === 'photo' || I.zone === 'tubes') drops = dropHtml(I, ii, 'image', I.zone === 'photo' ? 'Photo' : 'X-ray image', '');
-  else drops = '<div class="drop text-only">Text clue<br>(no image)</div>';
-  const opts = ZONES.map((z) => '<option value="' + z + '"' + (z === I.zone ? ' selected' : '') + '>' + ZONE_NAMES[z] + '</option>').join('');
-  const n = 'Clue ' + (ii + 1);
-  return '<div class="clue" data-clue="' + ii + '"><div class="drops">' + drops + '</div>' +
-    '<div class="stack" style="--gap:8px">' +
-    '<div class="row" style="--gap:8px"><span class="clue-num">' + n + '</span>' +
-    '<select class="input" data-f="zone" data-i="' + ii + '" style="width:190px; flex:none" aria-label="' + n + ': kind of piece">' + opts + '</select></div>' +
-    '<div class="two-col"><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="Label on the piece" aria-label="' + n + ': label on the piece">' +
-    '<input class="input" data-f="title" data-i="' + ii + '" value="' + esc(I.title) + '" placeholder="' + (hasSlot ? 'Title (needed for this piece)' : 'Title when opened (optional)') + '" aria-label="' + n + ': title"></div>' +
-    '<textarea class="input" data-f="text" data-i="' + ii + '" rows="2" style="min-height:56px" placeholder="Short text shown when it’s opened" aria-label="' + n + ': short text">' + esc(I.text) + '</textarea>' +
-    (hasSlot ? '<input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="Image source (e.g. my own photo, or Wikimedia Commons, CC BY-SA 4.0, author)" aria-label="' + n + ': image source">' +
-      '<label class="check"><input type="checkbox" data-np="' + ii + '"' + (cat.noPatient[ii] ? ' checked' : '') + '><span>No patient can be identified in this image (no faces, names, dates, or record numbers)</span></label>' : '') +
-    (I.zone === 'photo' ? '<p class="hint">Photos sit in a portrait frame and get cropped to fill it, so crop wide photos first.</p>' : '') +
-    (I.zone === 'rack' ? '<p class="hint">The round microscope view is what players study. The card image is optional.</p>' : '') +
-    '</div></div>';
-}
-function drawCat() {
-  const G = cat.group;
-  const field = (k, label, val, ph, extra) => '<label class="field"' + (extra || '') + '><span>' + label + '</span><input class="input" data-k="' + k + '" value="' + esc(val) + '" placeholder="' + esc(ph) + '"></label>';
-  const tiers = SUGGESTED_TIERS.map((w, i) => '<label><input type="radio" name="s-tier" value="' + (i + 1) + '"' + (Number(cat.suggestedTier) === i + 1 ? ' checked' : '') + '>' +
-    '<span class="tierdot" style="background:var(--tier-' + (i + 1) + ')" aria-hidden="true"></span>' + w + '</label>').join('');
-  const named = cat.creditMode === 'named';
-  $('#sbody').innerHTML =
-    '<div class="panel stack" style="--gap:12px"><h2>Your category</h2>' +
-    field('g.name', 'Category name (the hidden answer players figure out)', G.name, 'e.g. Things that set off an asthma attack') +
-    field('g.explanation', 'One-line explanation (shown after it’s solved)', G.explanation, 'Why these four belong together') +
-    '<div class="field"><span>Suggested difficulty</span><div class="tier-pick" role="radiogroup" aria-label="Suggested difficulty">' + tiers + '</div>' +
-    '<p class="hint">Just a suggestion. The puzzle group makes the final call when it puts the week’s puzzle together.</p></div></div>' +
-    '<div class="panel stack" style="--gap:12px"><h2>The four clues</h2>' +
-    '<p class="hint">The label is what players see on the piece. The title and short text show when they open it. Pick photo, microscope slide, or X-ray if the clue is an image.</p>' +
-    G.items.map(catClueHtml).join('') +
-    '<details' + (G.articleText || G.nids ? ' open' : '') + '><summary>Teaching note and Anki cards (optional)</summary><div class="stack" style="--gap:10px; margin-top:10px">' +
-    '<label class="field"><span>Teaching note (shown on the results screen)</span><textarea class="input" data-k="g.articleText" style="min-height:110px" placeholder="A few lines on why each clue fits. Leave a blank line between paragraphs.">' + esc(G.articleText) + '</textarea></label>' +
-    field('g.nids', 'Anki note IDs', G.nids, 'e.g. 1473628085810, 1496178435881') + '</div></details></div>' +
-    '<div class="panel stack" style="--gap:12px"><h2>Credit</h2>' +
-    '<div class="row" style="--gap:18px" role="radiogroup" aria-label="Credit">' +
-    '<label class="radio"><input type="radio" name="s-credit" value="named"' + (named ? ' checked' : '') + '> Credit me</label>' +
-    '<label class="radio"><input type="radio" name="s-credit" value="anonymous"' + (cat.creditMode === 'anonymous' ? ' checked' : '') + '> Stay anonymous</label></div>' +
-    (named ? '<div class="row" style="--gap:12px; align-items:flex-end">' +
-      field('c.name', 'Name to show', cat.name, 'e.g. Priya N.', ' style="flex:1; min-width:200px"') +
-      field('c.line', 'Year or role (optional)', cat.line, 'e.g. MS2', ' style="width:180px"') + '</div>' +
-      '<p class="hint">Shown on the results screen as “Category by …”.</p>' : '') +
-    field('c.email', 'Contact email (optional, private)', cat.email, 'you@example.com') +
-    '<p class="private-note"><b>Never shown on the puzzle.</b> Only the puzzle group sees it, in case they have a question about your category.</p>' +
-    '<label class="check consent"><input type="checkbox" id="s-consent"' + (cat.consent ? ' checked' : '') + '><span>I made this or can share it, no patient can be identified, and the puzzle group may edit it.</span></label></div>';
-  $$('#sbody [data-k="c.email"]').forEach((el) => { el.type = 'email'; el.autocomplete = 'email'; });
-  $$('#sbody [data-k="c.name"], #sbody [data-k="c.line"]').forEach((el) => { el.maxLength = el.dataset.k === 'c.name' ? CREDIT_NAME_MAX : CREDIT_LINE_MAX; });
-  drawCatSide();
-}
-function drawCatSide() {
-  $('#s-prev').innerHTML = cat.group.items.map((I, ii) => pieceHtml(I, ((ii * 37) % 5) - 2)).join('');
-  const r = categoryChecks(cat);
-  const li = (cls, mark, t) => '<li><span class="ic ' + cls + '" aria-hidden="true">' + mark + '</span><span>' + esc(t) + '</span></li>';
-  let html = r.problems.slice(0, 8).map((t) => li('no', '!', t)).join('');
-  if (r.problems.length > 8) html += '<li class="hint">…and ' + (r.problems.length - 8) + ' more</li>';
-  if (!r.problems.length) html += li('ok', '✓', SEND_ON ? 'Ready to send' : 'Ready to download');
-  html += r.notes.map((t) => li('info', 'i', t)).join('');
-  $('#s-checks').innerHTML = html;
-}
-function linkFor(dest) {
-  const d = String(dest).trim();
-  if (/^https?:\/\/\S+$/.test(d)) return '<a href="' + esc(d) + '" target="_blank" rel="noopener">' + esc(d) + '</a>';
-  if (EMAIL_RE.test(d)) return '<a href="mailto:' + esc(d) + '">' + esc(d) + '</a>';
-  return esc(d);
-}
-function catDownload() {
-  const r = categoryChecks(cat);
-  if (r.problems.length) {
-    toast('Almost there: finish the ' + r.problems.length + ' item' + (r.problems.length > 1 ? 's' : '') + ' under “Ready to send?” first.', 4500);
-    $('#s-checks').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    return;
-  }
-  const now = new Date();
-  const sub = submissionFromCategory(cat, now.toISOString());
-  const ymd = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-  const name = submissionFileName(sub, ymd);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(sub, null, 2) + '\n'], { type: 'application/json' }));
-  a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  openModal('<div class="stack" style="--gap:14px"><h2>Submission downloaded</h2>' +
-    '<p class="done-file">' + esc(name) + '</p>' +
-    '<div class="stack" style="--gap:6px"><span class="eyebrow">What to do next</span>' +
-    '<p>Send this file to the puzzle group: <b>' + linkFor(SUBMIT_TO) + '</b>.</p>' +
-    '<p class="muted">It’s in your Downloads folder. The puzzle group may tweak the wording or an image, and picks the final difficulty. Your draft stays saved in this browser until you start over.</p></div>' +
-    '<div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="m-another">Start another category</button><button class="btn primary" type="button" data-dismiss>Done</button></div></div>',
-  (m, close) => { $('#m-another', m).addEventListener('click', () => { close(); catStartOver(); }); });
-}
-async function catStartOver() {
-  const empty = !cat.group.name.trim() && cat.group.items.every((I) => !I.label.trim() && !I.image && !I.scopeImage);
-  if (!empty && !(await confirmModal('Start over?', SEND_ON ? 'This clears the form. Send it (or download a copy) first if you haven’t yet.' : 'This clears the form. Download your submission first if you haven’t yet.', 'Clear and start over'))) return;
-  // Keep who you are (credit choice and email) so a second category is quicker.
-  const keep = { creditMode: cat.creditMode, name: cat.name, line: cat.line, email: cat.email };
-  cat = Object.assign(blankCategory(), keep); catSaveFailed = false;
-  drawCat(); catSaveNow();
-  toast('Blank category ready');
-}
 /* ----- Send to the puzzle group's private inbox (only when studio/config.js is filled in) ----- */
 let turnstileId = null;
 let turnstileToken = '';
@@ -1250,7 +1291,7 @@ function loadTurnstile() {
   const sc = document.createElement('script');
   sc.id = 'ts-script'; sc.async = true; sc.defer = true;
   sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=dpTurnstileReady';
-  sc.onerror = () => { $('#s-human').innerHTML = '<p class="send-err">The “are you human” check could not load. Check your internet, reload the page, or download a copy instead.</p>'; };
+  sc.onerror = () => { $('#s-human').innerHTML = '<p class="send-err">The “are you human” check could not load. Check your internet and reload the page. Your draft stays saved.</p>'; };
   document.head.appendChild(sc);
 }
 function resetTurnstile() {
@@ -1270,170 +1311,138 @@ function rememberSent(code, name) {
   try { localStorage.setItem(SENT_KEY, JSON.stringify([{ code, name, at: new Date().toISOString() }].concat(sentList()).slice(0, 20))); } catch (e) { /* the code is still on screen */ }
   drawSent();
 }
-async function catSend() {
+/* ----- Fit under the inbox size caps: shrink images in the payload (the draft keeps its originals) ----- */
+const bodyBytes = (o) => new Blob([JSON.stringify(o)]).size;
+function payloadImages(sub) {
+  const groups = sub.kind === 'puzzle' ? sub.puzzle.groups : [sub.group];
+  const out = [];
+  groups.forEach((g) => g.items.forEach((it) => {
+    if (it.scope && it.scope.image) out.push([it.scope, 'image']);
+    if (it.info && it.info.image) out.push([it.info, 'image']);
+  }));
+  return out;
+}
+/** Returns null when it fits, or a plain-English reason it can't be sent. */
+async function fitPayload(payload) {
+  const sub = payload.submission, puzzle = sub.kind === 'puzzle';
+  const maxBody = puzzle ? SEND_LIMITS.maxPuzzleBodyBytes : SEND_LIMITS.maxBodyBytes;
+  const maxImgs = puzzle ? SEND_LIMITS.maxPuzzleImages : SEND_LIMITS.maxImages;
+  const imgs = payloadImages(sub);
+  if (imgs.length > maxImgs) return 'There are ' + imgs.length + ' images, and the limit is ' + maxImgs + '. Switch a few clues to text.';
+  const mb = (n) => (n / 1048576).toFixed(1) + ' MB';
+  const steps = [[1000, 0.75], [900, 0.65], [800, 0.55], [640, 0.5]];
+  for (let s = 0; s <= steps.length; s++) {
+    const tooBigImg = imgs.some(([o, k]) => dataUriBytes(o[k]) > SEND_LIMITS.maxImageBytes);
+    if (bodyBytes(payload) <= maxBody && !tooBigImg) return null;
+    if (s === steps.length) break;
+    if (s === 0) toast('Your images are large, so they’re being shrunk to fit. This can take a few seconds…', 6000);
+    for (const [o, k] of imgs) o[k] = await recompress(o[k], steps[s][0], steps[s][1]);
+  }
+  return 'Even after shrinking the images, this is ' + mb(bodyBytes(payload)) + ' and the limit is ' + mb(maxBody) + '. Try cropping the images or using simpler ones.';
+}
+
+/* ----- Send to the puzzle group's private inbox ----- */
+async function send() {
   if (sending) return;
-  const r = categoryChecks(cat);
+  const which = mode, r = checks();
   if (r.problems.length) {
     toast('Almost there: finish the ' + r.problems.length + ' item' + (r.problems.length > 1 ? 's' : '') + ' under “Ready to send?” first.', 4500);
-    $('#s-checks').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    $('#checks').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     return;
   }
+  if (!SEND_ON) { sendFailed('Online sending isn’t switched on yet. Your draft is saved in this browser, so please try again later.', which); return; }
   if (TURNSTILE_KEY && !turnstileToken) {
     toast('One more step: finish the “are you human” check under “Ready to send?”.', 4500);
     loadTurnstile();
     $('#s-human').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     return;
   }
-  const sub = submissionFromCategory(cat, new Date().toISOString());
-  const btn = $('#s-send');
+  const now = new Date().toISOString();
+  const sub = which === 'puzzle' ? submissionFromPuzzle(puz, now) : submissionFromCategory(cat, now);
+  const payload = { submission: sub, turnstileToken, website: $('#s-website').value, clientId: clientId() };
+  const btn = $('#btn-send');
   sending = true; btn.disabled = true; btn.classList.add('busy'); btn.setAttribute('aria-busy', 'true');
+  const done = () => { sending = false; btn.disabled = false; btn.classList.remove('busy'); btn.removeAttribute('aria-busy'); };
+  let tooBig = null;
+  try { tooBig = await fitPayload(payload); } catch (e) { tooBig = 'One of the images could not be shrunk. Try adding it again.'; }
+  if (tooBig) { done(); sendFailed(tooBig, which, true); return; }
   const ctl = typeof AbortController === 'function' ? new AbortController() : null;
   const timer = setTimeout(() => { if (ctl) ctl.abort(); }, 90000);
   let res = null, body = null, netErr = false;
   try {
-    res = await fetch(SEND_URL, {
-      method: 'POST', signal: ctl ? ctl.signal : undefined,
-      headers: SEND_HEADERS,
-      body: JSON.stringify({ submission: sub, turnstileToken, website: $('#s-website').value }),
-    });
+    res = await fetch(SEND_URL, { method: 'POST', signal: ctl ? ctl.signal : undefined, headers: SEND_HEADERS, body: JSON.stringify(payload) });
     try { body = await res.json(); } catch (e) { body = null; }
   } catch (e) { netErr = true; }
   clearTimeout(timer);
-  sending = false; btn.disabled = false; btn.classList.remove('busy'); btn.removeAttribute('aria-busy');
+  done();
   resetTurnstile();
-  if (!netErr && res && res.ok && body && body.ok && body.receipt) { sendDone(body.receipt, sub.group.name); return; }
+  const name = which === 'puzzle' ? sub.puzzle.title : sub.group.name;
+  if (!netErr && res && res.ok && body && body.ok && body.receipt) { sendDone(body.receipt, name, which); return; }
   let msg;
   if (netErr) msg = 'We couldn’t reach the puzzle group’s inbox. Check your internet connection and try again.';
   else if (body && body.error) msg = body.error;
-  else if (res && res.status === 404) msg = 'The puzzle group’s inbox isn’t set up yet. Download a copy and send the file instead.';
+  else if (res && res.status === 404) msg = 'The puzzle group’s inbox isn’t set up yet. Please try again later.';
   else msg = 'Something went wrong on our side (error ' + (res ? res.status : '?') + '). Please try again in a few minutes.';
-  sendFailed(msg);
+  sendFailed(msg, which);
 }
-function sendDone(code, name) {
+function sendDone(code, name, which) {
   rememberSent(code, name);
+  const what = which === 'puzzle' ? 'puzzle' : 'category';
   openModal('<div class="stack" style="--gap:14px"><h2>Sent to the puzzle group</h2>' +
     '<p>Thanks! “' + esc(name) + '” is in the puzzle group’s inbox.</p>' +
     '<div class="stack" style="--gap:6px"><span class="eyebrow">Your receipt code</span><div class="receipt" id="m-code">' + esc(code) + '</div>' +
-    '<p class="muted">Keep this code. If you want to ask about your category later, it tells the puzzle group which one is yours. The puzzle group may tweak the wording or an image, and picks the final difficulty.</p></div>' +
-    '<div class="panel stack" style="--gap:8px; padding:12px 14px"><b>Clear the form?</b><p class="muted" style="font-size:.88rem">Your category is safely sent. Clearing keeps your name, credit choice, and email for the next one.</p></div>' +
+    '<p class="muted">Keep this code. If you want to ask about your ' + what + ' later, it tells the puzzle group which one is yours. They may tweak the wording or an image' + (which === 'puzzle' ? ', and they pick the release week.' : ', and they pick the final difficulty.') + '</p></div>' +
+    '<div class="panel stack" style="--gap:8px; padding:12px 14px"><b>Clear the form?</b><p class="muted" style="font-size:.88rem">Your ' + what + ' is safely sent. Clearing keeps your name, credit choice, and email for the next one.</p></div>' +
     '<div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="m-copy">Copy code</button><button class="btn" type="button" data-dismiss>Keep the form</button>' +
     '<button class="btn primary" type="button" id="m-clear">Clear and start another</button></div></div>',
   (m, close) => {
     $('#m-copy', m).addEventListener('click', () => {
-      const done = () => toast('Receipt code copied');
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, () => toast('Select the code and copy it'));
+      const ok = () => toast('Receipt code copied');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(ok, () => toast('Select the code and copy it'));
       else toast('Select the code and copy it');
     });
-    $('#m-clear', m).addEventListener('click', () => {
-      close();
-      const keep = { creditMode: cat.creditMode, name: cat.name, line: cat.line, email: cat.email };
-      cat = Object.assign(blankCategory(), keep); catSaveFailed = false;
-      drawCat(); catSaveNow();
-      toast('Blank category ready');
-    });
+    $('#m-clear', m).addEventListener('click', () => { close(); clearDraft(which); toast(which === 'puzzle' ? 'Blank puzzle ready' : 'Blank category ready'); });
   });
 }
-function sendFailed(msg) {
+function sendFailed(msg, which, noRetry) {
   openModal('<div class="stack" style="--gap:14px"><h2>Not sent yet</h2><p class="send-err">' + esc(msg) + '</p>' +
-    '<p class="muted">Your draft is still saved in this browser. You can try again, or download a copy and send the file to ' + linkFor(SUBMIT_TO) + ' instead.</p>' +
-    '<div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="m-dl">Download a copy instead</button>' +
-    '<button class="btn primary" type="button" id="m-retry">Try again</button></div></div>',
+    '<p class="muted">Your draft is still saved in this browser, so nothing is lost.' + (noRetry ? '' : ' You can try again now or later.') + '</p>' +
+    '<div class="row" style="justify-content:flex-end"><button class="btn" type="button" data-dismiss>Close</button>' +
+    (noRetry ? '' : '<button class="btn primary" type="button" id="m-retry">Try again</button>') + '</div></div>',
   (m, close) => {
-    $('#m-dl', m).addEventListener('click', () => { close(); catDownload(); });
-    $('#m-retry', m).addEventListener('click', () => { close(); catSend(); });
+    const r = $('#m-retry', m);
+    if (r) r.addEventListener('click', () => { close(); if (mode === which) send(); });
   });
 }
-function bindCat() {
-  const body = $('#sbody');
-  const setK = (k, v) => { if (k.startsWith('g.')) cat.group[k.slice(2)] = v; else cat[k.slice(2)] = v; };
-  body.addEventListener('input', (e) => {
-    const el = e.target;
-    if (el.dataset.k) { setK(el.dataset.k, el.value); catBump(); }
-    else if (el.dataset.f && el.dataset.f !== 'zone') { cat.group.items[Number(el.dataset.i)][el.dataset.f] = el.value; catBump(); }
-  });
-  body.addEventListener('change', (e) => {
-    const el = e.target;
-    if (el.name === 's-tier') { cat.suggestedTier = Number(el.value); catBump(); }
-    else if (el.name === 's-credit') {
-      cat.creditMode = el.value; drawCat(); catBump();
-      const r = $('#sbody input[name="s-credit"][value="' + el.value + '"]'); if (r) r.focus();
-    } else if (el.id === 's-consent') { cat.consent = el.checked; catBump(); }
-    else if (el.dataset.np) { cat.noPatient[Number(el.dataset.np)] = el.checked; catBump(); }
-    else if (el.dataset.f === 'zone') {
-      cat.group.items[Number(el.dataset.i)].zone = el.value;
-      drawCat(); catBump();
-      const sel = $('#sbody [data-f="zone"][data-i="' + el.dataset.i + '"]'); if (sel) sel.focus();
-    }
-  });
-  body.addEventListener('click', (e) => {
-    const rm = e.target.closest('[data-rm]');
-    if (rm) {
-      const i = Number(rm.dataset.i);
-      cat.group.items[i][rm.dataset.rm] = ''; cat.noPatient[i] = false;
-      drawCat(); catBump(); toast('Image removed'); return;
-    }
-    const d = e.target.closest('[data-drop]');
-    if (d) { imgTarget = { cat: true, i: Number(d.dataset.i), field: d.dataset.drop }; $('#file-img').click(); }
-  });
-  body.addEventListener('keydown', (e) => {
-    const d = e.target.closest('[data-drop]');
-    if (d && e.target === d && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); d.click(); }
-  });
-  body.addEventListener('dragover', (e) => { const d = e.target.closest('[data-drop]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
-  body.addEventListener('dragleave', (e) => { const d = e.target.closest('[data-drop]'); if (d) d.classList.remove('over'); });
-  body.addEventListener('drop', (e) => {
-    const d = e.target.closest('[data-drop]');
-    if (!d) return;
-    e.preventDefault(); d.classList.remove('over');
-    const f = e.dataTransfer && e.dataTransfer.files[0];
-    if (f) setImage({ cat: true, i: Number(d.dataset.i), field: d.dataset.drop }, f);
-  });
-  const track = (e) => { const c = e.target.closest && e.target.closest('[data-clue]'); if (c) lastCatClue = Number(c.dataset.clue); };
-  body.addEventListener('focusin', track);
-  body.addEventListener('pointerover', track);
-  document.addEventListener('paste', (e) => {
-    if ($('#view-submit').hidden || lastCatClue === null) return;
-    const file = Array.from((e.clipboardData && e.clipboardData.files) || []).find((f) => /^image\//.test(f.type));
-    if (!file) return;
-    const I = cat.group.items[lastCatClue];
-    if (IMAGE_ZONES.indexOf(I.zone) === -1) { toast('That clue is text only. Switch it to a photo, slide, or X-ray first.'); return; }
+/* ===== Modes: one category (studio/, studio/?submit) or a full puzzle (studio/?build) ===== */
+function modeFromUrl() { return new URLSearchParams(location.search).has('build') ? 'puzzle' : 'category'; }
+function setMode(m, fromUrl) {
+  if (m !== 'puzzle' && m !== 'category') m = 'category';
+  if (m !== mode) saveNow(mode); // flush the other draft before switching
+  mode = m;
+  $$('.modebar [data-mode]').forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.mode === m)); b.tabIndex = b.dataset.mode === m ? 0 : -1; });
+  $('#head-tabs').hidden = !isPuz();
+  if (!isPuz()) showView('edit');
+  $('#e-eyebrow').textContent = isPuz() ? 'Your full puzzle' : 'Your category';
+  setSaved(saveFailed[m] ? 'Not saved: browser storage is full' : 'Saved in this browser', !!saveFailed[m]);
+  document.title = (isPuz() ? 'Submit a full puzzle' : 'Submit a category') + ' · Desk Puzzle';
+  if (!fromUrl) {
+    const q = isPuz() ? '?build' : '?submit';
+    try { history.replaceState(null, '', location.pathname + q); } catch (e) { /* fine */ }
+  }
+  drawBody();
+  setPreviewView(pvView);
+}
+function bindModes() {
+  const bar = $('.modebar');
+  bar.addEventListener('click', (e) => { const b = e.target.closest('[data-mode]'); if (b && b.dataset.mode !== mode) { setMode(b.dataset.mode); b.focus(); } });
+  bar.addEventListener('keydown', (e) => {
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].indexOf(e.key) === -1) return;
     e.preventDefault();
-    setImage({ cat: true, i: lastCatClue, field: I.zone === 'rack' ? 'scopeImage' : 'image' }, file);
+    setMode(isPuz() ? 'category' : 'puzzle');
+    $('.modebar [data-mode="' + mode + '"]').focus();
   });
-  $('#s-download').addEventListener('click', catDownload);
-  $('#s-new').addEventListener('click', catStartOver);
-  $('#s-send').addEventListener('click', catSend);
-  if (SEND_ON) {
-    $('#s-send').hidden = false;
-    const dl = $('#s-download');
-    dl.classList.remove('primary'); dl.textContent = 'Download a copy instead';
-  }
-  drawSent();
 }
-
-/* ===== Modes: start screen (studio/), submit a category (?submit), full puzzle (?build) ===== */
-function studioMode() {
-  const q = new URLSearchParams(location.search);
-  return q.has('submit') ? 'submit' : q.has('build') ? 'build' : 'choice';
-}
-function showMode(mode) {
-  $('#view-choice').hidden = mode !== 'choice';
-  $('#view-submit').hidden = mode !== 'submit';
-  $('#head-tabs').hidden = mode !== 'build';
-  $('#mode-link').hidden = mode === 'choice';
-  if (mode === 'build') showView('edit');
-  else { $('#view-edit').hidden = true; $('#view-play').hidden = true; }
-  if (mode === 'submit') loadTurnstile();
-  if (SEND_ON) $('#choice-how').textContent = 'You send it straight to the puzzle group from this page.';
-  document.title = (mode === 'submit' ? 'Submit a category' : mode === 'build' ? 'Puzzle Studio' : 'Make a puzzle') + ' · Desk Puzzle';
-  if (mode === 'choice') {
-    const bits = [];
-    if (cat.group.name.trim()) bits.push('a category draft (“' + cat.group.name.trim() + '”)');
-    if (hasWork()) bits.push('a full-puzzle draft');
-    $('#choice-drafts').textContent = bits.length ? 'Saved in this browser: ' + bits.join(' and ') + '.' : '';
-  }
-}
-
 /* ===== Views + theme + boot ===== */
 function showView(which) {
   const play = which === 'play';
@@ -1444,10 +1453,11 @@ function showView(which) {
 const darkMq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 /** Like the game: "auto" follows the system setting, resolved here into data-theme. */
 function applyTheme(t) {
-  const mode = t === 'light' || t === 'dark' ? t : 'auto';
-  const dark = mode === 'dark' || (mode === 'auto' && !!(darkMq && darkMq.matches));
+  const tm = t === 'light' || t === 'dark' ? t : 'auto';
+  const dark = tm === 'dark' || (tm === 'auto' && !!(darkMq && darkMq.matches));
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  $('#theme-btn').textContent = 'Theme: ' + mode;
+  $('#theme-btn').textContent = 'Theme: ' + tm;
+  schedulePreview();
 }
 function bindChrome() {
   $('#tab-edit').addEventListener('click', () => showView('edit'));
@@ -1466,11 +1476,11 @@ function bindChrome() {
   }
 }
 
-draft = loadSaved() || blankDraft();
 cat = loadCategory() || blankCategory();
-bindChrome(); bindEditor(); bindFiles(); bindPlay(); bindCat();
-drawTop(); drawGroup(); drawSide(); drawCat();
-showMode(studioMode());
+puz = loadPuzzle() || blankPuzzleSub();
+bindChrome(); bindEditor(); bindPlay(); bindPreview(); bindModes(); drawSent();
+setMode(modeFromUrl(), true);
+loadTurnstile();
 if (!PIECE_KIND_NAMES.corkboard) toast('Warning: the game engine piece list changed; check the studio.');
 </script>
 </body>
