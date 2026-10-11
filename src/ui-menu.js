@@ -5,7 +5,8 @@
  * Exports: fetchJson, loadRegistry, loadPuzzleByEntry, openPuzzle,
  *   renderMenu, applyRegistryTitles, sanitizeEngineSave, restoreDeskState,
  *   playToday, tryDeepLink, backToMenu, refreshMenu, onPlayAgain,
- *   onResetPuzzle, openPuzzleSelect, closePuzzleSelect, onPuzzleSelectEntry.
+ *   onResetPuzzle, onPuzzleCardClick, formatPuzzleDate, fillMiniDesk,
+ *   savedProgress, syncMenuThemeToggle, toggleMenuTheme.
  * ════════════════════════════════════════════════════════════════════ */
 
 import {
@@ -17,7 +18,7 @@ import {
 import {
   state, els, trayEls, slotEls, lockBtnEls,
   clamp, hasMachine, persistGame, loadSavedGame, freshDeskState,
-  saveKey, SAVE_NS, LEGACY_SAVE_NS, versioned,
+  saveKey, SAVE_NS, LEGACY_SAVE_NS, versioned, setTheme, syncSettingsUi,
 } from './state.js';
 
 import { playSound } from './audio.js';
@@ -70,6 +71,94 @@ export function applyRegistryTitles(entry) {
   if (metaDesc) metaDesc.setAttribute('content', desc);
 }
 
+/* Menu helpers: dates, generated mini desks, saved progress. */
+
+var MINI_KINDS = ['note', 'sheet', 'slide', 'film', 'rx', 'photo'];
+
+/** "2026-10-08" -> "Oct 8, 2026" (UTC, so the day never shifts). */
+export function formatPuzzleDate(iso) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if (!m) return iso || '';
+  var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return d.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function seedFromId(id) {
+  var h = 2166136261;
+  for (var i = 0; i < String(id).length; i++) {
+    h ^= String(id).charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return (h % 233279) + 1;
+}
+
+/** Fill `el` with a deterministic little desk of props, seeded by puzzle id.
+    index.json carries no piece data, so this is decorative, not a preview. */
+export function fillMiniDesk(el, id) {
+  if (!el) return;
+  el.textContent = '';
+  var s = seedFromId(id);
+  var r = function () { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  for (var i = 0; i < 9; i++) {
+    var span = document.createElement('span');
+    span.className = 'k-' + MINI_KINDS[Math.floor(r() * MINI_KINDS.length)];
+    var w = 13 + r() * 9, h = 16 + r() * 14;
+    span.style.left = (4 + (i % 3) * 31 + r() * 8).toFixed(1) + '%';
+    span.style.top = (6 + Math.floor(i / 3) * 30 + r() * 6).toFixed(1) + '%';
+    span.style.width = w.toFixed(1) + '%';
+    span.style.height = h.toFixed(1) + '%';
+    span.style.transform = 'rotate(' + ((r() - 0.5) * 16).toFixed(1) + 'deg)';
+    el.appendChild(span);
+  }
+}
+
+/** Read the existing per-puzzle save (no new storage): 'won' | 'lost' |
+    'progress' | null. A save that was only opened, with nothing placed,
+    locked, or guessed, counts as no progress. */
+export function savedProgress(id) {
+  try {
+    var raw = localStorage.getItem(SAVE_NS + id);
+    if (!raw) return null;
+    var save = JSON.parse(raw);
+    if (save.phase === 'won' || save.phase === 'lost') return save.phase;
+    var staged = Array.isArray(save.staging) && save.staging.some(function (box) {
+      return Array.isArray(box) && box.some(function (v) { return v !== null && v !== undefined; });
+    });
+    var moved = (save.mistakes > 0) || (Array.isArray(save.solved) && save.solved.length > 0) || staged;
+    return moved ? 'progress' : null;
+  } catch (e) { return null; }
+}
+
+var PROGRESS_BADGE = {
+  won: { text: 'Solved', cls: 'badge-ok' },
+  lost: { text: 'Played', cls: '' },
+  progress: { text: 'In progress', cls: 'badge-acc' },
+};
+
+function badge(text, cls) {
+  var b = document.createElement('span');
+  b.className = 'badge' + (cls ? ' ' + cls : '');
+  b.textContent = text;
+  return b;
+}
+
+/** Header theme button: flips between light and dark through the same
+    setTheme() the settings panel uses, so there is one theme setting. */
+export function syncMenuThemeToggle() {
+  if (!els.btnMenuTheme) return;
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var label = dark ? 'Switch to light theme' : 'Switch to dark theme';
+  els.btnMenuTheme.setAttribute('aria-label', label);
+  els.btnMenuTheme.title = label;
+}
+
+export function toggleMenuTheme() {
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  setTheme(dark ? 'light' : 'dark');
+  syncSettingsUi();
+  syncMenuThemeToggle();
+}
+
 export function renderMenu(registry) {
   var puzzles = (registry.puzzles || []).slice().sort(function (a, b) {
     return (b.date || '').localeCompare(a.date || '');
@@ -77,21 +166,19 @@ export function renderMenu(registry) {
 
   var currentEntry = (registry.puzzles || []).find(function (p) { return p.id === registry.current; });
   applyRegistryTitles(currentEntry);
+  syncMenuThemeToggle();
 
-  // Update the trigger summary text.
-  if (els.puzzleSelectSummary) {
-    els.puzzleSelectSummary.textContent = puzzles.length
-      ? puzzles.length + ' puzzle' + (puzzles.length !== 1 ? 's' : '')
-      : 'No archived puzzles';
-  }
+  if (els.puzzleCount) els.puzzleCount.textContent = String(puzzles.length);
+  fillMiniDesk(els.featuredMini, registry.current || 'desk-puzzle');
+  if (els.featuredDate) els.featuredDate.textContent = currentEntry ? formatPuzzleDate(currentEntry.date) : '';
 
-  els.puzzleSelectList.innerHTML = '';
+  els.puzzleGrid.innerHTML = '';
 
   if (!puzzles.length) {
-    var empty = document.createElement('p');
+    var empty = document.createElement('li');
     empty.className = 'archive-empty';
-    empty.textContent = 'No archived puzzles yet.';
-    els.puzzleSelectList.appendChild(empty);
+    empty.textContent = 'No puzzles yet.';
+    els.puzzleGrid.appendChild(empty);
     return;
   }
 
@@ -99,49 +186,36 @@ export function renderMenu(registry) {
     var li = document.createElement('li');
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'puzzle-select-entry' + (entry.id === registry.current ? ' current' : '');
+    btn.className = 'pcard puzzle-card' + (entry.id === registry.current ? ' current' : '');
     btn.dataset.puzzleId = entry.id;
     btn.dataset.puzzleFile = entry.file;
 
-    // Title
-    var titleSpan = document.createElement('span');
-    titleSpan.className = 'puzzle-select-entry-title';
-    titleSpan.textContent = entry.title;
-    btn.appendChild(titleSpan);
+    var mini = document.createElement('span');
+    mini.className = 'mini';
+    mini.setAttribute('aria-hidden', 'true');
+    fillMiniDesk(mini, entry.id);
+    btn.appendChild(mini);
 
-    // "This week" pill for the current puzzle
-    if (entry.id === registry.current) {
-      var pill = document.createElement('span');
-      pill.className = 'puzzle-select-pill';
-      pill.textContent = 'This week';
-      btn.appendChild(pill);
-    }
+    var text = document.createElement('span');
+    text.className = 'pcard-text';
+    var title = document.createElement('span');
+    title.className = 'pcard-title';
+    title.textContent = entry.title;
+    text.appendChild(title);
 
-    // Played check mark (won or lost both count)
-    var played = false;
-    try {
-      var raw = localStorage.getItem(SAVE_NS + entry.id);
-      if (raw) {
-        var save = JSON.parse(raw);
-        played = save.phase === 'won' || save.phase === 'lost';
-      }
-    } catch (e) { /* treat as unplayed */ }
-    if (played) {
-      var check = document.createElement('span');
-      check.className = 'puzzle-select-played';
-      check.textContent = '✓';
-      check.setAttribute('aria-label', 'Played');
-      btn.appendChild(check);
-    }
+    var meta = document.createElement('span');
+    meta.className = 'pcard-meta';
+    var date = document.createElement('span');
+    date.textContent = formatPuzzleDate(entry.date);
+    meta.appendChild(date);
+    if (entry.id === registry.current) meta.appendChild(badge('This week', 'badge-eosin'));
+    var prog = PROGRESS_BADGE[savedProgress(entry.id)];
+    if (prog) meta.appendChild(badge(prog.text, prog.cls));
+    text.appendChild(meta);
 
-    // Date
-    var dateSpan = document.createElement('span');
-    dateSpan.className = 'archive-date';
-    dateSpan.textContent = entry.date || '';
-    btn.appendChild(dateSpan);
-
+    btn.appendChild(text);
     li.appendChild(btn);
-    els.puzzleSelectList.appendChild(li);
+    els.puzzleGrid.appendChild(li);
   });
 }
 
@@ -372,26 +446,15 @@ export function openPuzzle(puzzleData) {
   setTimeout(checkViewportHealth, 300);
 }
 
-/* ── Puzzle-select dropdown ──────────────────────────────────────── */
+/* ── All-puzzles grid ────────────────────────────────────────────── */
 
-export function openPuzzleSelect() {
-  els.puzzleSelectPanel.hidden = false;
-  els.btnPuzzleSelect.setAttribute('aria-expanded', 'true');
-  var first = els.puzzleSelectList.querySelector('.puzzle-select-entry');
-  if (first) first.focus();
-}
-
-export function closePuzzleSelect() {
-  els.puzzleSelectPanel.hidden = true;
-  els.btnPuzzleSelect.setAttribute('aria-expanded', 'false');
-}
-
-export function onPuzzleSelectEntry(ev) {
-  var btn = ev.target.closest ? ev.target.closest('.puzzle-select-entry') : null;
+/** Delegated click on #puzzle-grid: open that puzzle exactly as the old
+    Past-puzzles dropdown did (same loader, same in-flight guard). */
+export function onPuzzleCardClick(ev) {
+  var btn = ev.target.closest ? ev.target.closest('.puzzle-card') : null;
   if (!btn) return;
   if (puzzleLoadInFlight) return; // ignore second tap while load is in flight
   puzzleLoadInFlight = true;
-  closePuzzleSelect();
   var entry = { id: btn.dataset.puzzleId, file: btn.dataset.puzzleFile };
   loadPuzzleByEntry(entry).then(openPuzzle).catch(function (err) {
     showErrorScreen(err.message);
@@ -463,6 +526,7 @@ export function playToday() {
   if (puzzleLoadInFlight) return;
   puzzleLoadInFlight = true;
   els.btnPlayToday.disabled = true; // belt-and-suspenders for keyboard users
+  if (els.btnPlayFeatured) els.btnPlayFeatured.disabled = true;
   loadRegistry().then(function (registry) {
     var entry = (registry.puzzles || []).find(function (p) { return p.id === registry.current; })
       || { id: registry.current, file: registry.current + '.json' };
@@ -472,5 +536,6 @@ export function playToday() {
   }).finally(function () {
     puzzleLoadInFlight = false;
     els.btnPlayToday.disabled = false;
+    if (els.btnPlayFeatured) els.btnPlayFeatured.disabled = false;
   });
 }

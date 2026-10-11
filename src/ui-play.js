@@ -168,7 +168,9 @@ export function showClueGuide() {
 
 export function closeClueGuide() {
   hideOverlay(els.overlayHelp);
-  if (state.game) els.btnHelp.focus();
+  // Opened from the menu's "How to play": hand focus back there.
+  if (els.screenMenu && !els.screenMenu.hidden && els.btnMenuHelp) els.btnMenuHelp.focus();
+  else if (state.game) els.btnHelp.focus();
 }
 
 export function showErrorScreen(message) {

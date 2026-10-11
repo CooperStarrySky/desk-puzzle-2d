@@ -134,8 +134,9 @@ export function downloadJson(filename, data) {
 export function cacheEls() {
   [
     'screen-menu', 'screen-play', 'screen-error', 'screen-editor', 'live-region', 'toast',
-    'menu-title',
-    'btn-play-today', 'btn-puzzle-select', 'puzzle-select-panel', 'puzzle-select-list', 'puzzle-select-summary', 'toggle-casual', 'toggle-sound',
+    'menu-title', 'btn-play-featured', 'featured-mini', 'featured-date', 'puzzle-count',
+    'btn-menu-help', 'btn-menu-theme',
+    'btn-play-today', 'puzzle-grid', 'toggle-casual', 'toggle-sound',
     'puzzle-title', 'puzzle-date', 'mistake-tracker', 'btn-shuffle', 'btn-help', 'btn-hints', 'hints-panel', 'btn-menu',
     'play-area', 'wall-area', 'xray-rack', 'xray-rail', 'desk-surface', 'piece-layer', 'trays',
     'machine-scope', 'scope-stage', 'machine-lightbox', 'lightbox-screen',

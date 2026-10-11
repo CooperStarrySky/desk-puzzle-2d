@@ -31,7 +31,7 @@ import {
 } from './ui-play.js';
 
 import {
-  playToday, openPuzzleSelect, closePuzzleSelect, onPuzzleSelectEntry,
+  playToday, onPuzzleCardClick, toggleMenuTheme, syncMenuThemeToggle,
   backToMenu, onPlayAgain, onResetPuzzle, refreshMenu, tryDeepLink, openPuzzle,
 } from './ui-menu.js';
 
@@ -54,7 +54,7 @@ async function init() {
   applyTheme();
   if (darkQuery && darkQuery.addEventListener) {
     darkQuery.addEventListener('change', function () {
-      if (state.settings.theme === 'system') applyTheme();
+      if (state.settings.theme === 'system') { applyTheme(); syncMenuThemeToggle(); }
     });
   }
   await loadLayout(); // defaults < layout.json (if published) < localStorage
@@ -67,36 +67,11 @@ async function init() {
   // Menu + settings overlay.
   els.btnPlayToday.addEventListener('click', playToday);
 
-  // Puzzle-select dropdown
-  els.btnPuzzleSelect.addEventListener('click', function () {
-    if (els.puzzleSelectPanel.hidden) { openPuzzleSelect(); } else { closePuzzleSelect(); }
-  });
-  els.puzzleSelectList.addEventListener('click', onPuzzleSelectEntry);
-  document.addEventListener('keydown', function (ev) {
-    if (!els.puzzleSelectPanel || els.puzzleSelectPanel.hidden) return;
-    if (ev.key === 'Escape') {
-      ev.preventDefault();
-      closePuzzleSelect();
-      els.btnPuzzleSelect.focus();
-      return;
-    }
-    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
-      ev.preventDefault();
-      var entries = Array.prototype.slice.call(
-        els.puzzleSelectList.querySelectorAll('.puzzle-select-entry'));
-      if (!entries.length) return;
-      var idx = entries.indexOf(document.activeElement);
-      idx = ev.key === 'ArrowDown'
-        ? (idx < entries.length - 1 ? idx + 1 : 0)
-        : (idx > 0 ? idx - 1 : entries.length - 1);
-      entries[idx].focus();
-    }
-  });
-  document.addEventListener('click', function (ev) {
-    if (!els.puzzleSelectPanel || els.puzzleSelectPanel.hidden) return;
-    var wrap = els.btnPuzzleSelect ? els.btnPuzzleSelect.closest('.puzzle-select-wrap') : null;
-    if (wrap && !wrap.contains(ev.target)) { closePuzzleSelect(); }
-  });
+  // Home screen: featured card, all-puzzles grid, header actions.
+  if (els.btnPlayFeatured) els.btnPlayFeatured.addEventListener('click', playToday);
+  els.puzzleGrid.addEventListener('click', onPuzzleCardClick);
+  if (els.btnMenuHelp) els.btnMenuHelp.addEventListener('click', showClueGuide);
+  if (els.btnMenuTheme) els.btnMenuTheme.addEventListener('click', toggleMenuTheme);
 
   els.btnSettings.addEventListener('click', function () { toggleSettingsPanel(); });
   if (els.btnCloseSettings) els.btnCloseSettings.addEventListener('click', function () { closeSettingsPanel(); els.btnSettings.focus(); });
@@ -107,7 +82,7 @@ async function init() {
     if (wrap && !wrap.contains(ev.target)) closeSettingsPanel();
   });
   document.querySelectorAll('input[name="theme"]').forEach(function (r) {
-    r.addEventListener('change', function () { if (r.checked) setTheme(r.value); });
+    r.addEventListener('change', function () { if (r.checked) { setTheme(r.value); syncMenuThemeToggle(); } });
   });
   els.toggleCasual.addEventListener('change', function () {
     state.settings.casual = els.toggleCasual.checked;
@@ -148,7 +123,7 @@ async function init() {
   });
 
   // Hints panel: keyboard nav (ArrowUp/Down between enabled rows) — namespaced
-  // so it doesn't conflict with the puzzle-select dropdown's own handlers.
+  // so it only acts while the hints panel is open.
   document.addEventListener('keydown', function (ev) {
     if (!els.hintsPanel || els.hintsPanel.hidden) return;
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
