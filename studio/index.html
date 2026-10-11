@@ -70,7 +70,7 @@ button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .eyebrow { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; }
 .muted { color: var(--ink-soft); }
-.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-inline: clamp(20px, 2.8vw, 40px); }
 @media (max-width: 520px) { .wrap { padding-inline: 16px; } }
 .stack { display: flex; flex-direction: column; gap: var(--gap, 16px); min-width: 0; }
 .row { display: flex; align-items: center; gap: var(--gap, 12px); flex-wrap: wrap; }
@@ -90,6 +90,7 @@ button { cursor: pointer; }
 .brand-name { font-family: var(--serif); font-size: 1.2rem; font-weight: 600; line-height: 1; }
 .brand-name small { display: block; font-family: var(--sans); font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; margin-top: 3px; }
 .tabs.head-tabs { flex: 1; border-bottom: 0; }
+.to-game { flex: none; white-space: nowrap; }
 @media (max-width: 560px) { .tabs.head-tabs { order: 3; flex-basis: 100%; } }
 /* buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--panel-edge); background: var(--card); color: var(--ink); border-radius: var(--r-s); padding: 8px 14px; font-weight: 600; text-decoration: none; font-size: 0.9rem; line-height: 1.2; transition: transform 0.12s var(--ease), background 0.15s; }
@@ -123,7 +124,7 @@ textarea.input { resize: vertical; min-height: 70px; }
 </style>
 <style>
 /* editor */
-.editor { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 22px; align-items: start; }
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) clamp(440px, 36vw, 560px); gap: 28px; align-items: start; }
 @media (max-width: 1060px) { .editor { grid-template-columns: minmax(0, 1fr); } }
 .sidecard { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 @media (min-width: 1061px) { .sidecard { position: sticky; top: 72px; max-height: calc(100vh - 84px); overflow-y: auto; } }
@@ -229,6 +230,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 <body>
 <header class="site-head">
   <div class="wrap">
+    <a class="btn small ghost to-game" id="to-game" href="../" title="Back to the game">← Desk Puzzle</a>
     <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       <span class="brand-name">Puzzle Studio<small>Desk Puzzle · CMSRU</small></span></div>
     <nav class="tabs head-tabs" id="head-tabs" role="tablist" aria-label="Studio views" hidden>
@@ -1464,7 +1466,7 @@ function sendDone(code, name, which) {
     '<div class="stack" style="--gap:6px"><span class="eyebrow">Your receipt code</span><div class="receipt" id="m-code">' + esc(code) + '</div>' +
     '<p class="muted">Keep this code. If you want to ask about your ' + what + ' later, it tells the puzzle group which one is yours. They may tweak the wording or an image' + (which === 'puzzle' ? ', and they pick the release week.' : ', and they pick the final difficulty.') + '</p></div>' +
     '<div class="panel stack" style="--gap:8px; padding:12px 14px"><b>Clear the form?</b><p class="muted" style="font-size:.88rem">Your ' + what + ' is safely sent. Clearing keeps your name, credit choice, and email for the next one.</p></div>' +
-    '<div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="m-copy">Copy code</button><button class="btn" type="button" data-dismiss>Keep the form</button>' +
+    '<div class="row" style="justify-content:flex-end"><a class="btn ghost" id="m-play" href="../" style="margin-right:auto">Play the latest puzzle</a><button class="btn" type="button" id="m-copy">Copy code</button><button class="btn" type="button" data-dismiss>Keep the form</button>' +
     '<button class="btn primary" type="button" id="m-clear">Clear and start another</button></div></div>',
   (m, close) => {
     $('#m-copy', m).addEventListener('click', () => {
