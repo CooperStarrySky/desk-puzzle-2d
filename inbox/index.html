@@ -242,6 +242,11 @@ textarea.input { resize: vertical; min-height: 70px; }
         <div class="row"><button class="btn primary" type="submit" id="signin-btn">Email me a sign-in link</button></div>
       </form>
       <p id="signin-msg" hidden></p>
+      <form id="code-form" class="stack" style="--gap:10px" hidden>
+        <label class="field"><span>6-digit code from the email</span><input class="input" id="code-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required placeholder="123456"></label>
+        <div class="row"><button class="btn primary" type="submit" id="code-btn">Sign in with code</button></div>
+        <p class="hint" style="margin:0">School email scanners sometimes use up the link before you can click it. The code always works, for about an hour.</p>
+      </form>
     </section>
 
     <!-- Signed in, but not on the admins list -->
@@ -371,6 +376,20 @@ async function route() {
   } finally { routing = false; }
 }
 
+async function signInWithCode(ev) {
+  ev.preventDefault();
+  const email = $('#signin-email').value.trim();
+  const token = $('#code-input').value.replace(/\s+/g, '');
+  const msg = $('#signin-msg'); const btn = $('#code-btn');
+  if (!/^[0-9]{6,10}$/.test(token)) { msg.hidden = false; msg.className = 'err-box'; msg.textContent = 'The code is the 6 digits in the email.'; return; }
+  btn.disabled = true; btn.textContent = 'Checking…';
+  const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+  btn.disabled = false; btn.textContent = 'Sign in with code';
+  if (error) { msg.hidden = false; msg.className = 'err-box'; msg.textContent = 'That code didn’t work. It may have expired: send a new email and use the newest code.'; return; }
+  $('#code-form').hidden = true; $('#code-input').value = '';
+  msg.hidden = true;
+  route();
+}
 async function signIn(ev) {
   ev.preventDefault();
   const email = $('#signin-email').value.trim();
@@ -385,7 +404,9 @@ async function signIn(ev) {
   msg.hidden = false;
   if (error) { msg.className = 'err-box'; msg.textContent = plainError(error); return; }
   msg.className = 'note-box';
-  msg.textContent = 'Check your inbox at ' + email + ' for a link from Supabase. Open it on this device to finish signing in. It can take a minute, and may land in spam.';
+  msg.textContent = 'Check ' + email + ' for an email from Desk Puzzle. Type the 6-digit code below, or open the link on this device. It can take a minute, and may land in Junk.';
+  $('#code-form').hidden = false;
+  $('#code-input').focus();
 }
 async function signOut() {
   try { await sb.auth.signOut(); } catch (e) { /* signed out locally anyway */ }
@@ -653,6 +674,7 @@ function boot() {
   if (sb === 'setup') { show('v-setup'); return; }
   if (sb === 'noscript') { show('v-noscript'); return; }
   $('#signin-form').addEventListener('submit', signIn);
+  $('#code-form').addEventListener('submit', signInWithCode);
   $('#signin-keep').checked = keepSignedIn();
   if (prefGet(EMAIL_KEY)) $('#signin-email').value = prefGet(EMAIL_KEY);
   $('#btn-signout').addEventListener('click', signOut);
