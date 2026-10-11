@@ -1088,10 +1088,13 @@ function previewPuzzle() {
   d.title = isPuz() ? t(puz.title) : '';
   d.groups = groups.map((G) => Object.assign({}, G, {
     name: t(G.name) || 'Category name', explanation: t(G.explanation) || 'Your one-line explanation',
-    byName: named ? t(c.name) : '', byLine: named ? t(c.line) : '', byExtra: null, srcId: '', keys: [], extra: {},
+    // Category mode: "Category by" on the placard. Puzzle mode: one "Puzzle by" for the whole puzzle.
+    byName: named && !isPuz() ? t(c.name) : '', byLine: named && !isPuz() ? t(c.line) : '', byExtra: null, srcId: '', keys: [], extra: {},
     items: G.items.map((I, ii) => Object.assign({}, I, { label: t(I.label) || 'Clue ' + (ii + 1), srcId: '', keys: [], extra: {} })),
   }));
-  return puzzleFromDraft(d);
+  const out = puzzleFromDraft(d);
+  if (named && isPuz()) out.credit = Object.assign({ name: t(c.name) }, t(c.line) ? { line: t(c.line) } : {});
+  return out;
 }
 function postPreview() {
   const f = $('#pv-frame');
@@ -1256,7 +1259,11 @@ function stagePreview() {
   if (playSource() === 'file') {
     if (!playFile) { showPlayProblems([['no', 'Choose a .json file first.']]); return Promise.resolve(false); }
     p = JSON.parse(JSON.stringify(playFile));
-  } else p = puzzleFromDraft(puz);
+  } else {
+    p = puzzleFromDraft(puz);
+    const nm = String(puz.name || '').trim(), ln = String(puz.line || '').trim();
+    if (puz.creditMode === 'named' && nm) p.credit = Object.assign({ name: nm }, ln ? { line: ln } : {});
+  }
   normalizeKinds(p);
   const bad = gameProblems(p);
   if (bad.length) {

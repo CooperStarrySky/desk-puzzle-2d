@@ -24,14 +24,15 @@ body { margin: 0; }
 #results { padding: 2px; }
 #results .results-groups { display: flex; flex-direction: column; gap: 10px; }
 #results .result-placard { animation: none; }
+#results .results-credit { margin: 2px 4px 10px; }
 </style>
 </head>
 <body>
 <div id="desk" class="desk-surface" hidden><div class="bench" id="bench"></div></div>
-<div id="results" hidden><div class="results-groups" id="rgroups"></div></div>
+<div id="results" hidden><p class="results-credit" id="rcredit" hidden></p><div class="results-groups" id="rgroups"></div></div>
 <script type="module">
 import { state, els, mulberry32, hashString } from './src/state.js';
-import { buildPieces, fitPieceLabels, buildResultPlacard } from './src/ui-play.js';
+import { buildPieces, fitPieceLabels, buildResultPlacard, puzzleCreditText } from './src/ui-play.js';
 import { loadTextures, pickSkinTexVar } from './src/textures.js';
 
 const PAPER_FAMILY = { corkboard: 1, folder: 1, rx: 1 };
@@ -98,6 +99,10 @@ function drawDesk(msg) {
 function drawResults(msg) {
   const puzzle = msg.puzzle;
   state.previewMode = false;
+  // A full puzzle's author shows once, as on the game's results screen.
+  const by = puzzleCreditText(puzzle);
+  const rc = document.getElementById('rcredit');
+  rc.textContent = by ? 'Puzzle by ' + by : ''; rc.hidden = !by;
   const box = document.getElementById('rgroups');
   box.innerHTML = '';
   puzzle.groups.slice().sort((a, b) => a.tier - b.tier).forEach((g, i) => {

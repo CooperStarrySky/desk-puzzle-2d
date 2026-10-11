@@ -35,6 +35,8 @@ Machines: derived from zones used (rack -> scope, tubes -> lightbox).
 Group credit (optional): `credit: {name: "Priya N.", line: "MS2"}` or the
 shorthand `credit: "Priya N."` names who submitted the category; omit it for
 an anonymous group.
+Puzzle credit (optional): the same `credit:` key at the top level of the spec
+names who submitted a whole puzzle; the game shows it once ("Puzzle by ...").
 """
 
 import argparse
@@ -158,6 +160,23 @@ ZONE_TO_MACHINE = {'rack': 'scope', 'tubes': 'lightbox'}
 VALID_ZONES = {'corkboard', 'folder', 'rack', 'tubes', 'photo', 'rx'}
 
 
+def normalize_credit(raw):
+    """Submitter credit from the spec: `credit: "Priya N."` shorthand or
+    `credit: {name, line}`. None when absent; a wrong type passes through so
+    validate_puzzle can name it. Used for groups and for the whole puzzle."""
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        return {'name': raw.strip()}
+    if isinstance(raw, dict):
+        out = {'name': str(raw.get('name') or '').strip()}
+        line = raw.get('line')
+        if line is not None and str(line).strip():
+            out['line'] = str(line).strip()
+        return out
+    return raw
+
+
 def build_puzzle_data(spec, spec_dir, puzzle_id, quality, max_side, out_puzzle_dir):
     """Parse spec and return (puzzle_dict, image_plan, source_errors).
 
@@ -194,18 +213,7 @@ def build_puzzle_data(spec, spec_dir, puzzle_id, quality, max_side, out_puzzle_d
         g_article = sg.get('article')
         g_credit_raw = sg.get('credit')
 
-        # Submitter credit: `credit: "Priya N."` shorthand or
-        # `credit: {name, line}`. Shape is checked by validate_puzzle.
-        g_credit = None
-        if isinstance(g_credit_raw, str):
-            g_credit = {'name': g_credit_raw.strip()}
-        elif isinstance(g_credit_raw, dict):
-            g_credit = {'name': str(g_credit_raw.get('name') or '').strip()}
-            line = g_credit_raw.get('line')
-            if line is not None and str(line).strip():
-                g_credit['line'] = str(line).strip()
-        elif g_credit_raw is not None:
-            g_credit = g_credit_raw  # wrong type; let validation name it
+        g_credit = normalize_credit(g_credit_raw)
 
         # Build anki block
         g_anki = None
@@ -298,6 +306,10 @@ def build_puzzle_data(spec, spec_dir, puzzle_id, quality, max_side, out_puzzle_d
         'groups': groups_out,
         'items': items_out,
     }
+    # Puzzle-level credit ("Puzzle by ..."): a full puzzle sent in by one person.
+    p_credit = normalize_credit(spec.get('credit'))
+    if p_credit is not None:
+        puzzle['credit'] = p_credit
 
     return puzzle, image_plan, source_errors
 
@@ -411,6 +423,11 @@ def main():
     print(f'  Items:      {n_items} (expected 16)')
     print(f'  Machines:   {machines}')
     print()
+
+    pc = puzzle.get('credit')
+    if isinstance(pc, dict):
+        print('  Puzzle by:  ' + ' · '.join(x for x in (pc.get('name'), pc.get('line')) if x))
+        print()
 
     # Derived IDs
     print('  Derived group ids:')

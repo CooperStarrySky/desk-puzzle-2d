@@ -2139,11 +2139,22 @@ function resultTeachingRows(puzzle, g) {
 
 /** "Priya N. · MS2" from a group's optional submitter credit, or '' when
     the group has none (or only a blank name). */
-function groupCreditText(g) {
-  var c = g && g.credit;
+function creditText(c) {
   if (!c || typeof c.name !== 'string' || !c.name.trim()) return '';
   var line = typeof c.line === 'string' ? c.line.trim() : '';
   return c.name.trim() + (line ? ' · ' + line : '');
+}
+function groupCreditText(g) { return creditText(g && g.credit); }
+/** "John D. · MS2" from the puzzle-level credit (a full puzzle sent in by one
+    person), or '' when there is none. Shown once on the results screen. */
+export function puzzleCreditText(puzzle) { return creditText(puzzle && puzzle.credit); }
+/** A group's own "Category by" line, unless it just repeats the puzzle's author. */
+function placardCreditText(puzzle, g) {
+  var line = groupCreditText(g);
+  if (!line) return '';
+  var pc = puzzle && puzzle.credit;
+  if (puzzleCreditText(puzzle) && pc.name.trim().toLowerCase() === g.credit.name.trim().toLowerCase()) return '';
+  return line;
 }
 
 export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
@@ -2202,7 +2213,7 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
   text.appendChild(h3);
   text.appendChild(explEl);
   // Who submitted this category (optional; absent = anonymous)
-  var creditLine = groupCreditText(g);
+  var creditLine = placardCreditText(puzzle, g);
   if (creditLine) {
     var creditEl = document.createElement('p');
     creditEl.className = 'result-placard-credit';
@@ -2298,6 +2309,12 @@ export function showResultsForPuzzle(puzzle, opts) {
   }
   els.resultsTitle.textContent = puzzle.title || opts.title || 'Solved!';
   els.resultsSub.textContent = opts.sub || '';
+  // Puzzle-level credit: one byline under the title (a full puzzle has one author).
+  if (els.resultsCredit) {
+    var byline = puzzleCreditText(puzzle);
+    els.resultsCredit.textContent = byline ? 'Puzzle by ' + byline : '';
+    els.resultsCredit.hidden = !byline;
+  }
   if (els.resultsStamp) {
     els.resultsStamp.textContent = won ? 'Case closed' : 'Unsolved';
     els.resultsStamp.classList.remove('is-stamped');

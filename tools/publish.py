@@ -49,6 +49,26 @@ def _validate_image_field(value, owner, field_label):
     return []
 
 
+def _credit_problems(credit, owner):
+    """Problems with an optional submitter credit {name, line?} (same rules for a
+    group's "Category by" and a full puzzle's "Puzzle by")."""
+    if not isinstance(credit, dict):
+        return [f'{owner} credit must be an object like {{"name": "Priya N.", "line": "MS2"}}']
+    out = []
+    c_name = credit.get("name")
+    if not isinstance(c_name, str) or not c_name.strip():
+        out.append(f"{owner} credit needs a non-empty name")
+    elif len(c_name) > 60:
+        out.append(f"{owner} credit name is {len(c_name)} characters (max 60)")
+    c_line = credit.get("line")
+    if c_line is not None:
+        if not isinstance(c_line, str):
+            out.append(f"{owner} credit line must be text, got {c_line!r}")
+        elif len(c_line) > 40:
+            out.append(f"{owner} credit line is {len(c_line)} characters (max 40)")
+    return out
+
+
 def validate_puzzle(puzzle, filename):
     """Mirror caseProblems() from game.js and add the extra audit checks.
     Returns (errors, warnings) as lists of strings."""
@@ -66,6 +86,11 @@ def validate_puzzle(puzzle, filename):
 
     if errors:
         return errors, warnings
+
+    # Puzzle-level credit ("Puzzle by ...", a full puzzle from one person) is
+    # optional; checked only when present.
+    if puzzle.get("credit") is not None:
+        errors.extend(_credit_problems(puzzle.get("credit"), "puzzle"))
 
     # Unique item ids
     item_ids = [i.get("id") for i in items if i.get("id")]
@@ -123,20 +148,7 @@ def validate_puzzle(puzzle, filename):
         # needs a name, and both fields must be short plain strings
         credit = g.get("credit")
         if credit is not None:
-            if not isinstance(credit, dict):
-                errors.append(f'group "{g_name}" credit must be an object like {{"name": "Priya N.", "line": "MS2"}}')
-            else:
-                c_name = credit.get("name")
-                if not isinstance(c_name, str) or not c_name.strip():
-                    errors.append(f'group "{g_name}" credit needs a non-empty name')
-                elif len(c_name) > 60:
-                    errors.append(f'group "{g_name}" credit name is {len(c_name)} characters (max 60)')
-                c_line = credit.get("line")
-                if c_line is not None:
-                    if not isinstance(c_line, str):
-                        errors.append(f'group "{g_name}" credit line must be text, got {c_line!r}')
-                    elif len(c_line) > 40:
-                        errors.append(f'group "{g_name}" credit line is {len(c_line)} characters (max 40)')
+            errors.extend(_credit_problems(credit, f'group "{g_name}"'))
 
         # anki.nids must be positive integers if present
         anki = g.get("anki")

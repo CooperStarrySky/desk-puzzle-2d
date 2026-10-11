@@ -102,6 +102,10 @@ group's explanation. Leave `credit` out for an anonymous group. In a YAML spec,
 `credit: "Priya N."` is shorthand for a name with no line. This is separate from image
 credits, which live in the group's article.
 
+A whole puzzle sent in by one person can instead carry a top-level `credit` with the same
+shape and limits. The results screen then shows "Puzzle by Priya N. · MS2" once, under the
+title; a group whose own credit has the same name doesn't repeat it on its placard.
+
 ## Keyboard play
 
 Every piece is focusable:
@@ -289,7 +293,7 @@ of git. The email only ever lands in `submissions/<slug>/contact.txt`.
    Each one becomes `submissions/<slug>/<slug>.yaml` (a one-group spec with a
    `# suggested tier` comment and the submitter's credit, if they asked for
    it) plus an `images/` folder. A full-puzzle file becomes a complete 4-group
-   spec instead (credit on every group, `date: ""` to fill in); skip step 2 and
+   spec instead (one top-level puzzle credit, `date: ""` to fill in); skip step 2 and
    go straight to `tools/build_puzzle.py` once the date is set. File format:
    `supabase/SUBMISSION_FORMAT.md`.
 2. Pick four and combine them:

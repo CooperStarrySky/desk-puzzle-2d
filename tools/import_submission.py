@@ -8,8 +8,8 @@ Students make a category in the Puzzle Studio (studio/?submit) and send in a
 file named desk-puzzle-submission-<name>-<date>.json. This tool checks each
 file and turns it into a single-group YAML spec, the same shape as the other
 one-group drafts in puzzles/_spec/. A full-puzzle submission (kind "puzzle",
-version 2) becomes a whole 4-group spec with the submitter's credit on every
-group and an empty date for the puzzle group to fill in. Both version 1 and
+version 2) becomes a whole 4-group spec with the submitter's credit once, as
+the top-level puzzle `credit:` ("Puzzle by ..." in the game), and an empty date for the puzzle group to fill in. Both version 1 and
 version 2 files are read (format: supabase/SUBMISSION_FORMAT.md).
 
 Dry run (default): checks every file and prints what it would write. Nothing
@@ -390,7 +390,8 @@ def plan_puzzle_import(parsed, src_name, today):
     """Full-puzzle submission -> (slug, spec_text, files), like plan_import.
 
     Item ids are unique across the whole puzzle (build_puzzle.py needs that).
-    The submitter's credit goes on all four groups. There is no date: the
+    The submitter's credit goes once on the whole puzzle (top-level `credit:`),
+    not on each group. There is no date: the
     puzzle group picks it when publishing, and build_puzzle.py refuses an empty
     date, so the spec cannot be built by accident before that."""
     sub_date = parsed['submitted'][:10] if re.match(r'^\d{4}-\d{2}-\d{2}', parsed['submitted']) else today
@@ -414,7 +415,7 @@ def plan_puzzle_import(parsed, src_name, today):
             sources.append(it['source'])
             items.append(dict(it, id=iid))
         gid = unique('g-' + (slugify(g['name']) or 'category'), used_groups)
-        body += group_yaml(dict(g, id=gid, items=items, credit=parsed['credit']), g['tier'],
+        body += group_yaml(dict(g, id=gid, items=items, credit=None), g['tier'],
                            f'{TIER_WORDS[g["tier"]]}, set by the submitter', names, sources)
     credit = parsed['credit']
     who = (f'named, "{credit["name"]}' + (f' · {credit["line"]}' if credit.get('line') else '') + '"'
@@ -423,7 +424,7 @@ def plan_puzzle_import(parsed, src_name, today):
         f'# FULL PUZZLE SUBMISSION: {parsed["title"]}',
         '#',
         f'# Imported from {src_name} on {today} by tools/import_submission.py.',
-        f'# Submitted: {parsed["submitted"] or "unknown"}. Credit (all four groups): {who}.',
+        f'# Submitted: {parsed["submitted"] or "unknown"}. Credit (whole puzzle): {who}.',
         '# Any contact email is in contact.txt next to this file, never in this spec.',
         '#',
         '# Set the date before building: build_puzzle.py stops while it is empty.',
@@ -432,6 +433,11 @@ def plan_puzzle_import(parsed, src_name, today):
         f'title: {q(parsed["title"])}',
         'date: ""   # TODO: set the publish date (YYYY-MM-DD) when the puzzle group schedules it',
     ]
+    if credit:  # one author for the whole puzzle: "Puzzle by ..." on the results screen
+        head.append('credit:')
+        head.append(f'  name: {q(credit["name"])}')
+        if credit.get('line'):
+            head.append(f'  line: {q(credit["line"])}')
     if any_image:
         head.append('images: images/')
     head += ['', 'groups:']
