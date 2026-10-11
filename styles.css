@@ -413,6 +413,21 @@ a.btn.btn-small, a.btn.btn-big { display: inline-flex; align-items: center; just
   background: linear-gradient(135deg, var(--mini-photo-a), var(--mini-photo-b));
 }
 
+/* Real thumbnail (tools/make_thumbnails.mjs): transparent around the clue
+   tiles, so the bench and stripes above show through in both themes. The
+   generated props stay hidden while it loads and return if it fails. */
+.mini .mini-thumb {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+}
+.mini.thumb-pending > span,
+.mini.has-thumb > span { display: none; }
+
 /* Puzzle cards (featured + grid); real buttons, styled as cards */
 .pcard {
   display: flex;

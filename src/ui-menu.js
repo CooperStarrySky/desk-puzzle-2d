@@ -5,7 +5,7 @@
  * Exports: fetchJson, loadRegistry, loadPuzzleByEntry, openPuzzle,
  *   renderMenu, applyRegistryTitles, sanitizeEngineSave, restoreDeskState,
  *   playToday, initHistory, goHome, backToMenu, refreshMenu, onPlayAgain,
- *   onResetPuzzle, onPuzzleCardClick, formatPuzzleDate, fillMiniDesk,
+ *   onResetPuzzle, onPuzzleCardClick, formatPuzzleDate, fillMiniDesk, fillCardThumb,
  *   savedProgress, syncMenuThemeToggle, toggleMenuTheme.
  * ════════════════════════════════════════════════════════════════════ */
 
@@ -73,7 +73,7 @@ export function applyRegistryTitles(entry) {
   if (metaDesc) metaDesc.setAttribute('content', desc);
 }
 
-/* Menu helpers: dates, generated mini desks, saved progress. */
+/* Menu helpers: dates, card thumbnails (real or generated), saved progress. */
 
 var MINI_KINDS = ['note', 'sheet', 'slide', 'film', 'rx', 'photo'];
 
@@ -112,6 +112,35 @@ export function fillMiniDesk(el, id) {
     span.style.transform = 'rotate(' + ((r() - 0.5) * 16).toFixed(1) + 'deg)';
     el.appendChild(span);
   }
+}
+
+/** Show the puzzle's thumbnail (real clues on the mini desk, made by
+    tools/make_thumbnails.mjs) inside a .mini frame. The generated desk is
+    drawn first and comes back if there is no thumb or it fails to load. The
+    thumb is transparent around its tiles, so the frame's themed bench shows. */
+export function fillCardThumb(el, entry, eager) {
+  if (!el) return;
+  fillMiniDesk(el, (entry && entry.id) || 'desk-puzzle');
+  el.classList.remove('has-thumb', 'thumb-pending');
+  if (!entry || typeof entry.thumb !== 'string' || !entry.thumb) return;
+  var img = document.createElement('img');
+  img.className = 'mini-thumb';
+  img.width = 800;
+  img.height = 500;
+  img.alt = (entry.title || 'Puzzle') + ' desk';
+  img.decoding = 'async';
+  img.loading = eager ? 'eager' : 'lazy';
+  el.classList.add('thumb-pending');
+  img.addEventListener('load', function () {
+    el.classList.remove('thumb-pending');
+    el.classList.add('has-thumb');
+  });
+  img.addEventListener('error', function () {
+    if (img.parentNode) img.parentNode.removeChild(img);
+    el.classList.remove('thumb-pending', 'has-thumb');
+  });
+  img.src = versioned(entry.thumb);
+  el.appendChild(img);
 }
 
 /** Read the existing per-puzzle save (no new storage): 'won' | 'lost' |
@@ -171,7 +200,7 @@ export function renderMenu(registry) {
   syncMenuThemeToggle();
 
   if (els.puzzleCount) els.puzzleCount.textContent = String(puzzles.length);
-  fillMiniDesk(els.featuredMini, registry.current || 'desk-puzzle');
+  fillCardThumb(els.featuredMini, currentEntry || { id: registry.current }, true);
   if (els.featuredDate) els.featuredDate.textContent = currentEntry ? formatPuzzleDate(currentEntry.date) : '';
 
   els.puzzleGrid.innerHTML = '';
@@ -195,7 +224,7 @@ export function renderMenu(registry) {
     var mini = document.createElement('span');
     mini.className = 'mini';
     mini.setAttribute('aria-hidden', 'true');
-    fillMiniDesk(mini, entry.id);
+    fillCardThumb(mini, entry, false);
     btn.appendChild(mini);
 
     var text = document.createElement('span');
