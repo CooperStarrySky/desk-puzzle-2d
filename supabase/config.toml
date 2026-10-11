@@ -7,3 +7,8 @@ project_id = "desk-puzzle"
 # Students are not signed in, so the function must accept requests without a
 # user login. It checks the origin, Turnstile, honeypot, and rate limit itself.
 verify_jwt = false
+
+[functions.record]
+# Anonymous play stats from the game. Players are not signed in either; the
+# function checks the origin, the puzzle date, every field, and a rate limit.
+verify_jwt = false
