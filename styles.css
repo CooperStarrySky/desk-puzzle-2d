@@ -1,6 +1,7 @@
-/* Desk Puzzle — Paper Edition (2D)
-   Utopian Scholastic, on paper: warm cream ground, plum accent, no blue
-   anywhere, serif display type, museum-placard chrome. Light theme only.
+/* Desk Puzzle — Stain Room (2D)
+   Cool slide-glass ground, hematoxylin-indigo actions, sparing eosin-pink
+   highlights, a slate lab bench, and four stain-named tiers (Saffron,
+   Light Green, Prussian Blue, PAS). Light and dark themes.
 
    Play screen: a top-down desk. Pieces are freely draggable physical
    objects; the microscope stage stays on the desk while the wall lightbox
@@ -15,28 +16,38 @@
    = the CSS-drawn look below, untouched. */
 
 :root {
-  --ink: #241f14;
-  --ink-soft: #5b5340;
-  --paper: #ede2c6;
-  --paper-grain-a: rgba(122, 79, 192, 0.035);
-  --paper-grain-b: rgba(36, 31, 20, 0.04);
-  --panel: rgba(250, 245, 231, 0.96);
-  --panel-edge: rgba(36, 31, 20, 0.18);
-  --accent: #7a4fc0;
+  --ink: #1c1a2e;          /* hematoxylin-black */
+  --ink-soft: #524f6b;
+  --ink-faint: #8a87a0;
+  --paper: #f3f2f7;        /* slide glass */
+  --paper-2: #e7e5ef;
+  --paper-grain-a: rgba(75, 63, 176, 0.035);
+  --paper-grain-b: rgba(214, 69, 122, 0.025);
+  --panel: #fbfbfd;
+  --panel-edge: rgba(28, 26, 46, 0.13);
+  --rule: rgba(28, 26, 46, 0.08);
+  --accent: #4b3fb0;       /* hematoxylin */
+  --accent-hover: #4034a0;
   --accent-ink: #ffffff;
-  --accent-soft: #efe6fb;
+  --accent-soft: #e8e5f8;
+  --eosin: #d6457a;        /* eosin: sparing highlight */
+  --eosin-soft: #fbe3ec;
+  --eosin-ink: #ffffff;
 
-  /* Tier colors — four warm, distinct, non-blue hues. */
-  --tier-1: #eab635;   /* butter yellow */
-  --tier-1-ink: #3a2c04;
-  --tier-2: #4f6b45;   /* sage */
-  --tier-2-ink: #f4f3e6;
-  --tier-3: #7a4fc0;   /* plum */
+  /* Tier colors, easiest to hardest, named for stains. */
+  --tier-1: #e9b829;   /* Saffron (HPS) */
+  --tier-1-ink: #3a2a00;
+  --tier-2: #3d8f62;   /* Light Green (Pap) */
+  --tier-2-ink: #13121c;   /* white on this green is 3.96:1, below AA */
+  --tier-3: #2e5aa8;   /* Prussian Blue */
   --tier-3-ink: #ffffff;
-  --tier-4: #a8501f;   /* terracotta */
-  --tier-4-ink: #fff6ea;
+  --tier-4: #a8306f;   /* PAS magenta */
+  --tier-4-ink: #ffffff;
 
-  --danger: #b23a2f;
+  --ok: #2f7d55;
+  --danger: #c0392f;
+  --scrim: rgba(16, 14, 30, 0.5);
+  --shadow: rgba(28, 26, 46, 0.14);
   --serif: "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --hand: "Bradley Hand", "Noteworthy", "Marker Felt", "Segoe Print", cursive;
@@ -54,52 +65,84 @@
   /* themed surfaces the components read (dark overrides below) */
   --card: #ffffff;
   --field-bg: #ffffff;
-  --toast-bg: #241f14;
-  --toast-ink: #fbf6e9;
-  --desk-hi: #a97f52;
-  --desk-mid: #8e6742;
-  --desk-lo: #9b7148;
-  --lightbox-a: #fdf3d8;
-  --lightbox-b: #f0dfae;
-  --lightbox-c: #ddc78e;
-  --lightbox-glow: rgba(253, 240, 205, 0.65);
-  --machine-shell-a: #efe9da;
-  --machine-shell-b: #d5ccb6;
-  --control-bg: #f4ecd9;
+  --toast-bg: #1c1a2e;
+  --toast-ink: #f3f2f7;
+  /* slate lab bench */
+  --desk-hi: #4a5060;
+  --desk-mid: #3a3f4c;
+  --desk-lo: #424857;
+  --desk-edge: rgba(16, 18, 26, 0.5);
+  --bench-label: rgba(233, 236, 244, 0.85);
+  /* wall above the bench: pale lab-tile gray */
+  --wall-a: #dfe1e8;
+  --wall-b: #cdd0da;
+  --wall-ink: rgba(28, 26, 46, 0.55);
+  --lightbox-a: #fbfcff;
+  --lightbox-b: #e9ecf5;
+  --lightbox-c: #cfd4e2;
+  --lightbox-glow: rgba(236, 240, 252, 0.7);
+  --machine-shell-a: #eceef3;
+  --machine-shell-b: #cfd3dd;
+  --machine-dark-a: #4a4f5c;   /* metal: scope stage, bezels, rails */
+  --machine-dark-b: #33363f;
+  --control-bg: #eef0f5;
   --slot-bg: rgba(255, 255, 255, 0.45);
   --slot-bg-locked: rgba(255, 255, 255, 0.5);
 
   color-scheme: light;
 }
 
-/* Warm dark: charcoal and walnut under the same plum accent. Paper
-   pieces keep their light faces for contrast; the room dims around them. */
+/* Dark stain room: the room dims; pieces keep their daylight faces. */
 :root[data-theme="dark"] {
-  --ink: #ece4d2;
-  --ink-soft: #a99e88;
-  --paper: #201b15;
-  --paper-grain-a: rgba(122, 79, 192, 0.05);
-  --paper-grain-b: rgba(0, 0, 0, 0.25);
-  --panel: #2a241c;
-  --panel-edge: rgba(236, 228, 210, 0.16);
-  --accent: #9b74e0;
-  --accent-ink: #17120c;
-  --accent-soft: rgba(122, 79, 192, 0.22);
-  --danger: #e07263;
-  --card: #322b22;
-  --field-bg: #241f18;
-  --toast-bg: #ece4d2;
-  --toast-ink: #241f14;
-  --desk-hi: #4e3826;
-  --desk-mid: #3c2b1c;
-  --desk-lo: #452f1f;
-  --lightbox-a: #d9c391;
-  --lightbox-b: #b39a63;
-  --lightbox-c: #8e7845;
-  --lightbox-glow: rgba(217, 195, 145, 0.3);
-  --machine-shell-a: #3b342a;
-  --machine-shell-b: #2c261e;
-  --control-bg: #352e24;
+  --ink: #eceaf6;
+  --ink-soft: #a9a6c0;
+  --ink-faint: #7b7894;
+  --paper: #13121c;
+  --paper-2: #1c1a29;
+  --paper-grain-a: rgba(157, 147, 240, 0.04);
+  --paper-grain-b: rgba(240, 123, 163, 0.025);
+  --panel: #1b1a27;
+  --panel-edge: rgba(236, 234, 246, 0.13);
+  --rule: rgba(236, 234, 246, 0.07);
+  --accent: #9d93f0;
+  --accent-hover: #b0a8f4;
+  --accent-ink: #13121c;
+  --accent-soft: rgba(75, 63, 176, 0.3);
+  --eosin: #f07ba3;
+  --eosin-soft: rgba(214, 69, 122, 0.22);
+  --eosin-ink: #13121c;
+  --tier-1: #eabb33;
+  --tier-2: #4fa877;
+  --tier-2-ink: #13121c;
+  --tier-3: #4472c4;   /* mockup #4b7bd0 nudged darker so white ink clears AA */
+  --tier-3-ink: #ffffff;
+  --tier-4: #c04588;   /* mockup #c4498a nudged, same reason */
+  --tier-4-ink: #ffffff;
+  --ok: #6cc495;
+  --danger: #ef7a6e;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --card: #222031;
+  --field-bg: #171622;
+  --toast-bg: #eceaf6;
+  --toast-ink: #13121c;
+  --desk-hi: #2f3340;
+  --desk-mid: #252833;
+  --desk-lo: #2a2e39;
+  --desk-edge: rgba(0, 0, 0, 0.55);
+  --bench-label: rgba(222, 226, 238, 0.78);
+  --wall-a: #262835;
+  --wall-b: #1e202b;
+  --wall-ink: rgba(222, 226, 238, 0.55);
+  --lightbox-a: #d6dae6;
+  --lightbox-b: #b4bacb;
+  --lightbox-c: #8f96aa;
+  --lightbox-glow: rgba(200, 208, 230, 0.28);
+  --machine-shell-a: #2e303c;
+  --machine-shell-b: #23252f;
+  --machine-dark-a: #3a3e4a;
+  --machine-dark-b: #262932;
+  --control-bg: #2a2c38;
   --slot-bg: rgba(255, 255, 255, 0.06);
   --slot-bg-locked: rgba(0, 0, 0, 0.18);
   color-scheme: dark;
@@ -185,7 +228,7 @@ img { max-width: 100%; display: block; }
   border-color: var(--accent);
   color: var(--accent-ink);
 }
-.btn-primary:hover:not(:disabled) { background: #6c44ab; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
 
 .btn-ghost { background: transparent; }
 
@@ -220,6 +263,29 @@ img { max-width: 100%; display: block; }
 
 .game-tagline { color: var(--ink-soft); font-size: 1.02rem; }
 
+/* Brand: four tier-colored squares on a slate tile, beside the wordmark. */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: var(--ink);
+}
+.brand-mark {
+  position: relative;
+  flex: none;
+  width: 34px; height: 34px;
+  border-radius: 7px;
+  background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid));
+  box-shadow: 0 1px 2px var(--shadow);
+}
+.brand-mark i { position: absolute; width: 11px; height: 11px; border-radius: 2px; }
+.brand-mark i:nth-child(1) { left: 5px; top: 5px; background: var(--tier-1); }
+.brand-mark i:nth-child(2) { right: 5px; top: 5px; background: var(--tier-2); }
+.brand-mark i:nth-child(3) { left: 5px; bottom: 5px; background: var(--tier-3); }
+.brand-mark i:nth-child(4) { right: 5px; bottom: 5px; background: var(--tier-4); }
+.brand-name { font-family: var(--serif); font-size: 1.25rem; font-weight: 600; line-height: 1; }
+
 .menu-panel {
   max-width: 560px;
   margin: 0 auto;
@@ -233,8 +299,9 @@ img { max-width: 100%; display: block; }
 .menu-section {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
-  border-radius: 12px;
+  border-radius: var(--r-l);
   padding: 18px 20px;
+  box-shadow: 0 1px 0 var(--panel-edge);
   min-width: 0; /* flex item of .menu-panel — don't let content push it wider */
 }
 .menu-section h2 {
@@ -289,7 +356,7 @@ img { max-width: 100%; display: block; }
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: var(--r-m);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 6px 24px var(--shadow);
   max-height: 40vh;
   overflow-y: auto;
   z-index: 200;
@@ -458,9 +525,9 @@ img { max-width: 100%; display: block; }
   /* dimensions set by game.js sizeViewer(); CSS handles <900px */
   border-radius: var(--r-s);
   overflow: hidden;
-  border: 3px solid #4d4437;
-  background: #efe6d6; /* a lit screen stays lit in dark mode too */
-  box-shadow: inset 0 0 14px rgba(60, 46, 24, 0.25);
+  border: 3px solid var(--machine-dark-a);
+  background: #eef0f6; /* a lit screen stays lit in dark mode too */
+  box-shadow: inset 0 0 14px rgba(28, 30, 50, 0.25);
 }
 .scope-canvas {
   display: block;
@@ -496,23 +563,18 @@ img { max-width: 100%; display: block; }
   flex: 0 0 clamp(260px, 34vh, 320px);
   min-height: 260px;
   overflow: hidden;
-  border: 1px solid rgba(60, 40, 18, 0.24);
+  border: 1px solid var(--panel-edge);
   border-radius: 16px 16px 8px 8px;
   background:
-    repeating-linear-gradient(0deg, rgba(100, 74, 45, 0.035) 0 2px, transparent 2px 7px),
-    linear-gradient(180deg, #d8c8aa, #c7b28d);
-  box-shadow: inset 0 -6px 14px rgba(70, 45, 22, 0.12), 0 2px 7px rgba(36, 31, 20, 0.12);
-}
-:root[data-theme="dark"] .wall-area {
-  background:
-    repeating-linear-gradient(0deg, rgba(255, 240, 200, 0.025) 0 2px, transparent 2px 7px),
-    linear-gradient(180deg, #4e3c2b, #3c2c20);
+    repeating-linear-gradient(0deg, rgba(28, 26, 46, 0.03) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, var(--wall-a), var(--wall-b));
+  box-shadow: inset 0 -6px 14px rgba(28, 26, 46, 0.1), 0 2px 7px var(--shadow);
 }
 .wall-title {
   position: absolute;
   left: 16px;
   top: 12px;
-  color: rgba(60, 40, 18, 0.5);
+  color: var(--wall-ink);
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -536,8 +598,8 @@ img { max-width: 100%; display: block; }
   right: 0;
   height: 5px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #5f4630, #2f241a);
-  box-shadow: 0 2px 3px rgba(36, 24, 10, 0.25);
+  background: linear-gradient(180deg, var(--machine-dark-a), var(--machine-dark-b));
+  box-shadow: 0 2px 3px rgba(16, 18, 26, 0.25);
 }
 .xray-rack::before { top: 0; }
 .xray-rack::after { top: 7px; height: 2px; opacity: 0.75; }
@@ -545,7 +607,7 @@ img { max-width: 100%; display: block; }
   position: absolute;
   left: 5px;
   top: -17px;
-  color: rgba(60, 40, 18, 0.66);
+  color: var(--wall-ink);
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -554,33 +616,29 @@ img { max-width: 100%; display: block; }
 .xray-rail {
   position: absolute;
   inset: 0;
-  border-top: 1px solid rgba(255, 244, 220, 0.3);
-  border-bottom: 1px solid rgba(60, 40, 18, 0.16);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(28, 26, 46, 0.16);
 }
-:root[data-theme="dark"] .xray-rack-label { color: rgba(255, 239, 203, 0.58); }
 .desk-surface {
   position: relative;
   flex: 1 1 auto;
   height: auto;
   min-height: 0;
   border-radius: 16px;
-  border: 1px solid rgba(60, 40, 18, 0.45);
-  /* Warm top-down wood: plank seams + fine grain + soft lamp pool. */
+  border: 1px solid var(--desk-edge);
+  /* Slate lab bench: faint stone streaks + a cool overhead light pool. */
   background-image:
-    radial-gradient(ellipse at 50% 30%, rgba(255, 240, 205, 0.20) 0, transparent 60%),
-    repeating-linear-gradient(90deg,
-      rgba(58, 38, 16, 0.16) 0 2px, transparent 2px 118px),
-    repeating-linear-gradient(0deg,
-      rgba(255, 235, 200, 0.045) 0 3px, transparent 3px 9px),
-    repeating-linear-gradient(90deg,
-      rgba(90, 60, 28, 0.05) 0 7px, transparent 7px 23px),
-    linear-gradient(135deg, var(--desk-hi), var(--desk-mid) 55%, var(--desk-lo));
+    radial-gradient(ellipse at 50% 30%, rgba(230, 236, 255, 0.10) 0, transparent 60%),
+    repeating-linear-gradient(94deg,
+      rgba(0, 0, 0, 0.035) 0 3px, transparent 3px 13px),
+    linear-gradient(160deg, var(--desk-hi), var(--desk-mid) 55%, var(--desk-lo));
   box-shadow:
-    inset 0 2px 6px rgba(255, 240, 210, 0.25),
-    inset 0 -3px 8px rgba(40, 24, 8, 0.3),
-    0 4px 14px rgba(36, 31, 20, 0.18);
+    inset 0 0 0 1px rgba(0, 0, 0, 0.15),
+    inset 0 2px 6px rgba(255, 255, 255, 0.08),
+    0 10px 30px var(--shadow);
 }
-/* Photo desk texture (assets/textures/desk.webp). */
+/* Photo desk texture (assets/textures/desk.webp). Inert since the stain-room
+   restyle: textures.js skips desk.webp so the slate bench above shows. */
 .desk-surface.textured {
   background-image: var(--tex-desk);
   background-size: cover;
@@ -605,8 +663,8 @@ img { max-width: 100%; display: block; }
   text-transform: uppercase;
   letter-spacing: 0.13em;
   font-weight: 700;
-  color: rgba(255, 244, 224, 0.85);
-  text-shadow: 0 1px 2px rgba(40, 24, 8, 0.5);
+  color: var(--bench-label);
+  text-shadow: 0 1px 2px rgba(10, 12, 20, 0.5);
   white-space: nowrap;
 }
 .machine-caption {
@@ -618,7 +676,7 @@ img { max-width: 100%; display: block; }
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-weight: 700;
-  color: rgba(255, 244, 224, 0.8);
+  color: var(--bench-label);
 }
 
 /* Microscope stage (drop target; the display lives in the left panel). */
@@ -628,9 +686,9 @@ img { max-width: 100%; display: block; }
   width: 116px;
   height: 116px;
   border-radius: 14px;
-  background: linear-gradient(160deg, #4d4437, #382f24);
-  border: 2px solid rgba(255, 240, 210, 0.25);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4), 0 3px 8px rgba(36, 31, 20, 0.3);
+  background: linear-gradient(160deg, var(--machine-dark-a), var(--machine-dark-b));
+  border: 2px solid rgba(235, 238, 248, 0.22);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4), 0 3px 8px rgba(10, 12, 20, 0.3);
 }
 .scope-stage-glass {
   position: absolute;
@@ -638,8 +696,8 @@ img { max-width: 100%; display: block; }
   width: 78px; height: 78px;
   transform: translate(-50%, -54%);
   border-radius: 50%;
-  background: radial-gradient(circle at 45% 40%, rgba(255, 250, 235, 0.95), rgba(245, 232, 205, 0.75) 55%, rgba(200, 180, 145, 0.5));
-  box-shadow: 0 0 14px rgba(255, 246, 220, 0.55), inset 0 0 8px rgba(120, 96, 60, 0.35);
+  background: radial-gradient(circle at 45% 40%, rgba(252, 252, 255, 0.95), rgba(232, 234, 246, 0.75) 55%, rgba(170, 176, 200, 0.5));
+  box-shadow: 0 0 14px rgba(236, 240, 255, 0.5), inset 0 0 8px rgba(60, 66, 96, 0.3);
 }
 .scope-stage.drop-hot { outline: 3px dashed var(--accent-soft); outline-offset: 3px; }
 
@@ -655,21 +713,21 @@ img { max-width: 100%; display: block; }
   width: 220px;
   height: 240px;
   border-radius: 10px;
-  border: 7px solid #57503f;
-  /* Warm white/amber glow — deliberately NOT blue. */
+  border: 7px solid var(--machine-dark-a);
+  /* Cool daylight-white viewer glow. */
   background: radial-gradient(ellipse at 50% 40%, var(--lightbox-a), var(--lightbox-b) 70%, var(--lightbox-c));
   box-shadow:
     0 0 22px var(--lightbox-glow),
-    0 4px 0 #33291f,
-    0 7px 10px rgba(36, 24, 10, 0.35),
-    inset 0 0 10px rgba(120, 96, 50, 0.3);
+    0 4px 0 var(--machine-dark-b),
+    0 7px 10px rgba(10, 12, 20, 0.35),
+    inset 0 0 10px rgba(60, 66, 96, 0.25);
 }
 .lightbox-screen::before {
   content: "";
   position: absolute;
   inset: 7px;
-  border: 1px solid rgba(92, 67, 35, 0.42);
-  box-shadow: inset 0 0 0 2px rgba(255, 248, 222, 0.25);
+  border: 1px solid rgba(60, 66, 96, 0.35);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
   pointer-events: none;
 }
 .lightbox-screen::after {
@@ -677,7 +735,7 @@ img { max-width: 100%; display: block; }
   position: absolute;
   right: 9px;
   bottom: -22px;
-  color: #4a3929;
+  color: var(--machine-dark-b);
   font: 700 11px/1 var(--mono);
   letter-spacing: 0.25em;
   pointer-events: none;
@@ -697,8 +755,9 @@ img { max-width: 100%; display: block; }
 .tray {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
-  border-radius: 12px;
+  border-radius: var(--r-m);
   padding: 10px;
+  box-shadow: 0 1px 0 var(--panel-edge);
   min-width: 0; /* grid items default to min-width:auto (content-sized) —
     without this a tray's own 2x2 slot grid (each slot floored by
     aspect-ratio + min-height) refuses to shrink below its natural size
@@ -756,8 +815,8 @@ img { max-width: 100%; display: block; }
 .tray.is-one-away { animation: tray-one-away 1.2s var(--ease); }
 @keyframes tray-one-away {
   0%   { box-shadow: none; }
-  15%  { box-shadow: 0 0 0 4px var(--accent); }
-  70%  { box-shadow: 0 0 0 4px var(--accent); }
+  15%  { box-shadow: 0 0 0 4px var(--eosin); }
+  70%  { box-shadow: 0 0 0 4px var(--eosin); }
   100% { box-shadow: none; }
 }
 
@@ -1012,10 +1071,10 @@ body.has-textures .piece.textured.is-dragging {
   height: 148px;
   border-radius: 4px;
   background:
-    radial-gradient(ellipse at 50% 42%, rgba(250, 240, 215, 0.10) 0 18%, transparent 55%),
-    linear-gradient(160deg, #2f2b24, #211d17);
-  border: 2px solid rgba(250, 240, 215, 0.14);
-  box-shadow: 0 3px 7px rgba(20, 14, 6, 0.45);
+    radial-gradient(ellipse at 50% 42%, rgba(232, 236, 244, 0.10) 0 18%, transparent 55%),
+    linear-gradient(160deg, #2a2e36, #1a1d22);
+  border: 2px solid rgba(232, 236, 244, 0.14);
+  box-shadow: 0 3px 7px rgba(8, 10, 16, 0.45);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -1049,7 +1108,7 @@ body.has-textures .piece.textured.is-dragging {
 .piece-film.is-dragging { --pc-scale: 1; } /* keep rect math exact while lit */
 .piece-film .piece-etch {
   transform: none;
-  color: rgba(250, 240, 215, 0.4);
+  color: rgba(232, 236, 244, 0.4);
   filter: blur(1.2px);
   font-size: 6px;
 }
@@ -1061,8 +1120,8 @@ body.has-textures .piece.textured.is-dragging {
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(ellipse at 50% 45%, rgba(255, 246, 222, 0.30) 0 30%, transparent 70%),
-    linear-gradient(165deg, #4d4232, #3a3225);
+    radial-gradient(ellipse at 50% 45%, rgba(240, 244, 255, 0.30) 0 30%, transparent 70%),
+    linear-gradient(165deg, #3f4452, #2e323d);
   background-size: cover;
   background-position: center;
 }
@@ -1071,10 +1130,10 @@ body.has-textures .piece.textured.is-dragging {
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #fdf3d8;
+  color: #f1f3fa;
   text-shadow:
-    0 0 6px rgba(253, 243, 216, 0.9),
-    0 0 16px rgba(240, 214, 150, 0.7);
+    0 0 6px rgba(241, 243, 250, 0.9),
+    0 0 16px rgba(200, 210, 240, 0.7);
   text-align: center;
   padding: 0 6px;
   position: relative;
@@ -1087,15 +1146,15 @@ body.has-textures .piece.textured.is-dragging {
   top: 18px; left: 50%;
   width: 4px; height: 78px;
   margin-left: -2px;
-  background: rgba(253, 243, 216, 0.28);
+  background: rgba(241, 243, 250, 0.28);
   border-radius: 2px;
   box-shadow:
-    -14px 12px 0 -1px rgba(253, 243, 216, 0.18),
-    14px 12px 0 -1px rgba(253, 243, 216, 0.18),
-    -11px 30px 0 -1px rgba(253, 243, 216, 0.15),
-    11px 30px 0 -1px rgba(253, 243, 216, 0.15),
-    -8px 48px 0 -1px rgba(253, 243, 216, 0.12),
-    8px 48px 0 -1px rgba(253, 243, 216, 0.12);
+    -14px 12px 0 -1px rgba(241, 243, 250, 0.18),
+    14px 12px 0 -1px rgba(241, 243, 250, 0.18),
+    -11px 30px 0 -1px rgba(241, 243, 250, 0.15),
+    11px 30px 0 -1px rgba(241, 243, 250, 0.15),
+    -8px 48px 0 -1px rgba(241, 243, 250, 0.12),
+    8px 48px 0 -1px rgba(241, 243, 250, 0.12);
 }
 .film-lit.has-image::before { display: none; }
 
@@ -1161,7 +1220,7 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   height: auto;
   background: #fcfaf2;
   border: 1px solid rgba(36, 31, 20, 0.22);
-  border-top: 4px solid rgba(122, 79, 192, 0.45);
+  border-top: 4px solid rgba(75, 63, 176, 0.45);
   box-shadow: 0 3px 7px rgba(36, 31, 20, 0.26);
   color: var(--ink);
   font-size: 0.92rem;
@@ -1178,7 +1237,7 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   font-family: var(--serif);
   font-size: 1.05rem;
   font-weight: 700;
-  color: rgba(122, 79, 192, 0.75);
+  color: rgba(75, 63, 176, 0.75);
   z-index: 1;
 }
 .rx-line { position: relative; z-index: 1; }
@@ -1193,7 +1252,7 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 700;
-  color: rgba(50, 42, 26, 0.75);
+  color: rgba(28, 26, 46, 0.75);
   z-index: 1;
 }
 
@@ -1201,15 +1260,15 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   position: absolute;
   top: 8px; left: 10px;
   z-index: 2;
-  background: rgba(250, 245, 231, 0.9);
-  border: 1px solid var(--panel-edge);
+  background: rgba(251, 251, 253, 0.92);
+  border: 1px solid rgba(28, 26, 46, 0.13);
   border-radius: 999px;
   padding: 2px 10px;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: #524f6b; /* sits on the always-lit screen, so fixed light-theme ink */
 }
 .scope-slide-title:empty { display: none; }
 
@@ -1357,7 +1416,7 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(36, 31, 20, 0.55);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1483,10 +1542,10 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   content: "";
   position: absolute;
   left: 24px; top: 0;
-  width: 110px; height: 5px;
-  background: var(--accent);
+  width: 120px; height: 5px;
+  /* the four stains, easiest to hardest */
+  background: linear-gradient(90deg, var(--tier-1) 0 25%, var(--tier-2) 25% 50%, var(--tier-3) 50% 75%, var(--tier-4) 75%);
   border-radius: 0 0 6px 6px;
-  opacity: 0.85;
 }
 .results-eyebrow,
 .results-stat-k {
@@ -1618,7 +1677,7 @@ div.result-placard-head { cursor: default; }
 .result-placard h3 { font: 600 1.1rem/1.25 var(--serif); margin: 0; }
 .result-placard-explanation { font-size: 0.85rem; color: var(--ink-soft); margin: 0; }
 .result-placard-credit { font-size: 0.72rem; color: var(--ink-soft); opacity: 0.85; margin: 0; }
-.result-placard-more { font: 600 0.75rem/1 var(--sans); color: var(--group-color); margin-top: 4px; }
+.result-placard-more { font: 600 0.75rem/1 var(--sans); color: color-mix(in srgb, var(--group-color) 45%, var(--ink)); margin-top: 4px; }
 .result-placard-more::before { content: "Open notes \2192"; }
 .result-placard[aria-expanded="true"] .result-placard-more::before { content: "Close notes \2191"; }
 .result-placard-objects {
@@ -1821,7 +1880,7 @@ div.result-placard-head { cursor: default; }
 .layout-panel input[type="range"] { width: 100%; accent-color: var(--accent); }
 .layout-panel .lp-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .layout-panel .btn { font-size: 0.8rem; padding: 0.4em 0.8em; }
-body.layout-mode .machine { cursor: move; outline: 2px dashed rgba(122, 79, 192, 0.6); outline-offset: 3px; }
+body.layout-mode .machine { cursor: move; outline: 2px dashed rgba(75, 63, 176, 0.6); outline-offset: 3px; }
 
 /* ══════════════════════ DEV: PUZZLE CREATOR (?editor) ══════════════════════ */
 
@@ -2426,9 +2485,9 @@ body.preview-mode .play-header-title p { display: none; }
   aspect-ratio: 16 / 10;
   border-radius: var(--r-s);
   overflow: hidden;
-  border: 3px solid #4d4437;
-  background: #efe6d6;
-  box-shadow: inset 0 0 14px rgba(60, 46, 24, 0.25);
+  border: 3px solid var(--machine-dark-a);
+  background: #eef0f6;
+  box-shadow: inset 0 0 14px rgba(28, 30, 50, 0.25);
 }
 .peek-scope-wrap .peek-canvas {
   display: block;
@@ -2445,10 +2504,10 @@ body.preview-mode .play-header-title p { display: none; }
   border-radius: 4px;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 42%, rgba(250, 240, 215, 0.10) 0 18%, transparent 55%),
-    linear-gradient(160deg, #2f2b24, #211d17);
-  border: 2px solid rgba(250, 240, 215, 0.14);
-  box-shadow: 0 3px 7px rgba(20, 14, 6, 0.45);
+    radial-gradient(ellipse at 50% 42%, rgba(232, 236, 244, 0.10) 0 18%, transparent 55%),
+    linear-gradient(160deg, #2a2e36, #1a1d22);
+  border: 2px solid rgba(232, 236, 244, 0.14);
+  box-shadow: 0 3px 7px rgba(8, 10, 16, 0.45);
 }
 /* The lit layer — same as .film-lit but always fully revealed */
 .peek-film-lit {
@@ -2458,8 +2517,8 @@ body.preview-mode .play-header-title p { display: none; }
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(ellipse at 50% 45%, rgba(255, 246, 222, 0.30) 0 30%, transparent 70%),
-    linear-gradient(165deg, #4d4232, #3a3225);
+    radial-gradient(ellipse at 50% 45%, rgba(240, 244, 255, 0.30) 0 30%, transparent 70%),
+    linear-gradient(165deg, #3f4452, #2e323d);
   background-size: cover;
   background-position: center;
 }
@@ -2469,15 +2528,15 @@ body.preview-mode .play-header-title p { display: none; }
   top: 18px; left: 50%;
   width: 4px; height: 78px;
   margin-left: -2px;
-  background: rgba(253, 243, 216, 0.28);
+  background: rgba(241, 243, 250, 0.28);
   border-radius: 2px;
   box-shadow:
-    -14px 12px 0 -1px rgba(253, 243, 216, 0.18),
-    14px 12px 0 -1px rgba(253, 243, 216, 0.18),
-    -11px 30px 0 -1px rgba(253, 243, 216, 0.15),
-    11px 30px 0 -1px rgba(253, 243, 216, 0.15),
-    -8px 48px 0 -1px rgba(253, 243, 216, 0.12),
-    8px 48px 0 -1px rgba(253, 243, 216, 0.12);
+    -14px 12px 0 -1px rgba(241, 243, 250, 0.18),
+    14px 12px 0 -1px rgba(241, 243, 250, 0.18),
+    -11px 30px 0 -1px rgba(241, 243, 250, 0.15),
+    11px 30px 0 -1px rgba(241, 243, 250, 0.15),
+    -8px 48px 0 -1px rgba(241, 243, 250, 0.12),
+    8px 48px 0 -1px rgba(241, 243, 250, 0.12);
 }
 .peek-film-lit.has-image::before { display: none; }
 
@@ -2683,7 +2742,7 @@ body.preview-mode .play-header-title p { display: none; }
   cursor: text;
   transition: outline var(--dur-fast);
 }
-.results-editable:hover { outline: 2px dashed rgba(122, 79, 192, 0.35); }
+.results-editable:hover { outline: 2px dashed rgba(75, 63, 176, 0.35); }
 .results-editable:focus { outline: 2px dashed var(--accent); background: var(--accent-soft); }
 .results-preview-hint {
   font-size: 0.72rem;

@@ -91,6 +91,7 @@ export function loadTextures(onLoaded) {
         : null;
       Object.keys(TEXTURE_VARS).forEach(function (f) {
         if (present && !present.has(f)) return;
+        if (f === 'desk.webp') return; // stain room: the CSS slate bench replaces the wood desk photo
         var img = new Image();
         img.onload = function () {
           if (!state.textures) state.textures = new Set();

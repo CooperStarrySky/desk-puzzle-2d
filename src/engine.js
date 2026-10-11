@@ -153,7 +153,7 @@ export function emptyGrid() {
 }
 
 // HINTS_MAX retired in v15. TIER_EMOJI lives here as a pure display constant.
-export var TIER_EMOJI = { 1: '🟨', 2: '🟩', 3: '🟪', 4: '🟧' };
+export var TIER_EMOJI = { 1: '🟨', 2: '🟩', 3: '🟦', 4: '🟪' };
 
 /**
  * DeskPuzzleGame — the state machine. Phases: intro → playing → won|lost.

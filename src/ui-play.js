@@ -625,8 +625,8 @@ export function renderScopeView() {
 
   // idle bed
   var bed = ctx.createRadialGradient(cw / 2, ch / 2, 10, cw / 2, ch / 2, Math.max(cw, ch) * 0.7);
-  bed.addColorStop(0, '#f4ecdc');
-  bed.addColorStop(1, '#d9cdb4');
+  bed.addColorStop(0, '#f4f5fa');
+  bed.addColorStop(1, '#d6d9e4');
   ctx.fillStyle = bed;
   ctx.fillRect(0, 0, cw, ch);
 
@@ -637,7 +637,7 @@ export function renderScopeView() {
     // empty stage: a faint objective circle, no text
     ctx.beginPath();
     ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) * 0.3, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(77, 68, 55, 0.25)';
+    ctx.strokeStyle = 'rgba(58, 63, 76, 0.25)';
     ctx.lineWidth = 3;
     ctx.stroke();
     return;
@@ -649,7 +649,7 @@ export function renderScopeView() {
     // image still loading: soft shimmer ring
     ctx.beginPath();
     ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) * 0.3, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(122, 79, 192, 0.35)';
+    ctx.strokeStyle = 'rgba(75, 63, 176, 0.35)';
     ctx.lineWidth = 4;
     ctx.stroke();
     return;
@@ -665,8 +665,8 @@ export function renderScopeView() {
 
   // soft vignette so it reads as an eyepiece feed
   var vg = ctx.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.42, cw / 2, ch / 2, Math.max(cw, ch) * 0.72);
-  vg.addColorStop(0, 'rgba(40, 30, 16, 0)');
-  vg.addColorStop(1, 'rgba(40, 30, 16, 0.35)');
+  vg.addColorStop(0, 'rgba(20, 22, 36, 0)');
+  vg.addColorStop(1, 'rgba(20, 22, 36, 0.35)');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, cw, ch);
 }
@@ -1841,8 +1841,8 @@ export function renderPeekScopeCanvas(item, canvas, scopeWrap) {
 
   // Idle bed background (matches renderScopeView).
   var bed = ctx.createRadialGradient(cw / 2, ch / 2, 10, cw / 2, ch / 2, Math.max(cw, ch) * 0.7);
-  bed.addColorStop(0, '#f4ecdc');
-  bed.addColorStop(1, '#d9cdb4');
+  bed.addColorStop(0, '#f4f5fa');
+  bed.addColorStop(1, '#d6d9e4');
   ctx.fillStyle = bed;
   ctx.fillRect(0, 0, cw, ch);
 
@@ -1851,7 +1851,7 @@ export function renderPeekScopeCanvas(item, canvas, scopeWrap) {
     // Image still loading — draw a shimmer ring and poll.
     ctx.beginPath();
     ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) * 0.3, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(122, 79, 192, 0.35)';
+    ctx.strokeStyle = 'rgba(75, 63, 176, 0.35)';
     ctx.lineWidth = 4;
     ctx.stroke();
     setTimeout(function () { renderPeekScopeCanvas(item, canvas, scopeWrap); }, 150);
@@ -1867,8 +1867,8 @@ export function renderPeekScopeCanvas(item, canvas, scopeWrap) {
 
   // Soft vignette — matches renderScopeView.
   var vg = ctx.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.42, cw / 2, ch / 2, Math.max(cw, ch) * 0.72);
-  vg.addColorStop(0, 'rgba(40, 30, 16, 0)');
-  vg.addColorStop(1, 'rgba(40, 30, 16, 0.35)');
+  vg.addColorStop(0, 'rgba(20, 22, 36, 0)');
+  vg.addColorStop(1, 'rgba(20, 22, 36, 0.35)');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, cw, ch);
 }
