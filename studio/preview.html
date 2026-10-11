@@ -122,8 +122,10 @@ function sendSize() {
 }
 
 window.addEventListener('message', (ev) => {
-  if (ev.origin !== location.origin || !ev.data || ev.data.type !== 'dp-studio-preview') return;
-  draw(ev.data);
+  if (ev.origin !== location.origin || !ev.data) return;
+  // The studio may bind its listener after our first "ready" (it awaits its saved drafts): say it again.
+  if (ev.data.type === 'dp-studio-preview-hello') { parent.postMessage({ type: 'dp-studio-preview-ready' }, location.origin); return; }
+  if (ev.data.type === 'dp-studio-preview') draw(ev.data);
 });
 // Placards open and close like in the game; keep the frame height in step.
 document.addEventListener('click', () => setTimeout(sendSize, 0));

@@ -25,6 +25,7 @@ import {
 } from './audio.js';
 
 import { syncAll, syncPieces, renderScopeView, toast, sanitizeRichHtml } from './ui-play.js';
+import { idbGet } from './idb-kv.js';
 
 import { openPuzzle, backToMenu, loadRegistry, loadPuzzleByEntry } from './ui-menu.js';
 
@@ -1719,10 +1720,19 @@ export function flushPreviewQueue() {
 }
 
 /** ?preview boot: render whatever draft the editor last pushed. */
+/*  The studio stages big puzzles in IndexedDB when they overflow localStorage
+    (and then removes the localStorage copy), so localStorage wins when present.
+    Returns a promise that resolves once the puzzle is open. */
 export function bootPreviewDraft() {
-  var draft = null;
-  try { draft = JSON.parse(localStorage.getItem(SAVE_PREFIX + 'preview-draft')); } catch (e) { /* ignore */ }
-  openPuzzle(draft && typeof draft === 'object' ? draft : normalizeDraft({}));
+  var key = SAVE_PREFIX + 'preview-draft';
+  var raw = null;
+  try { raw = localStorage.getItem(key); } catch (e) { /* ignore */ }
+  var rawP = raw != null ? Promise.resolve(raw) : idbGet(key).catch(function () { return null; });
+  return rawP.then(function (r) {
+    var draft = null;
+    try { draft = typeof r === 'string' ? JSON.parse(r) : null; } catch (e) { /* ignore */ }
+    openPuzzle(draft && typeof draft === 'object' ? draft : normalizeDraft({}));
+  });
 }
 
 /* ── Editor UI persistence (drawer width) ────────────────────────── */

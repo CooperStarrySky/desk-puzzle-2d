@@ -311,6 +311,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 
 <script type="module">
 import { caseProblems, normalizeKinds, PIECE_KIND_NAMES } from '../src/engine.js';
+import { idbSupported, idbGet, idbSet, idbDel } from '../src/idb-kv.js';
 
 /* ===== PURE-START: draft model (no DOM; extracted for node tests) ===== */
 const ZONES = ['corkboard', 'folder', 'rack', 'tubes', 'photo', 'rx'];
@@ -655,19 +656,70 @@ function setSaved(text, isErr) {
   const s = $('#saved');
   s.textContent = text; s.classList.toggle('err', !!isErr);
 }
+/* Drafts live in IndexedDB (image-heavy puzzles outgrow localStorage's ~5 MB).
+   localStorage is the fallback when IndexedDB is missing or fails. Invariant: a
+   successful IndexedDB save removes the localStorage copy, so a localStorage
+   draft, when present, is always the newer one (older studio, or a fallback save). */
+let useIdb = idbSupported();
+const saveSeq = {};
+function lsRemove(key) { try { localStorage.removeItem(key); } catch (e) { /* nothing to remove */ } }
+function saveFailedUi(which, quota) {
+  if (which === mode) setSaved(quota ? 'Not saved: browser storage is full' : 'Not saved: browser storage unavailable', true);
+  if (!saveFailed[which]) toast(quota ? 'Your images are too big to keep in this browser. Send your suggestion soon, or crop the images smaller, so you don’t lose your work.' : 'Could not save your draft in this browser. Keep this tab open until you send it.', 7000);
+  saveFailed[which] = true;
+}
+function saveOk(which) {
+  saveFailed[which] = false;
+  if (which === mode) setSaved('Saved in this browser');
+}
+function saveLocal(which, key, json) {
+  try {
+    localStorage.setItem(key, json);
+    saveOk(which);
+  } catch (e) {
+    saveFailedUi(which, !!(e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)));
+  }
+}
+/** Save one mode's draft now. Resolves when the write has settled (either way). */
 function saveNow(which) {
   which = which || mode;
   const key = which === 'puzzle' ? PUZZLE_KEY : CATEGORY_KEY;
+  const json = JSON.stringify(which === 'puzzle' ? puz : cat);
+  if (!useIdb) { saveLocal(which, key, json); return Promise.resolve(); }
+  const seq = (saveSeq[which] || 0) + 1; saveSeq[which] = seq;
+  return idbSet(key, json).then(() => {
+    lsRemove(key);
+    if (saveSeq[which] === seq) saveOk(which); // a newer save may still be in flight
+  }, (e) => {
+    if (saveSeq[which] !== seq) return;
+    if (e && e.name === 'QuotaExceededError') { saveFailedUi(which, true); return; }
+    useIdb = false; // IndexedDB is broken here: keep working from localStorage
+    saveLocal(which, key, json);
+  });
+}
+/** Raw JSON for one draft, migrating an older localStorage copy into IndexedDB. */
+async function loadRaw(key) {
+  let ls = null;
+  try { ls = localStorage.getItem(key); } catch (e) { ls = null; }
+  if (!useIdb) return ls;
   try {
-    localStorage.setItem(key, JSON.stringify(which === 'puzzle' ? puz : cat));
-    saveFailed[which] = false;
-    if (which === mode) setSaved('Saved in this browser');
+    if (ls != null) {
+      await idbSet(key, ls); // migrate, then drop the old key only once IndexedDB holds it
+      lsRemove(key);
+      return ls;
+    }
+    const v = await idbGet(key);
+    return typeof v === 'string' ? v : null;
   } catch (e) {
-    const quota = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
-    if (which === mode) setSaved(quota ? 'Not saved: browser storage is full' : 'Not saved: browser storage unavailable', true);
-    if (!saveFailed[which]) toast(quota ? 'Your images are too big to keep in this browser. Send your suggestion soon, or crop the images smaller, so you don’t lose your work.' : 'Could not save your draft in this browser. Keep this tab open until you send it.', 7000);
-    saveFailed[which] = true;
+    useIdb = false;
+    return ls;
   }
+}
+/** Never let a stuck IndexedDB open hold the studio hostage: fall back after 4 s. */
+function withTimeout(p, ms, fallback) {
+  let timer = 0;
+  return Promise.race([p, new Promise((r) => { timer = setTimeout(() => r(fallback()), ms); })])
+    .finally(() => clearTimeout(timer)); // the fallback must not run once p has settled
 }
 /** Something changed: save soon (per mode) and redraw the sidebar. */
 function bump() {
@@ -688,9 +740,8 @@ function migrateItem(I) {
   }
   return I;
 }
-function loadCategory() {
+function loadCategory(raw) {
   try {
-    const raw = localStorage.getItem(CATEGORY_KEY);
     if (!raw) return null;
     const c = JSON.parse(raw);
     if (!c || c.v !== 1 || !c.group || !Array.isArray(c.group.items)) return null;
@@ -700,9 +751,8 @@ function loadCategory() {
     return out;
   } catch (e) { return null; }
 }
-function loadPuzzle() {
+function loadPuzzle(raw) {
   try {
-    const raw = localStorage.getItem(PUZZLE_KEY);
     if (!raw) return null;
     const d = JSON.parse(raw);
     if (!d || d.v !== 1 || !Array.isArray(d.groups) || d.groups.length !== 4) return null;
@@ -1066,6 +1116,10 @@ function bindPreview() {
     if (ev.data.type === 'dp-studio-preview-ready') { pvReady = true; postPreview(); }
     if (ev.data.type === 'dp-studio-preview-size') f.style.height = Math.max(120, ev.data.h) + 'px';
   });
+  // Boot waits for the drafts (IndexedDB), so the frame may already have said "ready"
+  // before this listener existed. Ask again; a frame still loading will announce itself.
+  const f = $('#pv-frame');
+  try { if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'dp-studio-preview-hello' }, location.origin); } catch (e) { /* not loaded yet */ }
 }
 function checks() { return isPuz() ? puzzleChecks(puz) : categoryChecks(cat); }
 function drawSide() {
@@ -1196,30 +1250,36 @@ function showPlayProblems(items) {
   ul.hidden = !items.length;
   ul.innerHTML = items.map((x) => '<li><span class="ic ' + x[0] + '" aria-hidden="true">!</span><span>' + esc(x[1]) + '</span></li>').join('');
 }
-/** Validate the chosen source and write it to the key preview mode reads. Returns true when ready. */
+/** Validate the chosen source and write it to the key preview mode reads. Resolves true when ready. */
 function stagePreview() {
   let p;
   if (playSource() === 'file') {
-    if (!playFile) { showPlayProblems([['no', 'Choose a .json file first.']]); return false; }
+    if (!playFile) { showPlayProblems([['no', 'Choose a .json file first.']]); return Promise.resolve(false); }
     p = JSON.parse(JSON.stringify(playFile));
   } else p = puzzleFromDraft(puz);
   normalizeKinds(p);
   const bad = gameProblems(p);
   if (bad.length) {
     showPlayProblems([['bad', 'The game would refuse this puzzle. Fix these first:']].concat(bad.map((t) => ['bad', t])));
-    return false;
+    return Promise.resolve(false);
   }
   const heads = playSource() === 'draft' ? puzzleChecks(puz).problems : [];
   showPlayProblems(heads.length ? [['no', 'Playable, but not ready to publish yet (' + heads.length + ' item' + (heads.length > 1 ? 's' : '') + ' on the Edit checklist).']] : []);
-  try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(p)); } catch (e) {
+  // The game's ?preview boot reads localStorage first, then IndexedDB. Small puzzles
+  // stay in localStorage; big ones overflow it, so they go to IndexedDB instead
+  // (with the localStorage copy removed, so the game cannot pick up a stale one).
+  const json = JSON.stringify(p);
+  try { localStorage.setItem(PREVIEW_KEY, json); return Promise.resolve(true); } catch (e) { lsRemove(PREVIEW_KEY); }
+  const tooBig = () => {
     showPlayProblems([['bad', 'This puzzle is too big for browser storage, so it cannot be test played here. Try smaller images.']]);
     return false;
-  }
-  return true;
+  };
+  if (!idbSupported()) return Promise.resolve(tooBig());
+  return idbSet(PREVIEW_KEY, json).then(() => true, tooBig);
 }
 function frame() { return $('#frame-wrap iframe'); }
-function play() {
-  if (!stagePreview()) return;
+async function play() {
+  if (!(await stagePreview())) return;
   const f = frame();
   if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'dp2d-preview' }, '*');
   else {
@@ -1244,12 +1304,16 @@ function bindPlay() {
   });
   $('#btn-play').addEventListener('click', play);
   $('#btn-restart').addEventListener('click', play);
-  $('#btn-results').addEventListener('click', () => {
-    if (!stagePreview()) return;
+  $('#btn-results').addEventListener('click', async () => {
+    if (!(await stagePreview())) return;
     const f = frame();
     if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'dp2d-preview-results' }, '*');
   });
-  $('#btn-full').addEventListener('click', (e) => { if (!stagePreview()) e.preventDefault(); });
+  $('#btn-full').addEventListener('click', (e) => {
+    e.preventDefault(); // staging may be async (IndexedDB), so open the tab ourselves once it is written
+    const href = e.currentTarget.href;
+    stagePreview().then((ok) => { if (ok) window.open(href, '_blank', 'noopener'); });
+  });
   window.addEventListener('message', (ev) => {
     const f = frame();
     if (!f || ev.source !== f.contentWindow || !ev.data) return;
@@ -1476,8 +1540,10 @@ function bindChrome() {
   }
 }
 
-cat = loadCategory() || blankCategory();
-puz = loadPuzzle() || blankPuzzleSub();
+const lsOnly = () => { useIdb = false; return [CATEGORY_KEY, PUZZLE_KEY].map((k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }); };
+const [rawCat, rawPuz] = await withTimeout(Promise.all([loadRaw(CATEGORY_KEY), loadRaw(PUZZLE_KEY)]), 4000, lsOnly);
+cat = loadCategory(rawCat) || blankCategory();
+puz = loadPuzzle(rawPuz) || blankPuzzleSub();
 bindChrome(); bindEditor(); bindPlay(); bindPreview(); bindModes(); drawSent();
 setMode(modeFromUrl(), true);
 loadTurnstile();

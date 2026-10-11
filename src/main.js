@@ -319,7 +319,7 @@ async function init() {
     window.addEventListener('message', function (ev) {
       if (!ev.data) return;
       if (ev.data.type === 'dp2d-preview') bootPreviewDraft();
-      else if (ev.data.type === 'dp2d-preview-results') { bootPreviewDraft(); showPreviewResultsFromDraft(); }
+      else if (ev.data.type === 'dp2d-preview-results') bootPreviewDraft().then(showPreviewResultsFromDraft);
     });
     bootPreviewDraft();
     // Bind delegated listeners for inline results editing (once, on the overlay).
