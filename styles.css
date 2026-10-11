@@ -317,6 +317,16 @@ img { max-width: 100%; display: block; }
 
 .btn-play-today { font-size: 1.1rem; padding: 0.9em 1.4em; }
 
+/* modest secondary link to the Studio's submit-a-category page */
+.menu-submit-link {
+  align-self: center;
+  text-decoration: none;
+  color: var(--ink-soft);
+  border-color: transparent;
+  font-weight: 500;
+}
+.menu-submit-link:hover { color: var(--accent); }
+
 .menu-section {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
