@@ -12,7 +12,7 @@
 
 import { LIMITS, validateSubmission, itemIds, receiptCode } from './validate.js';
 
-export const DEFAULT_ORIGINS = 'https://cooperstarrysky.github.io,http://localhost:4607';
+export const DEFAULT_ORIGINS = 'https://pathologyconnections.org,https://www.pathologyconnections.org,https://cooperstarrysky.github.io,http://localhost:4607';
 export const BUCKET = 'submissions';
 // Hourly limits. A whole class on campus wifi can share one public IP, so the
 // IP limit is loose; the per-browser limit (clientId) is the tight one. With

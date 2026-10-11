@@ -41,9 +41,9 @@ Don't commit or publish yet. Do the safety check in step 7 first.
 
 In the dashboard, go to **Authentication → URL Configuration**.
 
-1. **Site URL:** `https://cooperstarrysky.github.io/desk-puzzle-2d/`
+1. **Site URL:** `https://pathologyconnections.org/`
 2. Under **Redirect URLs**, add both of these:
-   - `https://cooperstarrysky.github.io/desk-puzzle-2d/**`
+   - `https://pathologyconnections.org/**`
    - `http://localhost:4607/**`
 3. Click **Save**.
 
@@ -144,7 +144,7 @@ delete from admins where email = 'friend@rowan.edu';
 ## 9. Try the inbox, then publish
 
 1. Commit the filled-in `studio/config.js` and publish the site as usual.
-2. Open `https://cooperstarrysky.github.io/desk-puzzle-2d/studio/review-k7q3m9.html`, type your
+2. Open `https://pathologyconnections.org/studio/review-k7q3m9.html`, type your
    email, and open the link it sends you on the same device.
 3. You should see the test category. Open it, click **Decline**, and add the note "test".
 4. Send a real one from `studio/?submit` on your phone and check that it shows up.
@@ -154,7 +154,7 @@ delete from admins where email = 'friend@rowan.edu';
 Turn this on if spam ever shows up. It's free.
 
 1. Make a free Cloudflare account at <https://dash.cloudflare.com>, open **Turnstile**,
-   and click **Add widget**. Hostnames: `cooperstarrysky.github.io` and `localhost`.
+   and click **Add widget**. Hostnames: `pathologyconnections.org` and `localhost`.
    Mode: **Managed**.
 2. Paste the **Site Key** (public, starts with `0x`) into `turnstileSiteKey` in `studio/config.js`.
 3. Store the **Secret Key** in Supabase (dashboard **Edge Functions → Secrets**, name

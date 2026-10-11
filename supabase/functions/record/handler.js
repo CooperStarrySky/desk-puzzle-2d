@@ -22,7 +22,7 @@
 import { clientIp, sha256Hex, pickServerKey } from '../submit/handler.js';
 
 export { pickServerKey };
-export const DEFAULT_ORIGINS = 'https://cooperstarrysky.github.io,http://localhost:4607';
+export const DEFAULT_ORIGINS = 'https://pathologyconnections.org,https://www.pathologyconnections.org,https://cooperstarrysky.github.io,http://localhost:4607';
 export const STATS_SINCE = '2026-10-11';
 export const RATE_PER_HOUR = 300; // a whole class can share one campus IP
 export const MAX_BODY_BYTES = 2048;
