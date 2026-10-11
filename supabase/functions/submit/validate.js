@@ -1,4 +1,5 @@
-// Checks one category submission before it is stored.
+// Checks one submission (a category, or a whole puzzle) before it is stored.
+// The file format is described in supabase/SUBMISSION_FORMAT.md.
 //
 // Plain JavaScript (ES module) so the same file runs in the Supabase "submit"
 // function (Deno), in node tests, and could be loaded by a browser. It mirrors
@@ -7,14 +8,16 @@
 // plus server-only limits (image count and size, text lengths, body size).
 //
 // Differences from import_submission.py, on purpose:
-//   * kind "puzzle" gets a friendly "not open yet" message.
 //   * Only WebP, JPEG, and PNG images (the Studio never makes GIFs).
 //   * Size limits below. The Python tool reads files the admins already have,
 //     so it does not need them.
 
 export const LIMITS = Object.freeze({
-  maxBodyBytes: 7 * 1024 * 1024, // whole request
-  maxImages: 8,
+  maxBodyBytes: 7 * 1024 * 1024, // whole request, one category
+  maxImages: 8,                  // one category
+  maxPuzzleBodyBytes: 9 * 1024 * 1024, // whole request, full puzzle
+  maxPuzzleImages: 16,           // full puzzle (all 4 categories)
+  puzzleTitle: 120,
   maxImageBytes: 700 * 1024,     // each image after decoding
   name: 120,                     // category name
   explanation: 400,
@@ -101,10 +104,11 @@ function tooLong(p, what, v, max) {
 }
 
 /**
- * Check one submission object.
- * Returns { problems: string[], images: [{ item, field, mime, ext, bytes }] }.
- * problems is empty when the submission is good. Messages match
- * import_submission.py check_submission() wherever the rule is the same.
+ * Check one submission object (kind "category" v1/v2, or kind "puzzle" v2).
+ * Returns { problems: string[], images: [{ group, item, field, mime, ext, bytes }] }.
+ * group is 0 for a category, 0-3 for the groups of a puzzle. problems is empty
+ * when the submission is good. Messages match import_submission.py
+ * check_submission() wherever the rule is the same.
  */
 export function validateSubmission(sub) {
   const p = [];
@@ -113,17 +117,55 @@ export function validateSubmission(sub) {
   if (sub.format !== 'desk-puzzle-submission') {
     return { problems: ['the file is not a Desk Puzzle submission (format is not "desk-puzzle-submission")'], images };
   }
-  if (sub.version !== 1) p.push(`version is ${show(sub.version)}; this tool reads version 1`);
-  if (sub.kind === 'puzzle') {
-    return { problems: p.concat(['whole-puzzle submissions are not open yet; please send one category at a time']), images };
+  const v = sub.version;
+  if (v !== 1 && v !== 2) p.push(`version is ${show(v)}; this tool reads version 1 or 2`);
+  if (sub.kind !== 'category' && sub.kind !== 'puzzle') {
+    return { problems: p.concat([`kind is ${show(sub.kind)}; expected "category" or "puzzle"`]), images };
   }
-  if (sub.kind !== 'category') {
-    return { problems: p.concat([`kind is ${show(sub.kind)}; this tool imports single categories only`]), images };
+  if (sub.kind === 'puzzle' && v !== 2) {
+    return { problems: p.concat(['whole puzzles need a version 2 file; please send it again from the Studio']), images };
   }
+  const v2 = v === 2;
   if (sub.consent !== true) p.push('the consent box was not ticked, so it cannot be used');
-  const tier = sub.suggestedTier;
-  if (![1, 2, 3, 4].includes(tier)) p.push(`suggested difficulty should be 1-4, got ${show(tier)}`);
 
+  if (sub.kind === 'category') {
+    const tier = sub.suggestedTier;
+    if (![1, 2, 3, 4].includes(tier)) p.push(`suggested difficulty should be 1-4, got ${show(tier)}`);
+  }
+  checkCredit(sub, p);
+
+  if (sub.kind === 'category') {
+    const g = sub.group;
+    if (!isObj(g)) return { problems: p.concat(['the file has no category (group) in it']), images };
+    if (!checkGroup(g, '', 0, v2, p, images)) return { problems: p, images };
+    if (images.length > LIMITS.maxImages) p.push(`too many images (${images.length}; max ${LIMITS.maxImages})`);
+    return { problems: p, images };
+  }
+
+  const pz = sub.puzzle;
+  if (!isObj(pz)) return { problems: p.concat(['the file has no puzzle in it']), images };
+  if (!text(pz.title)) p.push('the puzzle has no title');
+  tooLong(p, 'the puzzle title', pz.title, LIMITS.puzzleTitle);
+  const groups = pz.groups;
+  if (!Array.isArray(groups) || groups.length !== 4) {
+    return { problems: p.concat([`expected 4 categories, found ${Array.isArray(groups) ? groups.length : 0}`]), images };
+  }
+  const tiers = [];
+  groups.forEach((g, gi) => {
+    const pre = `category ${gi + 1}: `;
+    if (!isObj(g)) { p.push(`category ${gi + 1} is not a category`); return; }
+    if (![1, 2, 3, 4].includes(g.tier)) p.push(`${pre}difficulty should be 1-4, got ${show(g.tier)}`);
+    else tiers.push(g.tier);
+    checkGroup(g, pre, gi, true, p, images);
+  });
+  if (tiers.length === 4 && new Set(tiers).size !== 4) {
+    p.push(`each difficulty 1-4 must be used exactly once; got ${tiers.join(', ')}`);
+  }
+  if (images.length > LIMITS.maxPuzzleImages) p.push(`too many images (${images.length}; max ${LIMITS.maxPuzzleImages})`);
+  return { problems: p, images };
+}
+
+function checkCredit(sub, p) {
   const credit = sub.credit;
   if (!isObj(credit) || !['named', 'anonymous'].includes(credit.mode)) {
     p.push('credit should say "named" or "anonymous"');
@@ -135,51 +177,59 @@ export function validateSubmission(sub) {
     if (line !== undefined && line !== null && typeof line !== 'string') p.push('credit year/role should be text');
     else if (text(line).length > LIMITS.creditLine) p.push(`credit year/role is ${text(line).length} characters (max ${LIMITS.creditLine})`);
   }
-
   const contact = sub.contact;
   if (contact !== undefined && contact !== null) {
     const email = isObj(contact) ? text(contact.email) : '';
     if (!isObj(contact) || (email && !EMAIL_RE.test(email))) p.push('contact email does not look like an email address');
     else if (email.length > LIMITS.email) p.push('contact email is too long');
   }
+}
 
-  const g = sub.group;
-  if (!isObj(g)) return { problems: p.concat(['the file has no category (group) in it']), images };
-  if (!text(g.name)) p.push('the category has no name');
-  if (!text(g.explanation)) p.push('the category has no one-line explanation');
-  tooLong(p, 'the category name', g.name, LIMITS.name);
-  tooLong(p, 'the explanation', g.explanation, LIMITS.explanation);
+/**
+ * One category's name, explanation, teaching note, Anki IDs, and 4 clues.
+ * pre is '' for a category submission, 'category N: ' inside a puzzle.
+ * Version 2 rules: info.title is not needed (it is the label); a microscope
+ * slide's picture must be scope.image (the game never shows info.image on a
+ * slide); only slides may have scope.image. Returns false when the clue list
+ * itself is unusable.
+ */
+function checkGroup(g, pre, gi, v2, p, images) {
+  if (!text(g.name)) p.push(`${pre}the category has no name`);
+  if (!text(g.explanation)) p.push(`${pre}the category has no one-line explanation`);
+  tooLong(p, `${pre}the category name`, g.name, LIMITS.name);
+  tooLong(p, `${pre}the explanation`, g.explanation, LIMITS.explanation);
 
   const article = g.article;
   if (article !== undefined && article !== null) {
-    if (!Array.isArray(article)) p.push('the teaching note should be a list of blocks');
+    if (!Array.isArray(article)) p.push(`${pre}the teaching note should be a list of blocks`);
     else {
       let total = 0;
       article.forEach((b, i) => {
         const bt = isObj(b) ? b.type : undefined;
-        if (!['heading', 'text', 'image'].includes(bt)) p.push(`teaching note block ${i + 1} has an unknown type ${show(bt)}`);
-        else if (bt === 'image') p.push(`teaching note block ${i + 1} is an image; move it to a clue or drop it`);
+        if (!['heading', 'text', 'image'].includes(bt)) p.push(`${pre}teaching note block ${i + 1} has an unknown type ${show(bt)}`);
+        else if (bt === 'image') p.push(`${pre}teaching note block ${i + 1} is an image; move it to a clue or drop it`);
         else total += typeof b.text === 'string' ? b.text.length : 0;
       });
-      if (total > LIMITS.article) p.push(`the teaching note is ${total} characters (max ${LIMITS.article})`);
+      if (total > LIMITS.article) p.push(`${pre}the teaching note is ${total} characters (max ${LIMITS.article})`);
     }
   }
   const anki = g.anki;
   if (anki !== undefined && anki !== null) {
     const raw = isObj(anki) ? anki.nids : undefined;
-    if (!Array.isArray(raw)) p.push('Anki note IDs should be a list');
+    if (!Array.isArray(raw)) p.push(`${pre}Anki note IDs should be a list`);
     else {
-      raw.forEach((n) => { if (!Number.isInteger(n) || n <= 0) p.push(`Anki note ID ${show(n)} is not a positive whole number`); });
-      if (raw.length > LIMITS.nids) p.push(`too many Anki note IDs (${raw.length}; max ${LIMITS.nids})`);
+      raw.forEach((n) => { if (!Number.isInteger(n) || n <= 0) p.push(`${pre}Anki note ID ${show(n)} is not a positive whole number`); });
+      if (raw.length > LIMITS.nids) p.push(`${pre}too many Anki note IDs (${raw.length}; max ${LIMITS.nids})`);
     }
   }
 
   const items = g.items;
   if (!Array.isArray(items) || items.length !== 4) {
-    return { problems: p.concat([`expected 4 clues, found ${Array.isArray(items) ? items.length : 0}`]), images };
+    p.push(`${pre}expected 4 clues, found ${Array.isArray(items) ? items.length : 0}`);
+    return false;
   }
   items.forEach((it, idx) => {
-    const c = `clue ${idx + 1}`;
+    const c = `${pre}clue ${idx + 1}`;
     if (!isObj(it)) { p.push(`${c} is not a clue`); return; }
     const zone = it.zone;
     const info = isObj(it.info) ? it.info : {};
@@ -187,17 +237,19 @@ export function validateSubmission(sub) {
     const label = text(it.label);
     if (!VALID_ZONES.includes(zone)) p.push(`${c} has an unknown kind of piece ${show(zone)}`);
     if (!label) p.push(`${c} has an empty label`);
-    if (TITLE_ZONES.includes(zone) && !text(info.title)) p.push(`${c} is a ${ZONE_WORDS[zone]} and needs a title`);
+    if (!v2 && TITLE_ZONES.includes(zone) && !text(info.title)) p.push(`${c} is a ${ZONE_WORDS[zone]} and needs a title`);
     tooLong(p, `${c} label`, it.label, LIMITS.label);
-    tooLong(p, `${c} title`, info.title, LIMITS.title);
+    if (!v2) tooLong(p, `${c} title`, info.title, LIMITS.title);
     tooLong(p, `${c} text`, info.text, LIMITS.text);
     tooLong(p, `${c} image source`, it.source, LIMITS.source);
     let has = false;
     for (const [field, val] of [['info', info.image], ['scope', scope.image]]) {
       if (!val) continue;
       if (!TITLE_ZONES.includes(zone)) { p.push(`${c} is a ${ZONE_WORDS[zone] || 'piece'} (text only) but has an image`); continue; }
+      if (v2 && zone === 'rack' && field === 'info') { p.push(`${c} is a microscope slide, so its picture goes under the microscope (scope.image), not info.image`); continue; }
+      if (v2 && zone !== 'rack' && field === 'scope') { p.push(`${c} is a ${ZONE_WORDS[zone]}; only microscope slides have a microscope image`); continue; }
       try {
-        images.push(Object.assign({ item: idx, field }, decodeImage(val)));
+        images.push(Object.assign({ group: gi, item: idx, field }, decodeImage(val)));
         has = true;
       } catch (e) {
         p.push(`${c} ${field === 'scope' ? 'microscope image' : 'image'} ${e.message}`);
@@ -205,8 +257,7 @@ export function validateSubmission(sub) {
     }
     if (has && !text(it.source)) p.push(`${c} has an image but no source note`);
   });
-  if (images.length > LIMITS.maxImages) p.push(`too many images (${images.length}; max ${LIMITS.maxImages})`);
-  return { problems: p, images };
+  return true;
 }
 
 /** Item ids for storage paths: same rule as import_submission.py (slug, then -2, -3 ...). */

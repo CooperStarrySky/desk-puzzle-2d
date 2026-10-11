@@ -2,7 +2,7 @@
 // Drives supabase/functions/submit/handler.js with a fake Supabase client and a
 // fake fetch (for Turnstile). No network. Exit 1 on any failure.
 import { createHandler, RATE_PER_HOUR, pickServerKey } from '../functions/submit/handler.js';
-import { goodSample } from './samples.mjs';
+import { goodSample, goodSampleV2, goodPuzzleSample } from './samples.mjs';
 
 let fails = 0;
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
@@ -96,8 +96,13 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   const { handle } = setup();
   ok((await handle(post('{not json'))).status === 400, 'not JSON -> 400');
   ok((await handle(new Request('https://x/f', { method: 'GET', headers: { origin: ORIGIN } }))).status === 405, 'GET -> 405');
-  const r = await json(await handle(post('x'.repeat(7 * 1024 * 1024 + 10))));
-  ok(r.status === 413 && /too big/.test(r.body.error), 'body over 7 MB -> 413 "too big"');
+  const r = await json(await handle(post('x'.repeat(9 * 1024 * 1024 + 10))));
+  ok(r.status === 413 && /too big/.test(r.body.error) && /9 MB max/.test(r.body.error), 'body over 9 MB -> 413 "too big"');
+  const r2 = await json(await handle(post({ submission: goodSample(), pad: 'x'.repeat(7 * 1024 * 1024) })));
+  ok(r2.status === 413 && /7 MB max/.test(r2.body.error), 'category body over 7 MB -> 413 (category cap unchanged)');
+  const s3 = setup();
+  const r3 = await json(await s3.handle(post({ submission: goodPuzzleSample(), pad: 'x'.repeat(8 * 1024 * 1024) })));
+  ok(r3.status === 200 && r3.body.ok, 'full puzzle body of 8 MB passes the size gate');
 }
 // Turnstile
 {
@@ -122,7 +127,16 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   ok(r.status === 400 && /the category has no name/.test(r.body.error) && Array.isArray(r.body.problems) && db.st.rows.length === 0, 'invalid category -> 400 with the problem');
   const p = goodSample(); p.kind = 'puzzle';
   const r2 = await json(await handle(post({ submission: p })));
-  ok(r2.status === 400 && /not open yet/.test(r2.body.error), 'kind puzzle -> 400 friendly "not open yet"');
+  ok(r2.status === 400 && /need a version 2 file/.test(r2.body.error), 'kind puzzle in a v1 file -> 400 asks for version 2');
+  const d = goodPuzzleSample(); d.puzzle.groups[0].tier = 2;
+  const r3 = await json(await handle(post({ submission: d })));
+  ok(r3.status === 400 && /each difficulty 1-4 must be used exactly once/.test(r3.body.error) && db.st.rows.length === 0, 'puzzle with duplicate tiers -> 400, nothing stored');
+  const w = goodPuzzleSample(); w.puzzle.groups[1].items.pop();
+  const r4 = await json(await handle(post({ submission: w })));
+  ok(r4.status === 400 && /category 2: expected 4 clues, found 3/.test(r4.body.error), 'puzzle with a 3-clue category -> 400');
+  const sl = goodPuzzleSample(); sl.puzzle.groups[0].items[3].info.image = sl.puzzle.groups[0].items[2].info.image;
+  const r5 = await json(await handle(post({ submission: sl })));
+  ok(r5.status === 400 && /microscope slide, so its picture goes under the microscope/.test(r5.body.error) && db.st.files.size === 0, 'v2 slide with info.image -> 400 (rejected, not stripped)');
 }
 // Oversize image
 {
@@ -152,6 +166,32 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   await handle(post({ submission: anon }));
   const row2 = db.st.rows[1];
   ok(row2.credit_mode === 'anonymous' && row2.credit_name === null && row2.contact_email === null, 'anonymous with no email -> nulls');
+}
+// Full puzzle success path
+{
+  const { handle, db } = setup();
+  const r = await json(await handle(post({ submission: goodPuzzleSample() })));
+  ok(r.status === 200 && r.body.ok === true && /^DP-/.test(r.body.receipt), 'good full puzzle -> 200 with receipt');
+  const id = '11111111-2222-3333-4444-555555555550';
+  const files = [...db.st.files.keys()].sort();
+  ok(JSON.stringify(files) === JSON.stringify([`submissions/${id}/1-g1-photo-info.png`, `submissions/${id}/1-g1-slide-scope.webp`, `submissions/${id}/2-g2-photo-info.png`, `submissions/${id}/2-g2-slide-scope.webp`]),
+    'puzzle uploads go to <uuid>/<group 1-4>-<itemid>-info|scope.<ext>');
+  const row = db.st.rows[0];
+  ok(row.kind === 'puzzle' && row.suggested_tier === null && row.group_name === 'TEST: automated full puzzle', 'row: kind puzzle, no suggested tier, group_name = puzzle title');
+  ok(row.credit_name === 'Test Student' && row.contact_email === 'test.student@rowan.edu', 'row: credit and contact for the whole puzzle');
+  const pl = row.payload;
+  ok(pl.submissionVersion === 2 && pl.title === 'TEST: automated full puzzle' && pl.groups.length === 4 && !('date' in pl), 'payload: version, title, 4 groups, no date');
+  ok(pl.groups.map((g) => g.tier).join() === '3,1,4,2' && pl.groups[0].items[3].scope.image === `${id}/1-g1-slide-scope.webp` && pl.groups[1].items[2].info.image === `${id}/2-g2-photo-info.png`, 'payload: tiers kept, images rewritten to storage paths');
+  ok(!JSON.stringify(pl).includes('data:'), 'payload has no data URIs left');
+  ok(pl.groups.every((g) => g.items.every((it) => it.info.title === it.label)), 'v2: info.title set to the label');
+  const v2 = setup();
+  const r2 = await json(await v2.handle(post({ submission: goodSampleV2() })));
+  const row2 = v2.db.st.rows[0];
+  ok(r2.status === 200 && row2.kind === 'category' && row2.suggested_tier === 2 && row2.payload.submissionVersion === 2 && row2.payload.items[3].scope.image === '11111111-2222-3333-4444-555555555550/clubbing-slide-scope.webp',
+    'v2 category -> stored like v1 (no group prefix in paths)');
+  const v1 = setup();
+  await v1.handle(post({ submission: goodSample() }));
+  ok(v1.db.st.rows[0].payload.submissionVersion === 1 && v1.db.st.rows[0].payload.items[2].info.title === 'Fingertips', 'v1 category still OK, its titles kept');
 }
 // Rate limit
 {

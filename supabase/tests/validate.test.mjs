@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { validateSubmission, decodeImage, itemIds, receiptCode, LIMITS } from '../functions/submit/validate.js';
-import { goodSample, PNG_1x1, WEBP_1x1, clone } from './samples.mjs';
+import { goodSample, goodSampleV2, goodPuzzleSample, PNG_1x1, WEBP_1x1, clone } from './samples.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 let fails = 0;
@@ -32,7 +32,8 @@ const cases = [
   ['fake PNG bytes', (s) => { s.group.items[2].info.image = 'data:image/png;base64,' + Buffer.from('hello world, not a png').toString('base64'); }, 'clue 3 image cannot be opened as an image'],
   ['bad Anki id', (s) => { s.group.anki = { nids: [12, -3] }; }, 'Anki note ID -3 is not a positive whole number'],
   ['article image block', (s) => { s.group.article = [{ type: 'image', src: 'x.webp' }]; }, 'teaching note block 1 is an image'],
-  ['whole puzzle', (s) => { s.kind = 'puzzle'; }, 'whole-puzzle submissions are not open yet', true],
+  ['puzzle in a version 1 file', (s) => { s.kind = 'puzzle'; }, 'whole puzzles need a version 2 file'],
+  ['version 3', (s) => { s.version = 3; }, 'version is 3; this tool reads version 1 or 2'],
   ['GIF image', (s) => { s.group.items[2].info.image = 'data:image/gif;base64,R0lGODlhAQABAAAAACw='; }, 'only WebP, PNG, and JPEG are accepted', true],
   ['oversize image', (s) => { s.group.items[2].info.image = bigWebp; }, 'clue 3 image is too big', true],
   ['explanation too long', (s) => { s.group.explanation = 'x'.repeat(LIMITS.explanation + 1); }, 'the explanation is 401 characters (max 400)', true],
@@ -50,6 +51,53 @@ for (const [name, mut, want, serverOnly] of cases) {
   ok(r.problems.some((m) => m.includes(want)), `rejects ${name} -> ${r.problems[0] || '(passed!)'}`);
   samples.push([name, s, want, !!serverOnly]);
 }
+// ── Version 2 category and full puzzle ──
+// Each case: name, base sample maker, mutate, expected fragment, serverOnly
+const v2cases = [
+  ['v2 slide with info.image', goodSampleV2, (s) => { s.group.items[3].info.image = WEBP_1x1; }, 'clue 4 is a microscope slide, so its picture goes under the microscope (scope.image), not info.image'],
+  ['v2 photo with a microscope image', goodSampleV2, (s) => { s.group.items[2].scope = { image: WEBP_1x1 }; }, 'clue 3 is a photograph; only microscope slides have a microscope image'],
+  ['puzzle duplicate tiers', goodPuzzleSample, (s) => { s.puzzle.groups[1].tier = 3; }, 'each difficulty 1-4 must be used exactly once; got 3, 3, 4, 2'],
+  ['puzzle bad tier', goodPuzzleSample, (s) => { s.puzzle.groups[0].tier = 0; }, 'category 1: difficulty should be 1-4, got 0'],
+  ['puzzle missing tier', goodPuzzleSample, (s) => { delete s.puzzle.groups[3].tier; }, 'category 4: difficulty should be 1-4, got None'],
+  ['puzzle with 3 categories', goodPuzzleSample, (s) => { s.puzzle.groups.pop(); }, 'expected 4 categories, found 3'],
+  ['puzzle with 5 categories', goodPuzzleSample, (s) => { s.puzzle.groups.push(clone(s.puzzle.groups[0])); }, 'expected 4 categories, found 5'],
+  ['puzzle category with 3 clues', goodPuzzleSample, (s) => { s.puzzle.groups[2].items.pop(); }, 'category 3: expected 4 clues, found 3'],
+  ['puzzle category with 5 clues', goodPuzzleSample, (s) => { s.puzzle.groups[2].items.push(clone(s.puzzle.groups[2].items[0])); }, 'category 3: expected 4 clues, found 5'],
+  ['puzzle no title', goodPuzzleSample, (s) => { s.puzzle.title = ' '; }, 'the puzzle has no title'],
+  ['puzzle missing', goodPuzzleSample, (s) => { delete s.puzzle; }, 'the file has no puzzle in it'],
+  ['puzzle slide with info.image', goodPuzzleSample, (s) => { s.puzzle.groups[1].items[3].info.image = PNG_1x1; }, 'category 2: clue 4 is a microscope slide, so its picture goes under the microscope'],
+  ['puzzle image without source', goodPuzzleSample, (s) => { delete s.puzzle.groups[1].items[2].source; }, 'category 2: clue 3 has an image but no source note'],
+  ['puzzle image on sticky note', goodPuzzleSample, (s) => { s.puzzle.groups[0].items[0].info.image = PNG_1x1; }, 'category 1: clue 1 is a sticky note (text only) but has an image'],
+  ['puzzle no group name', goodPuzzleSample, (s) => { s.puzzle.groups[3].name = ''; }, 'category 4: the category has no name'],
+  ['puzzle no consent', goodPuzzleSample, (s) => { s.consent = false; }, 'consent box was not ticked'],
+  ['puzzle oversize image', goodPuzzleSample, (s) => { s.puzzle.groups[0].items[2].info.image = bigWebp; }, 'category 1: clue 3 image is too big', true],
+  ['puzzle title too long', goodPuzzleSample, (s) => { s.puzzle.title = 'x'.repeat(LIMITS.puzzleTitle + 1); }, 'the puzzle title is 121 characters (max 120)', true],
+];
+const v2good = validateSubmission(goodSampleV2());
+ok(v2good.problems.length === 0 && v2good.images.length === 2, 'v2 category sample passes with 2 images' + (v2good.problems.length ? ': ' + v2good.problems.join(' | ') : ''));
+const v2noTitle = goodSampleV2(); v2noTitle.group.items.forEach((it) => { delete it.info.title; });
+ok(validateSubmission(v2noTitle).problems.length === 0, 'v2 needs no separate title (photo/slide without info.title passes)');
+const pzGood = validateSubmission(goodPuzzleSample());
+ok(pzGood.problems.length === 0, 'puzzle sample passes' + (pzGood.problems.length ? ': ' + pzGood.problems.join(' | ') : ''));
+ok(pzGood.images.length === 4 && pzGood.images.map((im) => im.group + ':' + im.item + ':' + im.field).join(',') === '0:2:info,0:3:scope,1:2:info,1:3:scope', 'puzzle images carry group, clue, and field');
+samples.push(['v2 good', goodSampleV2(), null, false], ['puzzle good', goodPuzzleSample(), null, false]);
+for (const [name, make, mut, want, serverOnly] of v2cases) {
+  const s = make(); mut(s);
+  const r = validateSubmission(s);
+  ok(r.problems.some((m) => m.includes(want)), `rejects ${name} -> ${r.problems[0] || '(passed!)'}`);
+  samples.push([name, s, want, !!serverOnly]);
+}
+const sixteen = goodPuzzleSample();
+sixteen.puzzle.groups.forEach((g) => g.items.forEach((it, i) => {
+  if (i % 2) { it.zone = 'rack'; it.scope = { image: WEBP_1x1 }; } else { it.zone = 'photo'; it.info.image = PNG_1x1; }
+  it.source = 'own';
+}));
+const r16 = validateSubmission(sixteen);
+ok(r16.problems.length === 0 && r16.images.length === 16, '16 images allowed in a full puzzle (one per clue)');
+const many = goodSample();
+many.group.items.forEach((it) => { it.zone = 'photo'; it.info.image = PNG_1x1; it.scope = { image: PNG_1x1 }; it.source = 'own'; });
+ok(validateSubmission(many).problems.length === 0, 'v1 category keeps its old rules (photo with both images still accepted)');
+
 const nine = goodSample();
 nine.group.items.forEach((it) => { it.zone = 'rack'; it.info.title = 'T'; it.info.image = WEBP_1x1; it.scope = { image: WEBP_1x1 }; it.source = 'own'; });
 ok(validateSubmission(nine).problems.length === 0, '8 images allowed (4 slides with card + scope image)');

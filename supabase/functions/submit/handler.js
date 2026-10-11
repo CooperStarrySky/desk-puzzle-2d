@@ -2,7 +2,8 @@
 // drive it with a fake database. index.ts only wires it to Deno.serve.
 //
 // A request is: POST JSON { submission, turnstileToken, website }
-//   submission      the same object the Studio downloads (desk-puzzle-submission v1)
+//   submission      the same object the Studio downloads (desk-puzzle-submission
+//                   v1 or v2, kind "category" or "puzzle"; see ../../SUBMISSION_FORMAT.md)
 //   turnstileToken  Cloudflare's "are you human" token (only checked if TURNSTILE_SECRET is set)
 //   website         honeypot: a hidden field people never fill in; bots often do
 // Reply: { ok: true, receipt: "DP-XXXX-XXXX" } or { ok: false, error: "plain English" }.
@@ -53,14 +54,17 @@ export function createHandler(deps) {
 
     // ── Size and shape ──
     const declared = Number(req.headers.get('content-length') || 0);
-    if (declared > LIMITS.maxBodyBytes) return fail(413, tooBig(declared));
+    // The largest allowed body (a full puzzle) first; a category's smaller cap after parsing.
+    if (declared > LIMITS.maxPuzzleBodyBytes) return fail(413, tooBig(declared, LIMITS.maxPuzzleBodyBytes));
     let raw;
     try { raw = await req.text(); } catch (e) { return fail(400, 'We could not read what was sent. Please try again.'); }
     const bytes = new TextEncoder().encode(raw).length;
-    if (bytes > LIMITS.maxBodyBytes) return fail(413, tooBig(bytes));
+    if (bytes > LIMITS.maxPuzzleBodyBytes) return fail(413, tooBig(bytes, LIMITS.maxPuzzleBodyBytes));
     let body;
-    try { body = JSON.parse(raw); } catch (e) { return fail(400, 'That did not look like a category submission.'); }
-    if (!body || typeof body !== 'object' || Array.isArray(body)) return fail(400, 'That did not look like a category submission.');
+    try { body = JSON.parse(raw); } catch (e) { return fail(400, 'That did not look like a Desk Puzzle submission.'); }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return fail(400, 'That did not look like a Desk Puzzle submission.');
+    const isPuzzle = !!(body.submission && body.submission.kind === 'puzzle');
+    if (!isPuzzle && bytes > LIMITS.maxBodyBytes) return fail(413, tooBig(bytes, LIMITS.maxBodyBytes));
 
     // ── Honeypot ──
     if (typeof body.website === 'string' && body.website.trim()) {
@@ -93,7 +97,7 @@ export function createHandler(deps) {
         .eq('ip_hash', ipHash).gte('at', new Date(t.getTime() - 3600e3).toISOString());
       if (error) throw error;
       if ((count || 0) >= RATE_PER_HOUR) {
-        return fail(429, 'That is a lot of categories in one hour. Please wait a bit and send this one later. Your draft is still saved.');
+        return fail(429, 'That is a lot of submissions in one hour. Please wait a bit and send this one later. Your draft is still saved.');
       }
       const ins = await db.from('submit_rate').insert({ ip_hash: ipHash, at: t.toISOString() });
       if (ins && ins.error) throw ins.error;
@@ -110,22 +114,28 @@ export function createHandler(deps) {
     }
 
     // ── Store images, then the row; undo the images if anything fails ──
+    // payload: the category (group) or { title, groups } for a puzzle, plus
+    // submissionVersion so the inbox can rebuild the original file.
     const id = uuid();
-    const group = JSON.parse(JSON.stringify(sub.group));
-    const ids = itemIds(group.items);
+    const payload = buildPayload(sub);
+    const groups = isPuzzle ? payload.groups : [payload];
+    const ids = groups.map((g) => itemIds(g.items));
     const uploaded = [];
     try {
       for (const im of images) {
-        const path = `${id}/${ids[im.item]}-${im.field}.${im.ext}`;
+        const stem = (isPuzzle ? `${im.group + 1}-` : '') + `${ids[im.group][im.item]}-${im.field}`;
+        const path = `${id}/${stem}.${im.ext}`;
         const { error } = await db.storage.from(BUCKET).upload(path, im.bytes, { contentType: im.mime, upsert: false });
         if (error) throw new Error('upload: ' + (error.message || error));
         uploaded.push(path);
-        group.items[im.item][im.field].image = path;
+        groups[im.group].items[im.item][im.field].image = path;
       }
       const credit = sub.credit;
       const email = sub.contact && typeof sub.contact.email === 'string' ? sub.contact.email.trim() : '';
       const row = {
-        id, kind: 'category', suggested_tier: sub.suggestedTier, group_name: group.name.trim(), payload: group,
+        id, kind: isPuzzle ? 'puzzle' : 'category',
+        suggested_tier: isPuzzle ? null : sub.suggestedTier,
+        group_name: (isPuzzle ? payload.title : payload.name).trim(), payload,
         credit_mode: credit.mode,
         credit_name: credit.mode === 'named' ? credit.name.trim() : null,
         credit_line: credit.mode === 'named' && typeof credit.line === 'string' && credit.line.trim() ? credit.line.trim() : null,
@@ -145,13 +155,33 @@ export function createHandler(deps) {
         try { await db.storage.from(BUCKET).remove(uploaded); } catch (e2) { /* best effort */ }
       }
       console.error('submit failed', e && e.message);
-      return fail(500, 'We could not save your category just now, and nothing was kept. Please try again in a few minutes.');
+      return fail(500, 'We could not save your submission just now, and nothing was kept. Please try again in a few minutes.');
     }
   };
 }
 
-function tooBig(n) {
-  return `This submission is too big (${(n / 1048576).toFixed(1)} MB; ${LIMITS.maxBodyBytes / 1048576} MB max). Use fewer or smaller images.`;
+function tooBig(n, max) {
+  return `This submission is too big (${(n / 1048576).toFixed(1)} MB; ${max / 1048576} MB max). Use fewer or smaller images.`;
+}
+
+/**
+ * What goes in the row's payload (images are still data URIs here; the caller
+ * swaps them for storage paths). Version 2 clues get info.title = label, the
+ * rule of the v2 format. Only the known puzzle fields are kept (no date: the
+ * puzzle group sets it when publishing).
+ */
+export function buildPayload(sub) {
+  const copy = (o) => JSON.parse(JSON.stringify(o));
+  const fixItems = (g) => {
+    if (sub.version === 2) {
+      g.items.forEach((it) => { it.info = Object.assign({}, it.info || {}, { title: String(it.label).trim() }); });
+    }
+    return g;
+  };
+  if (sub.kind === 'puzzle') {
+    return { submissionVersion: 2, title: String(sub.puzzle.title).trim(), groups: copy(sub.puzzle.groups).map(fixItems) };
+  }
+  return Object.assign(fixItems(copy(sub.group)), { submissionVersion: sub.version });
 }
 
 export function clientIp(req) {
