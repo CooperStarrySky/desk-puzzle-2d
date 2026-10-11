@@ -1,0 +1,9 @@
+# Supabase CLI settings for the Desk Puzzle inbox. Kept small on purpose: the
+# real project settings live in the Supabase dashboard. The CLI only needs to
+# know the project folder name and how to deploy the "submit" function.
+project_id = "desk-puzzle"
+
+[functions.submit]
+# Students are not signed in, so the function must accept requests without a
+# user login. It checks the origin, Turnstile, honeypot, and rate limit itself.
+verify_jwt = false
