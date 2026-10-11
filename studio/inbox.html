@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Submissions inbox · Desk Puzzle</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<!--
+  Submissions inbox for the CMSRU puzzle group. Sign in with an emailed link;
+  only emails on the admins list (Supabase table "admins") can read anything.
+  Settings come from config.js (same file as the Studio). See supabase/SETUP.md.
+-->
+<script>/* theme before first paint, shared with the Studio */
+try { var t = localStorage.getItem('dp2d:studio-theme'); if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<script src="config.js"></script>
+<!-- supabase-js, pinned version + integrity hash so a changed CDN file is refused -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha384-BWcjm9OdFth9TbhCxZPdm+gAOUMAzQy9nmTs12ioXdCcbVnJaPMn+fMUoQCLt60R" crossorigin="anonymous"></script>
+<style>
+/* TOKENS + base + header + buttons + panels + forms: copied from studio/index.html
+   (which copies its tokens from ../styles.css). Change colors there first. */
+/* Puzzle Studio: author editor in the game's "stain room" look.
+   TOKENS: copied from ../styles.css (:root and :root[data-theme="dark"]), which is the
+   source of truth. Only the tokens the Studio uses are here; if you change a color in
+   styles.css, change it here too. The Studio-only extras (soft status fills, warn) sit
+   at the end of each block. Auto theme is resolved in JS (applyTheme) like the game. */
+:root {
+  --ink: #1c1a2e; --ink-soft: #524f6b; --ink-faint: #8a87a0;
+  --paper: #f3f2f7; --paper-2: #e7e5ef;
+  --paper-grain-a: rgba(75, 63, 176, 0.035); --paper-grain-b: rgba(214, 69, 122, 0.025);
+  --panel: #fbfbfd; --panel-edge: rgba(28, 26, 46, 0.13); --rule: rgba(28, 26, 46, 0.08);
+  --accent: #4b3fb0; --accent-hover: #4034a0; --accent-ink: #ffffff; --accent-soft: #e8e5f8;
+  --eosin: #d6457a; --eosin-soft: #fbe3ec; --eosin-ink: #ffffff;
+  --tier-1: #e9b829; --tier-2: #3d8f62; --tier-3: #2e5aa8; --tier-4: #a8306f;
+  --ok: #2f7d55; --danger: #c0392f; --scrim: rgba(16, 14, 30, 0.5); --shadow: rgba(28, 26, 46, 0.14);
+  --serif: "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --hand: "Bradley Hand", "Noteworthy", "Marker Felt", "Segoe Print", cursive;
+  --mono: "SF Mono", Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --r-s: 6px; --r-m: 10px; --r-l: 14px;
+  --card: #ffffff; --field-bg: #ffffff; --toast-bg: #1c1a2e; --toast-ink: #f3f2f7;
+  --desk-hi: #4a5060; --desk-mid: #3a3f4c; --desk-lo: #424857; --desk-edge: rgba(16, 18, 26, 0.5);
+  /* Studio-only */
+  --ok-soft: #e1f1e8; --warn: #8a5a00; --warn-soft: #f8edcf; --danger-soft: #f8e0dd;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --ink: #eceaf6; --ink-soft: #a9a6c0; --ink-faint: #7b7894;
+  --paper: #13121c; --paper-2: #1c1a29;
+  --paper-grain-a: rgba(157, 147, 240, 0.04); --paper-grain-b: rgba(240, 123, 163, 0.025);
+  --panel: #1b1a27; --panel-edge: rgba(236, 234, 246, 0.13); --rule: rgba(236, 234, 246, 0.07);
+  --accent: #9d93f0; --accent-hover: #b0a8f4; --accent-ink: #13121c; --accent-soft: rgba(75, 63, 176, 0.3);
+  --eosin: #f07ba3; --eosin-soft: rgba(214, 69, 122, 0.22); --eosin-ink: #13121c;
+  --tier-1: #eabb33; --tier-2: #4fa877; --tier-3: #4472c4; --tier-4: #c04588;
+  --ok: #6cc495; --danger: #ef7a6e; --scrim: rgba(0, 0, 0, 0.6); --shadow: rgba(0, 0, 0, 0.4);
+  --card: #222031; --field-bg: #171622; --toast-bg: #eceaf6; --toast-ink: #13121c;
+  --desk-hi: #2f3340; --desk-mid: #252833; --desk-lo: #2a2e39; --desk-edge: rgba(0, 0, 0, 0.55);
+  /* Studio-only */
+  --ok-soft: rgba(47, 125, 85, 0.28); --warn: #e8bf5a; --warn-soft: rgba(233, 184, 41, 0.18); --danger-soft: rgba(192, 57, 47, 0.25);
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 var(--sans); overflow-x: hidden;
+  background-image: radial-gradient(circle at 15% 20%, var(--paper-grain-a) 0, transparent 45%), radial-gradient(circle at 85% 75%, var(--paper-grain-b) 0, transparent 50%);
+  background-attachment: fixed;
+}
+[hidden] { display: none !important; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(1.5rem, 3.6vw, 2.1rem); }
+h2 { font-size: 1.4rem; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; }
+.muted { color: var(--ink-soft); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; }
+@media (max-width: 520px) { .wrap { padding-inline: 16px; } }
+.stack { display: flex; flex-direction: column; gap: var(--gap, 16px); min-width: 0; }
+.row { display: flex; align-items: center; gap: var(--gap, 12px); flex-wrap: wrap; }
+.spread { justify-content: space-between; }
+.grow { flex: 1; min-width: 0; }
+.section { padding-block: 22px 40px; }
+/* header */
+.site-head { border-bottom: 1px solid var(--panel-edge); background: var(--panel); position: sticky; top: 0; z-index: 20; }
+.site-head .wrap { display: flex; align-items: center; gap: 10px 18px; padding-block: 10px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.brand-mark { width: 32px; height: 32px; border-radius: 7px; background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid)); position: relative; flex: none; box-shadow: 0 1px 2px var(--shadow); }
+.brand-mark i { position: absolute; width: 10px; height: 10px; border-radius: 2px; }
+.brand-mark i:nth-child(1) { left: 5px; top: 5px; background: var(--tier-1); }
+.brand-mark i:nth-child(2) { right: 5px; top: 5px; background: var(--tier-2); }
+.brand-mark i:nth-child(3) { left: 5px; bottom: 5px; background: var(--tier-3); }
+.brand-mark i:nth-child(4) { right: 5px; bottom: 5px; background: var(--tier-4); }
+.brand-name { font-family: var(--serif); font-size: 1.2rem; font-weight: 600; line-height: 1; }
+.brand-name small { display: block; font-family: var(--sans); font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; margin-top: 3px; }
+.tabs.head-tabs { flex: 1; border-bottom: 0; }
+@media (max-width: 560px) { .tabs.head-tabs { order: 3; flex-basis: 100%; } }
+/* buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--panel-edge); background: var(--card); color: var(--ink); border-radius: var(--r-s); padding: 8px 14px; font-weight: 600; text-decoration: none; font-size: 0.9rem; line-height: 1.2; transition: transform 0.12s var(--ease), background 0.15s; }
+.btn:hover { background: var(--paper-2); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.danger { color: var(--danger); }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.small { padding: 5px 10px; font-size: 0.8rem; }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--paper-2); color: var(--ink-soft); white-space: nowrap; }
+.tierdot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+/* panels */
+.panel { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); padding: 18px; min-width: 0; }
+.placard { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-m); padding: 14px 16px; box-shadow: 0 1px 0 var(--panel-edge); min-width: 0; }
+/* forms */
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field > span { font-size: 0.82rem; font-weight: 600; color: var(--ink-soft); }
+.input { width: 100%; min-width: 0; background: var(--field-bg); border: 1px solid var(--panel-edge); border-radius: var(--r-s); padding: 9px 11px; }
+textarea.input { resize: vertical; min-height: 70px; }
+.input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.hint { font-size: 0.8rem; color: var(--ink-faint); }
+.radio { display: inline-flex; gap: 6px; align-items: center; font-size: 0.9rem; }
+.radio input { accent-color: var(--accent); }
+/* tabs */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--panel-edge); overflow-x: auto; overflow-y: hidden; }
+.tabs button { background: none; border: 0; padding: 9px 14px; color: var(--ink-soft); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: inline-flex; gap: 7px; align-items: center; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs button:hover { color: var(--ink); }
+/* mini desk preview with the game's real textures */
+.desk { border-radius: var(--r-m); padding: 10px; background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid) 55%, var(--desk-lo)); position: relative; box-shadow: inset 0 0 0 1px var(--desk-edge); }
+.pieces { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mp { position: relative; aspect-ratio: 1; display: flex; align-items: flex-end; justify-content: center; padding: 6px 5px; font-size: 0.6rem; line-height: 1.15; color: #1c1a2e; text-align: center; background: center / 100% 100% no-repeat; transform: rotate(var(--rot, 0deg)); overflow: hidden; word-break: break-word; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+.mp b { font-weight: 600; position: relative; max-height: 3.5em; overflow: hidden; }
+.mp.empty b { opacity: 0.45; font-weight: 400; }
+.mp-corkboard { background-image: url(../assets/textures/sticky.webp); font-family: var(--hand); font-size: 0.68rem; align-items: center; }
+.mp-folder { background-image: url(../assets/textures/paper.webp); align-items: center; }
+.mp-rx { background-image: url(../assets/textures/rx.webp); align-items: center; }
+.mp-rack { background-image: url(../assets/textures/slide.webp); }
+.mp-tubes { background-image: url(../assets/textures/film.webp); color: #eee; }
+.mp-photo { background-image: url(../assets/textures/photo.webp); }
+.mp .pic { position: absolute; background: center / cover no-repeat; }
+.mp-photo .pic { inset: 9% 14% 34%; }
+.mp-tubes .pic { inset: 10% 10% 34%; opacity: 0.85; }
+.mp-rack .pic { width: 34%; aspect-ratio: 1; border-radius: 50%; top: 18%; left: 33%; }
+.mp-sep { grid-column: 1 / -1; height: 2px; border-radius: 2px; opacity: 0.85; }
+/* modal + toast */
+.scrim { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.modal { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; box-shadow: 0 20px 60px var(--shadow); }
+.pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pick-list button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 10px; }
+.toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--toast-bg); color: var(--toast-ink); padding: 10px 16px; border-radius: var(--r-m); font-weight: 600; font-size: 0.9rem; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,0.25); max-width: calc(100% - 32px); }
+/* inbox-only (plus a few Studio rules from its second style block) */
+.mode-link { font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+.sidecard { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+@media (min-width: 861px) { .sidecard { position: sticky; top: 72px; } }
+.clue-num { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
+.inbox { max-width: 980px; margin: 0 auto; }
+.who { font-size: 0.82rem; color: var(--ink-soft); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gate { max-width: 520px; margin: 24px auto 0; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--panel-edge); background: var(--card); border-radius: 999px; padding: 6px 13px; font-weight: 600; font-size: 0.86rem; color: var(--ink-soft); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.chip .n { font-size: 0.75rem; background: var(--paper-2); border-radius: 999px; padding: 0 7px; color: var(--ink-soft); }
+.cards { display: flex; flex-direction: column; gap: 10px; }
+.sub-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; text-align: left; width: 100%; background: var(--panel); border: 1px solid var(--panel-edge); border-left: 4px solid var(--tier, var(--panel-edge)); border-radius: var(--r-m); padding: 13px 16px; color: var(--ink); }
+.sub-card:hover { border-color: var(--accent); border-left-color: var(--tier, var(--accent)); }
+.sub-card h3 { font-size: 1.12rem; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.82rem; color: var(--ink-soft); }
+.code { font-family: var(--mono); font-size: 0.8rem; }
+.st { font-size: 0.72rem; font-weight: 700; border-radius: 999px; padding: 2px 9px; align-self: start; text-transform: uppercase; letter-spacing: 0.06em; }
+.st-new { background: var(--accent-soft); color: var(--accent); }
+.st-shortlisted { background: var(--ok-soft); color: var(--ok); }
+.st-used { background: var(--paper-2); color: var(--ink-soft); }
+.st-declined { background: var(--danger-soft); color: var(--danger); }
+.empty-state { text-align: center; padding: 40px 16px; color: var(--ink-soft); }
+.detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .detail-grid { grid-template-columns: minmax(0, 1fr); } }
+.clue-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); }
+@media (max-width: 520px) { .clue-row { grid-template-columns: minmax(0, 1fr); } }
+.thumbs { display: flex; flex-direction: column; gap: 6px; }
+.thumbs img { width: 96px; height: 96px; object-fit: cover; border-radius: var(--r-s); background: #000; display: block; }
+.thumbs img.scope { border-radius: 50%; }
+.thumbs .none { width: 96px; height: 72px; border: 1.5px dotted var(--panel-edge); border-radius: var(--r-s); display: grid; place-items: center; font-size: 0.72rem; color: var(--ink-faint); text-align: center; }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: 0.88rem; }
+.kv dt { color: var(--ink-soft); font-weight: 600; }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.note-box { border-left: 3px solid var(--eosin); background: var(--card); border-radius: var(--r-s); padding: 9px 12px; font-size: 0.9rem; white-space: pre-wrap; }
+.article h3 { font-size: 1.05rem; margin-top: 4px; }
+.err-box { border-left: 3px solid var(--danger); background: var(--danger-soft); border-radius: var(--r-s); padding: 10px 12px; font-size: 0.9rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="brand-name">Submissions inbox<small>Desk Puzzle · CMSRU</small></span></div>
+    <div class="row" style="--gap:12px; margin-left:auto">
+      <span class="who" id="who" hidden></span>
+      <button class="btn small" type="button" id="btn-signout" hidden>Sign out</button>
+      <a class="mode-link" href="./">Puzzle Studio</a>
+      <button class="btn small ghost" id="theme-btn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap section">
+  <div class="inbox">
+    <p class="muted" id="loading">Loading…</p>
+
+    <!-- Not configured yet -->
+    <section id="v-setup" class="gate panel stack" hidden>
+      <span class="eyebrow">Not set up yet</span>
+      <h1>The inbox isn’t connected</h1>
+      <p class="muted">Fill in the Supabase address and public key in <code>studio/config.js</code>. The steps are in <code>supabase/SETUP.md</code>. Until then, students download their category as a file and send it in.</p>
+    </section>
+
+    <!-- Could not load the sign-in library -->
+    <section id="v-noscript" class="gate panel stack" hidden>
+      <span class="eyebrow">Something didn’t load</span>
+      <h1>Can’t reach the sign-in service</h1>
+      <p class="muted">Check your internet connection and reload the page. A strict ad blocker can also block it.</p>
+    </section>
+
+    <!-- Sign in -->
+    <section id="v-signin" class="gate panel stack" hidden>
+      <span class="eyebrow">For the CMSRU puzzle group</span>
+      <h1>Sign in to the inbox</h1>
+      <p class="muted">Type your email and we’ll send you a sign-in link. No password needed. Open the link on this device.</p>
+      <form id="signin-form" class="stack" style="--gap:10px">
+        <label class="field"><span>Your email</span><input class="input" id="signin-email" type="email" autocomplete="email" required placeholder="you@rowan.edu"></label>
+        <div class="row"><button class="btn primary" type="submit" id="signin-btn">Email me a sign-in link</button></div>
+      </form>
+      <p id="signin-msg" hidden></p>
+    </section>
+
+    <!-- Signed in, but not on the admins list -->
+    <section id="v-notadmin" class="gate panel stack" hidden>
+      <span class="eyebrow">Signed in</span>
+      <h1>This inbox is for the puzzle group</h1>
+      <p class="muted">You’re signed in as <b id="notadmin-email"></b>, but that email isn’t on the puzzle group’s list. If you’re in the group, ask Thirth to add this email. Want to send a category instead? <a href="./?submit">Submit one here</a>.</p>
+      <div class="row"><button class="btn" type="button" id="notadmin-signout">Sign out</button></div>
+    </section>
+
+    <!-- List -->
+    <section id="v-list" class="stack" style="--gap:16px" hidden>
+      <div class="row spread">
+        <div class="stack" style="--gap:2px"><span class="eyebrow">Category submissions</span><h1>Inbox</h1></div>
+        <div class="row" style="--gap:8px">
+          <button class="btn" type="button" id="btn-refresh">Refresh</button>
+          <button class="btn" type="button" id="btn-dl-short">Download all shortlisted</button>
+        </div>
+      </div>
+      <div class="chips" id="chips" role="group" aria-label="Filter by status"></div>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <!-- One submission -->
+    <section id="v-detail" class="stack" style="--gap:16px" hidden></section>
+  </div>
+</main>
+
+<div id="modal-root"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script>
+(function () {
+'use strict';
+const CFG = Object.assign({ supabaseUrl: '', supabaseAnonKey: '' }, window.DESK_PUZZLE_CONFIG || {});
+const STATUSES = [['new', 'New'], ['shortlisted', 'Shortlisted'], ['used', 'Used'], ['declined', 'Declined']];
+const ZONE_NAMES = { corkboard: 'Sticky note', folder: 'Paper sheet', rack: 'Microscope slide', tubes: 'X-ray film', photo: 'Photograph', rx: 'Prescription' };
+const TIER_WORDS = { 1: 'Easy', 2: 'Medium', 3: 'Hard', 4: 'Hardest' };
+const MIME_BY_EXT = { webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+const BUCKET = 'submissions';
+const $ = (s, root) => (root || document).querySelector(s);
+const $$ = (s, root) => Array.from((root || document).querySelectorAll(s));
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const VIEWS = ['loading', 'v-setup', 'v-noscript', 'v-signin', 'v-notadmin', 'v-list', 'v-detail'];
+
+let sb = null;          // supabase client (or the test mock)
+let me = null;          // signed-in user's email
+let rows = [];          // all submissions, newest first
+let filter = 'new';
+let routing = false;
+const signed = new Map(); // storage path -> { url, until }
+
+function show(id) { VIEWS.forEach((v) => { $('#' + v).hidden = v !== id; }); window.scrollTo(0, 0); }
+let toastTimer = 0;
+function toast(msg, ms) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, ms || 2600);
+}
+function when(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function slug(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+function creditText(r) {
+  if (r.credit_mode !== 'named') return 'Anonymous';
+  return (r.credit_name || '') + (r.credit_line ? ' · ' + r.credit_line : '');
+}
+function plainError(e) {
+  const m = String((e && (e.message || e.error_description)) || e || '');
+  if (/rate limit|too many/i.test(m)) return 'Too many sign-in emails were sent recently. Wait a few minutes and try again.';
+  if (/fetch|network/i.test(m)) return 'Could not reach the inbox. Check your internet connection and try again.';
+  return m || 'Something went wrong. Please try again.';
+}
+
+/* Test hook: ONLY on localhost with ?mock in the address, a test can supply a
+   fake client as window.__inboxMockClient. On the real site this never runs. */
+function makeClient() {
+  const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if (local && new URLSearchParams(location.search).has('mock') && window.__inboxMockClient) return window.__inboxMockClient;
+  if (!String(CFG.supabaseUrl).trim() || !String(CFG.supabaseAnonKey).trim()) return 'setup';
+  if (!window.supabase || typeof window.supabase.createClient !== 'function') return 'noscript';
+  return window.supabase.createClient(String(CFG.supabaseUrl).trim().replace(/\/+$/, ''), String(CFG.supabaseAnonKey).trim(), {
+    // "implicit" so the emailed link also works when it opens in a different browser app
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' },
+  });
+}
+
+/* ===== Routing: who is this, and what do they get to see ===== */
+async function route() {
+  if (routing) return;
+  routing = true;
+  try {
+    const { data } = await sb.auth.getSession();
+    const session = data && data.session;
+    me = session && session.user ? String(session.user.email || '') : null;
+    $('#who').hidden = !me; $('#who').textContent = me || ''; $('#btn-signout').hidden = !me;
+    if (!me) { show('v-signin'); return; }
+    // Admins can see the admins list (row rules); anyone else gets zero rows back.
+    const res = await sb.from('admins').select('email').limit(1);
+    if (res.error || !res.data || !res.data.length) {
+      $('#notadmin-email').textContent = me;
+      show('v-notadmin'); return;
+    }
+    await loadRows();
+    const id = new URLSearchParams(location.hash.slice(1)).get('s');
+    const row = id && rows.find((r) => r.id === id);
+    if (row) openDetail(row); else { drawList(); show('v-list'); }
+  } catch (e) {
+    toast(plainError(e), 5000);
+    show('v-signin');
+  } finally { routing = false; }
+}
+
+async function signIn(ev) {
+  ev.preventDefault();
+  const email = $('#signin-email').value.trim();
+  const msg = $('#signin-msg'); const btn = $('#signin-btn');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.hidden = false; msg.className = 'err-box'; msg.textContent = 'That doesn’t look like an email address.'; return; }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+  btn.disabled = false; btn.textContent = 'Email me a sign-in link';
+  msg.hidden = false;
+  if (error) { msg.className = 'err-box'; msg.textContent = plainError(error); return; }
+  msg.className = 'note-box';
+  msg.textContent = 'Check your inbox at ' + email + ' for a link from Supabase. Open it on this device to finish signing in. It can take a minute, and may land in spam.';
+}
+async function signOut() {
+  try { await sb.auth.signOut(); } catch (e) { /* signed out locally anyway */ }
+  me = null; rows = []; signed.clear();
+  history.replaceState(null, '', location.pathname + location.search);
+  route();
+}
+
+/* ===== List ===== */
+async function loadRows() {
+  const { data, error } = await sb.from('submissions').select('*').order('created_at', { ascending: false }).limit(1000);
+  if (error) throw error;
+  rows = data || [];
+}
+function drawList() {
+  const counts = {}; STATUSES.forEach(([k]) => { counts[k] = 0; });
+  rows.forEach((r) => { counts[r.status] = (counts[r.status] || 0) + 1; });
+  $('#chips').innerHTML = STATUSES.map(([k, label]) =>
+    '<button type="button" class="chip" data-filter="' + k + '" aria-pressed="' + (k === filter) + '">' + label + '<span class="n">' + counts[k] + '</span></button>').join('');
+  const list = rows.filter((r) => r.status === filter);
+  $('#btn-dl-short').disabled = !counts.shortlisted;
+  if (!list.length) {
+    $('#cards').innerHTML = '<div class="empty-state panel">' + (filter === 'new' ? 'Nothing new right now. New categories show up here as students send them.' : 'No ' + filter + ' categories.') + '</div>';
+    return;
+  }
+  $('#cards').innerHTML = list.map((r) =>
+    '<button type="button" class="sub-card" data-id="' + esc(r.id) + '" style="--tier:var(--tier-' + (Number(r.suggested_tier) || 0) + ')">' +
+      '<div class="stack" style="--gap:5px"><h3>' + esc(r.group_name) + '</h3>' +
+      '<div class="meta"><span>Suggested: ' + esc(TIER_WORDS[r.suggested_tier] || '?') + '</span><span>' + esc(when(r.created_at)) + '</span>' +
+      '<span>' + esc(creditText(r)) + '</span>' + (r.contact_email ? '<span>' + esc(r.contact_email) + '</span>' : '') + '</div>' +
+      (r.admin_note ? '<div class="meta"><span>Note: ' + esc(r.admin_note) + '</span></div>' : '') + '</div>' +
+      '<div class="stack" style="--gap:6px; align-items:flex-end"><span class="st st-' + esc(r.status) + '">' + esc(r.status) + '</span>' +
+      '<span class="code">' + esc(r.receipt_code) + '</span>' + (r.used_in ? '<span class="code">' + esc(r.used_in) + '</span>' : '') + '</div></button>').join('');
+}
+
+/* ===== Images: short-lived signed links from the private bucket ===== */
+function isStoragePath(v) { return typeof v === 'string' && v && !/^(data:|https?:|blob:)/.test(v); }
+async function signedUrl(path) {
+  const hit = signed.get(path);
+  if (hit && hit.until > Date.now()) return hit.url;
+  const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(path, 600);
+  if (error || !data) return '';
+  signed.set(path, { url: data.signedUrl, until: Date.now() + 540000 });
+  return data.signedUrl;
+}
+async function fillImages(root) {
+  await Promise.all($$('[data-path]', root).map(async (el) => {
+    const url = await signedUrl(el.dataset.path);
+    if (!url) { el.replaceWith(Object.assign(document.createElement('div'), { className: 'none', textContent: 'Image missing' })); return; }
+    if (el.tagName === 'IMG') el.src = url;
+    else el.style.backgroundImage = 'url("' + url.replace(/["\\\n]/g, (c) => '\\' + c) + '")';
+  }));
+}
+
+/* ===== Detail ===== */
+function pieceHtml(it, i) {
+  const info = it.info || {}; const scope = it.scope || {};
+  const pic = it.zone === 'rack' ? (scope.image || info.image) : (it.zone === 'photo' || it.zone === 'tubes') ? info.image : '';
+  return '<div class="mp mp-' + esc(it.zone) + '" style="--rot:' + (((i * 37) % 5) - 2) + 'deg" title="' + esc((ZONE_NAMES[it.zone] || '') + ': ' + (it.label || '')) + '">' +
+    (isStoragePath(pic) ? '<span class="pic" data-path="' + esc(pic) + '"></span>' : '') + '<b>' + esc(it.label) + '</b></div>';
+}
+function clueHtml(it, i) {
+  const info = it.info || {}; const scope = it.scope || {};
+  const thumbs = [];
+  if (isStoragePath(scope.image)) thumbs.push('<img class="scope" alt="Microscope view for clue ' + (i + 1) + '" data-path="' + esc(scope.image) + '">');
+  if (isStoragePath(info.image)) thumbs.push('<img alt="Image for clue ' + (i + 1) + '" data-path="' + esc(info.image) + '">');
+  if (!thumbs.length) thumbs.push('<div class="none">' + (['photo', 'tubes', 'rack'].includes(it.zone) ? 'No image sent' : 'Text clue') + '</div>');
+  return '<div class="clue-row"><div class="thumbs">' + thumbs.join('') + '</div><div class="stack" style="--gap:5px">' +
+    '<div class="row" style="--gap:8px"><span class="clue-num">Clue ' + (i + 1) + '</span><span class="badge">' + esc(ZONE_NAMES[it.zone] || it.zone) + '</span></div>' +
+    '<b>' + esc(it.label) + '</b>' + (info.title && info.title !== it.label ? '<span class="muted">Title: ' + esc(info.title) + '</span>' : '') +
+    (info.text ? '<p style="font-size:.92rem">' + esc(info.text) + '</p>' : '') +
+    (it.source ? '<p class="hint">Image source: ' + esc(it.source) + '</p>' : '') + '</div></div>';
+}
+function articleHtml(blocks) {
+  return (blocks || []).map((b) => (b.type === 'heading' ? '<h3>' + esc(b.text) + '</h3>' : b.type === 'text' ? '<p>' + esc(b.text) + '</p>' : '')).join('');
+}
+function openDetail(r) {
+  const g = r.payload || {}; const items = Array.isArray(g.items) ? g.items : [];
+  history.replaceState(null, '', location.pathname + location.search + '#s=' + encodeURIComponent(r.id));
+  const nids = g.anki && Array.isArray(g.anki.nids) ? g.anki.nids : [];
+  const btn = (act, label, cls) => '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '">' + label + '</button>';
+  const acts = [];
+  if (r.status !== 'shortlisted') acts.push(btn('shortlisted', 'Shortlist', 'primary'));
+  if (r.status !== 'used') acts.push(btn('used', 'Mark used'));
+  if (r.status !== 'declined') acts.push(btn('declined', 'Decline', 'danger'));
+  if (r.status !== 'new') acts.push(btn('new', 'Back to new'));
+  $('#v-detail').innerHTML =
+    '<div class="row spread"><button class="btn" type="button" id="d-back">← Back to the inbox</button>' +
+      '<div class="row" style="--gap:8px"><button class="btn" type="button" id="d-dl">Download for import</button></div></div>' +
+    '<div class="panel stack" style="--gap:8px; border-left:4px solid var(--tier-' + (Number(r.suggested_tier) || 0) + ')">' +
+      '<div class="row spread"><span class="eyebrow">Category submission</span><span class="st st-' + esc(r.status) + '">' + esc(r.status) + '</span></div>' +
+      '<h1>' + esc(r.group_name) + '</h1><p>' + esc(g.explanation) + '</p>' +
+      '<div class="meta"><span>Suggested: ' + esc(TIER_WORDS[r.suggested_tier] || '?') + '</span><span>Received ' + esc(when(r.created_at)) + '</span><span class="code">' + esc(r.receipt_code) + '</span></div></div>' +
+    '<div class="detail-grid"><div class="stack" style="--gap:12px">' +
+      '<div class="desk"><div class="pieces">' + items.map(pieceHtml).join('') + '</div></div>' +
+      items.map(clueHtml).join('') +
+      (g.article && g.article.length ? '<div class="panel stack article" style="--gap:8px"><span class="eyebrow">Teaching note</span>' + articleHtml(g.article) + '</div>' : '') +
+    '</div><aside class="sidecard">' +
+      '<div class="placard stack" style="--gap:10px"><span class="eyebrow">Review</span><div class="actions">' + acts.join('') + '</div>' +
+        (r.admin_note ? '<div class="note-box">' + esc(r.admin_note) + '</div>' : '') +
+        (r.reviewed_by ? '<p class="hint">Last change by ' + esc(r.reviewed_by) + ', ' + esc(when(r.reviewed_at)) + '</p>' : '') + '</div>' +
+      '<div class="placard stack" style="--gap:8px"><span class="eyebrow">Sent by</span><dl class="kv">' +
+        '<dt>Credit</dt><dd>' + esc(creditText(r)) + '</dd>' +
+        '<dt>Contact</dt><dd>' + (r.contact_email ? '<a href="mailto:' + esc(r.contact_email) + '">' + esc(r.contact_email) + '</a>' : 'None given') + '</dd>' +
+        (r.used_in ? '<dt>Used in</dt><dd class="code">' + esc(r.used_in) + '</dd>' : '') +
+        (nids.length ? '<dt>Anki</dt><dd class="code">' + nids.map(esc).join(', ') + '</dd>' : '') + '</dl>' +
+        '<p class="hint">The contact email is private. Never put it in a puzzle file.</p></div>' +
+    '</aside></div>';
+  show('v-detail');
+  fillImages($('#v-detail'));
+  $('#d-back').addEventListener('click', backToList);
+  $('#d-dl').addEventListener('click', () => downloadOne(r));
+  $$('[data-act]', $('#v-detail')).forEach((b) => b.addEventListener('click', () => act(r, b.dataset.act)));
+}
+function backToList() {
+  history.replaceState(null, '', location.pathname + location.search);
+  drawList(); show('v-list');
+}
+
+/* ===== Small in-page dialog ===== */
+function openModal(html, onOpen) {
+  const prev = document.activeElement;
+  const root = $('#modal-root');
+  root.innerHTML = '<div class="scrim"><div class="modal" role="dialog" aria-modal="true" tabindex="-1">' + html + '</div></div>';
+  const m = $('.modal', root);
+  const close = () => { root.innerHTML = ''; document.removeEventListener('keydown', onKey); if (prev && prev.focus) prev.focus(); };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  $('.scrim', root).addEventListener('click', (e) => { if (e.target.classList.contains('scrim')) close(); });
+  $$('[data-dismiss]', m).forEach((b) => b.addEventListener('click', close));
+  if (onOpen) onOpen(m, close);
+  const first = m.querySelector('input, textarea') || m.querySelector('.btn.primary') || m;
+  first.focus();
+}
+
+/* ===== Review actions ===== */
+async function setStatus(r, status, extra) {
+  const patch = Object.assign({ status, reviewed_by: me, reviewed_at: new Date().toISOString() }, extra || {});
+  const { data, error } = await sb.from('submissions').update(patch).eq('id', r.id).select();
+  if (error || !data || !data.length) { toast('Could not save that: ' + plainError(error || 'no permission'), 5000); return; }
+  const i = rows.findIndex((x) => x.id === r.id);
+  if (i !== -1) rows[i] = data[0];
+  toast({ shortlisted: 'Shortlisted', used: 'Marked as used', declined: 'Declined', new: 'Moved back to New' }[status]);
+  openDetail(data[0]);
+}
+function act(r, status) {
+  if (status === 'shortlisted' || status === 'new') { setStatus(r, status); return; }
+  const used = status === 'used';
+  openModal('<form class="stack" style="--gap:12px" id="m-form"><h2>' + (used ? 'Mark as used' : 'Decline this category') + '</h2>' +
+    (used ? '<label class="field"><span>Which puzzle is it in? (puzzle id, e.g. holes-haze-and-old-paint-2026-10-08)</span><input class="input" id="m-val" required value="' + esc(r.used_in || '') + '"></label>'
+      : '<label class="field"><span>Note for the puzzle group (optional, never shown to the student)</span><textarea class="input" id="m-val" placeholder="e.g. Too close to last week’s category">' + esc(r.admin_note || '') + '</textarea></label>') +
+    '<div class="row" style="justify-content:flex-end"><button class="btn ghost" type="button" data-dismiss>Cancel</button>' +
+    '<button class="btn primary" type="submit">' + (used ? 'Mark used' : 'Decline') + '</button></div></form>',
+  (m, close) => {
+    $('#m-form', m).addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = $('#m-val', m).value.trim();
+      if (used && !v) return;
+      close();
+      setStatus(r, status, used ? { used_in: v } : { admin_note: v || null });
+    });
+  });
+}
+
+/* ===== Download for import: rebuild the Studio's own file format so
+   tools/import_submission.py reads it unchanged ===== */
+function bytesToBase64(buf) {
+  const b = new Uint8Array(buf); let s = '';
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+async function toDataUri(path) {
+  const { data, error } = await sb.storage.from(BUCKET).download(path);
+  if (error || !data) throw new Error('could not fetch image ' + path);
+  const ext = (path.split('.').pop() || '').toLowerCase();
+  const mime = MIME_BY_EXT[ext] || data.type || 'image/webp';
+  return 'data:' + mime + ';base64,' + bytesToBase64(await data.arrayBuffer());
+}
+async function rebuildSubmission(r) {
+  const group = JSON.parse(JSON.stringify(r.payload || {}));
+  for (const it of group.items || []) {
+    for (const f of ['info', 'scope']) {
+      if (it[f] && isStoragePath(it[f].image)) it[f].image = await toDataUri(it[f].image);
+    }
+  }
+  const credit = r.credit_mode === 'named'
+    ? Object.assign({ mode: 'named', name: r.credit_name || '' }, r.credit_line ? { line: r.credit_line } : {})
+    : { mode: 'anonymous' };
+  return { format: 'desk-puzzle-submission', version: 1, kind: r.kind || 'category', submittedAt: r.created_at,
+    credit, contact: r.contact_email ? { email: r.contact_email } : null, consent: r.consent === true,
+    suggestedTier: r.suggested_tier, group };
+}
+function fileNameFor(r) {
+  return 'desk-puzzle-submission-' + (slug(r.group_name) || 'category') + '-' + String(r.created_at || '').slice(0, 10) + '-' + slug(r.receipt_code) + '.json';
+}
+async function downloadOne(r, quiet) {
+  try {
+    const sub = await rebuildSubmission(r);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(sub, null, 2) + '\n'], { type: 'application/json' }));
+    a.download = fileNameFor(r);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    if (!quiet) toast('Downloaded ' + a.download, 3500);
+    return true;
+  } catch (e) { toast('Download failed: ' + plainError(e), 5000); return false; }
+}
+async function downloadShortlisted() {
+  const list = rows.filter((r) => r.status === 'shortlisted');
+  if (!list.length) return;
+  const b = $('#btn-dl-short'); b.disabled = true;
+  let n = 0;
+  for (const r of list) {
+    b.textContent = 'Downloading ' + (n + 1) + ' of ' + list.length + '…';
+    if (await downloadOne(r, true)) n++;
+    await new Promise((res) => setTimeout(res, 500)); // browsers drop downloads fired too close together
+  }
+  b.textContent = 'Download all shortlisted'; b.disabled = false;
+  toast(n + ' file' + (n === 1 ? '' : 's') + ' downloaded. Next: python3 tools/import_submission.py ~/Downloads/desk-puzzle-submission-*.json', 7000);
+}
+
+/* ===== Theme (shared with the Studio) and boot ===== */
+const darkMq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+function applyTheme(t) {
+  const mode = t === 'light' || t === 'dark' ? t : 'auto';
+  const dark = mode === 'dark' || (mode === 'auto' && !!(darkMq && darkMq.matches));
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  $('#theme-btn').textContent = 'Theme: ' + mode;
+}
+function boot() {
+  let theme = 'auto';
+  try { theme = localStorage.getItem('dp2d:studio-theme') || 'auto'; } catch (e) { /* default */ }
+  applyTheme(theme);
+  $('#theme-btn').addEventListener('click', () => {
+    theme = theme === 'auto' ? 'light' : theme === 'light' ? 'dark' : 'auto';
+    applyTheme(theme);
+    try { localStorage.setItem('dp2d:studio-theme', theme); } catch (e) { /* not saved */ }
+  });
+  sb = makeClient();
+  if (sb === 'setup') { show('v-setup'); return; }
+  if (sb === 'noscript') { show('v-noscript'); return; }
+  $('#signin-form').addEventListener('submit', signIn);
+  $('#btn-signout').addEventListener('click', signOut);
+  $('#notadmin-signout').addEventListener('click', signOut);
+  $('#btn-refresh').addEventListener('click', async () => {
+    try { await loadRows(); drawList(); toast('Up to date'); } catch (e) { toast(plainError(e), 5000); }
+  });
+  $('#btn-dl-short').addEventListener('click', downloadShortlisted);
+  $('#chips').addEventListener('click', (e) => { const c = e.target.closest('[data-filter]'); if (c) { filter = c.dataset.filter; drawList(); } });
+  $('#cards').addEventListener('click', (e) => { const c = e.target.closest('[data-id]'); const r = c && rows.find((x) => x.id === c.dataset.id); if (r) openDetail(r); });
+  sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') setTimeout(route, 0); });
+  route();
+}
+boot();
+})();
+</script>
+</body>
+</html>
