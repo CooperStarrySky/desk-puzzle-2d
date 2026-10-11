@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Puzzle Studio · Desk Puzzle</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+/* Puzzle Studio: author-only editor. "Paper edition" chrome from the platform mockup. */
+:root {
+  --ink: #241f14; --ink-soft: #5b5340; --ink-faint: #8a7f66;
+  --paper: #ede2c6; --paper-2: #e4d7b6; --panel: #faf5e7;
+  --panel-edge: rgba(36, 31, 20, 0.16); --rule: rgba(36, 31, 20, 0.10);
+  --accent: #7a4fc0; --accent-ink: #ffffff; --accent-soft: #efe6fb;
+  --tier-1: #eab635; --tier-2: #4f6b45; --tier-3: #7a4fc0; --tier-4: #a8501f;
+  --ok: #4f6b45; --ok-soft: #e3ead9; --warn: #9a6a07; --warn-soft: #f6e8c4;
+  --danger: #b23a2f; --danger-soft: #f6dcd6;
+  --card: #ffffff; --field-bg: #ffffff; --toast-bg: #241f14; --toast-ink: #fbf6e9;
+  --desk-hi: #a97f52; --desk-mid: #8e6742; --desk-lo: #9b7148;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --hand: "Bradley Hand", "Noteworthy", "Marker Felt", "Segoe Print", cursive;
+  --mono: "SF Mono", Menlo, Consolas, monospace;
+  --r-s: 6px; --r-m: 10px; --r-l: 14px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #ece4d2; --ink-soft: #a99e88; --ink-faint: #7f7562;
+    --paper: #201b15; --paper-2: #2a231a; --panel: #2a241c;
+    --panel-edge: rgba(236, 228, 210, 0.16); --rule: rgba(236, 228, 210, 0.09);
+    --accent: #9b74e0; --accent-ink: #17120c; --accent-soft: rgba(122, 79, 192, 0.24);
+    --ok: #8fb07f; --ok-soft: rgba(79, 107, 69, 0.3); --warn: #e2b450; --warn-soft: rgba(154, 106, 7, 0.25);
+    --danger: #e07263; --danger-soft: rgba(178, 58, 47, 0.25);
+    --card: #322b22; --field-bg: #241f18; --toast-bg: #ece4d2; --toast-ink: #241f14;
+    --desk-hi: #5a412b; --desk-mid: #46321f; --desk-lo: #503924;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #ece4d2; --ink-soft: #a99e88; --ink-faint: #7f7562;
+  --paper: #201b15; --paper-2: #2a231a; --panel: #2a241c;
+  --panel-edge: rgba(236, 228, 210, 0.16); --rule: rgba(236, 228, 210, 0.09);
+  --accent: #9b74e0; --accent-ink: #17120c; --accent-soft: rgba(122, 79, 192, 0.24);
+  --ok: #8fb07f; --ok-soft: rgba(79, 107, 69, 0.3); --warn: #e2b450; --warn-soft: rgba(154, 106, 7, 0.25);
+  --danger: #e07263; --danger-soft: rgba(178, 58, 47, 0.25);
+  --card: #322b22; --field-bg: #241f18; --toast-bg: #ece4d2; --toast-ink: #241f14;
+  --desk-hi: #5a412b; --desk-mid: #46321f; --desk-lo: #503924;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 var(--sans); overflow-x: hidden;
+  background-image: radial-gradient(rgba(122, 79, 192, 0.035) 1px, transparent 1px), radial-gradient(rgba(36, 31, 20, 0.035) 1px, transparent 1px);
+  background-size: 7px 7px, 11px 11px;
+}
+[hidden] { display: none !important; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(1.5rem, 3.6vw, 2.1rem); }
+h2 { font-size: 1.4rem; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; }
+.muted { color: var(--ink-soft); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; }
+@media (max-width: 520px) { .wrap { padding-inline: 16px; } }
+.stack { display: flex; flex-direction: column; gap: var(--gap, 16px); min-width: 0; }
+.row { display: flex; align-items: center; gap: var(--gap, 12px); flex-wrap: wrap; }
+.spread { justify-content: space-between; }
+.grow { flex: 1; min-width: 0; }
+.section { padding-block: 22px 40px; }
+/* header */
+.site-head { border-bottom: 1px solid var(--panel-edge); background: var(--panel); position: sticky; top: 0; z-index: 20; }
+.site-head .wrap { display: flex; align-items: center; gap: 10px 18px; padding-block: 10px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.brand-mark { width: 32px; height: 32px; border-radius: 7px; background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid)); position: relative; flex: none; }
+.brand-mark i { position: absolute; width: 10px; height: 10px; border-radius: 2px; }
+.brand-mark i:nth-child(1) { left: 5px; top: 5px; background: var(--tier-1); }
+.brand-mark i:nth-child(2) { right: 5px; top: 5px; background: var(--tier-2); }
+.brand-mark i:nth-child(3) { left: 5px; bottom: 5px; background: var(--tier-3); }
+.brand-mark i:nth-child(4) { right: 5px; bottom: 5px; background: var(--tier-4); }
+.brand-name { font-family: var(--serif); font-size: 1.2rem; font-weight: 600; line-height: 1; }
+.brand-name small { display: block; font-family: var(--sans); font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; margin-top: 3px; }
+.tabs.head-tabs { flex: 1; border-bottom: 0; }
+@media (max-width: 560px) { .tabs.head-tabs { order: 3; flex-basis: 100%; } #theme-btn { margin-left: auto; } }
+/* buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--panel-edge); background: var(--card); color: var(--ink); border-radius: var(--r-s); padding: 8px 14px; font-weight: 600; text-decoration: none; font-size: 0.9rem; line-height: 1.2; transition: transform 0.12s var(--ease), background 0.15s; }
+.btn:hover { background: var(--paper-2); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+.btn.danger { color: var(--danger); }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.small { padding: 5px 10px; font-size: 0.8rem; }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--paper-2); color: var(--ink-soft); white-space: nowrap; }
+.tierdot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+/* panels */
+.panel { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); padding: 18px; min-width: 0; }
+.placard { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-m); padding: 14px 16px; box-shadow: 0 1px 0 var(--panel-edge); min-width: 0; }
+/* forms */
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field > span { font-size: 0.82rem; font-weight: 600; color: var(--ink-soft); }
+.input { width: 100%; min-width: 0; background: var(--field-bg); border: 1px solid var(--panel-edge); border-radius: var(--r-s); padding: 9px 11px; }
+textarea.input { resize: vertical; min-height: 70px; }
+.input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.hint { font-size: 0.8rem; color: var(--ink-faint); }
+.radio { display: inline-flex; gap: 6px; align-items: center; font-size: 0.9rem; }
+.radio input { accent-color: var(--accent); }
+/* tabs */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--panel-edge); overflow-x: auto; overflow-y: hidden; }
+.tabs button { background: none; border: 0; padding: 9px 14px; color: var(--ink-soft); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: inline-flex; gap: 7px; align-items: center; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+</style>
+<style>
+/* editor */
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; align-items: start; }
+@media (max-width: 980px) { .editor { grid-template-columns: minmax(0, 1fr); } }
+.sidecard { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+@media (min-width: 981px) { .sidecard { position: sticky; top: 72px; } }
+.clue { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); }
+@media (max-width: 560px) { .clue { grid-template-columns: minmax(0, 1fr); } }
+.clue-num { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
+.drops { display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 560px) { .drops { flex-direction: row; } .drops .drop { flex: 1; } }
+.drop { position: relative; border: 1.5px dashed var(--panel-edge); border-radius: var(--r-s); min-height: 96px; display: grid; place-items: center; text-align: center; font-size: 0.74rem; line-height: 1.3; color: var(--ink-faint); padding: 6px; background: var(--paper); width: 100%; }
+button.drop { cursor: pointer; }
+.drop.small { min-height: 54px; }
+.drop.text-only { cursor: default; border-style: dotted; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop.has { border-style: solid; padding: 0; overflow: hidden; background: #000 center / cover no-repeat; }
+.drop.has.scope { border-radius: 50%; aspect-ratio: 1; min-height: 0; }
+.drop .rm { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 0.8rem; line-height: 1; display: grid; place-items: center; }
+.two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+@media (max-width: 560px) { .two-col { grid-template-columns: minmax(0, 1fr); } }
+details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+/* checklist */
+.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; font-size: 0.86rem; }
+.checklist li { display: flex; gap: 8px; align-items: flex-start; }
+.checklist .ic { width: 18px; height: 18px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 0.7rem; font-weight: 800; margin-top: 1px; }
+.ic.ok { background: var(--ok-soft); color: var(--ok); }
+.ic.no { background: var(--warn-soft); color: var(--warn); }
+.ic.bad { background: var(--danger-soft); color: var(--danger); }
+.savestate { font-size: 0.8rem; color: var(--ok); display: inline-flex; gap: 6px; align-items: center; }
+.savestate::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.savestate.err { color: var(--danger); }
+/* mini desk preview with the game's real textures */
+.desk { border-radius: var(--r-m); padding: 10px; background: linear-gradient(160deg, var(--desk-hi), var(--desk-mid) 55%, var(--desk-lo)); position: relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15); }
+.pieces { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mp { position: relative; aspect-ratio: 1; display: flex; align-items: flex-end; justify-content: center; padding: 6px 5px; font-size: 0.6rem; line-height: 1.15; color: #241f14; text-align: center; background: center / 100% 100% no-repeat; transform: rotate(var(--rot, 0deg)); overflow: hidden; word-break: break-word; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+.mp b { font-weight: 600; position: relative; max-height: 3.5em; overflow: hidden; }
+.mp.empty b { opacity: 0.45; font-weight: 400; }
+.mp-corkboard { background-image: url(../assets/textures/sticky.webp); font-family: var(--hand); font-size: 0.68rem; align-items: center; }
+.mp-folder { background-image: url(../assets/textures/paper.webp); align-items: center; }
+.mp-rx { background-image: url(../assets/textures/rx.webp); align-items: center; }
+.mp-rack { background-image: url(../assets/textures/slide.webp); }
+.mp-tubes { background-image: url(../assets/textures/film.webp); color: #eee; }
+.mp-photo { background-image: url(../assets/textures/photo.webp); }
+.mp .pic { position: absolute; background: center / cover no-repeat; }
+.mp-photo .pic { inset: 9% 14% 34%; }
+.mp-tubes .pic { inset: 10% 10% 34%; opacity: 0.85; }
+.mp-rack .pic { width: 34%; aspect-ratio: 1; border-radius: 50%; top: 18%; left: 33%; }
+.mp-sep { grid-column: 1 / -1; height: 2px; border-radius: 2px; opacity: 0.85; }
+/* modal + toast */
+.scrim { position: fixed; inset: 0; background: rgba(20, 16, 10, 0.45); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.modal { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pick-list button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 10px; }
+.toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--toast-bg); color: var(--toast-ink); padding: 10px 16px; border-radius: var(--r-m); font-weight: 600; font-size: 0.9rem; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,0.25); max-width: calc(100% - 32px); }
+/* test play */
+.frame-wrap { width: 100%; aspect-ratio: 16 / 10; min-height: 560px; border-radius: var(--r-m); overflow: hidden; border: 1px solid var(--panel-edge); background: var(--desk-mid); }
+@media (max-width: 700px) { .frame-wrap { aspect-ratio: auto; min-height: 0; height: 78vh; } }
+.frame-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
+.frame-empty { height: 100%; display: grid; place-items: center; color: #f4ecd8; text-align: center; padding: 20px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="brand-name">Puzzle Studio<small>Desk Puzzle · author only</small></span></div>
+    <nav class="tabs head-tabs" role="tablist" aria-label="Studio views">
+      <button role="tab" id="tab-edit" aria-selected="true" aria-controls="view-edit">Edit</button>
+      <button role="tab" id="tab-play" aria-selected="false" aria-controls="view-play">Test play</button>
+    </nav>
+    <button class="btn small ghost" id="theme-btn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
+  </div>
+</header>
+
+<main class="wrap section">
+  <section id="view-edit" role="tabpanel" aria-labelledby="tab-edit">
+    <div class="row spread" style="margin-bottom:16px">
+      <div class="stack" style="--gap:2px">
+        <span class="eyebrow">Draft</span>
+        <span class="savestate" id="saved">Saved in this browser</span>
+      </div>
+      <div class="row" style="--gap:8px">
+        <button class="btn" type="button" id="btn-new">New blank puzzle</button>
+        <button class="btn" type="button" id="btn-pick">Start from a published puzzle</button>
+        <button class="btn" type="button" id="btn-open">Open puzzle file</button>
+        <button class="btn primary" type="button" id="btn-download">Download puzzle file</button>
+        <input type="file" id="file-open" accept=".json,application/json" hidden>
+        <input type="file" id="file-img" accept="image/*" hidden>
+      </div>
+    </div>
+    <div class="editor">
+      <div class="stack" style="--gap:16px">
+        <div class="panel stack" style="--gap:10px">
+          <div class="row" style="--gap:12px; align-items:flex-end">
+            <label class="field grow" style="min-width:200px"><span>Puzzle title</span><input class="input" id="f-title" placeholder="e.g. Holes, Haze, and Old Paint"></label>
+            <label class="field" style="width:170px"><span>Release date</span><input class="input" id="f-date" type="date"></label>
+          </div>
+          <p class="hint">File name: <code id="f-id"></code></p>
+        </div>
+        <div class="panel" style="padding:0">
+          <div class="tabs" role="tablist" id="gtabs" aria-label="Groups" style="padding:0 12px"></div>
+          <div id="gbody" class="stack" role="tabpanel" style="--gap:14px; padding:18px"></div>
+        </div>
+      </div>
+      <aside class="sidecard">
+        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Live preview</span>
+          <div class="desk"><div class="pieces" id="prev"></div></div>
+          <p class="hint">Shown sorted by group. Players see them shuffled.</p></div>
+        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Ready to publish?</span><ul class="checklist" id="checks"></ul></div>
+        <div class="placard stack" style="--gap:8px"><span class="eyebrow">Tip</span>
+          <p style="font-size:.86rem" class="muted">Open-license images are safest: Wikimedia Commons, your own lab photos, or Radiopaedia cases that allow reuse. Every image needs a source.</p>
+          <p class="hint">Images are stored inside the file for now. Running <code>tools/externalize_images.py</code> at publish time turns them into separate .webp files.</p></div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="view-play" role="tabpanel" aria-labelledby="tab-play" hidden>
+    <div class="panel stack" style="--gap:12px; margin-bottom:16px">
+      <div class="row spread" style="align-items:flex-end">
+        <div class="stack" style="--gap:6px">
+          <span class="eyebrow">What to play</span>
+          <div class="row" style="--gap:16px">
+            <label class="radio"><input type="radio" name="play-src" value="draft" checked> Current draft</label>
+            <label class="radio"><input type="radio" name="play-src" value="file"> Load a .json file</label>
+            <button class="btn small" type="button" id="btn-play-file" hidden>Choose file…</button>
+            <span class="hint" id="play-file-name"></span>
+            <input type="file" id="file-play" accept=".json,application/json" hidden>
+          </div>
+        </div>
+        <div class="row" style="--gap:8px">
+          <button class="btn primary" type="button" id="btn-play">Play it</button>
+          <button class="btn" type="button" id="btn-restart" disabled>Restart</button>
+          <button class="btn" type="button" id="btn-results" disabled>Show results screen</button>
+          <a class="btn ghost" id="btn-full" href="../index.html?preview=1" target="_blank" rel="noopener">Open full screen</a>
+        </div>
+      </div>
+      <ul class="checklist" id="play-problems" hidden></ul>
+      <p class="hint">Preview mode is the real game with a few changes: nothing is saved to your progress, the Shuffle/Reset/Help/Settings toolbar and the date line are hidden, the clue guide is skipped, and the results-screen text is editable in place (those edits are not saved here, so make them in the editor).</p>
+    </div>
+    <div class="frame-wrap" id="frame-wrap"><div class="frame-empty" id="frame-empty">Press “Play it” to load the puzzle into the real game.</div></div>
+  </section>
+</main>
+
+<div id="modal-root"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module">
+import { caseProblems, normalizeKinds, PIECE_KIND_NAMES } from '../src/engine.js';
+
+/* ===== PURE-START: draft model (no DOM; extracted for node tests) ===== */
+const ZONES = ['corkboard', 'folder', 'rack', 'tubes', 'photo', 'rx'];
+const ZONE_NAMES = { corkboard: 'Sticky note', folder: 'Paper sheet', rack: 'Microscope slide', tubes: 'X-ray film', photo: 'Photograph', rx: 'Prescription' };
+const IMAGE_ZONES = ['photo', 'tubes', 'rack'];
+const TIER_WORDS = ['easiest', 'medium', 'hard', 'hardest'];
+const CREDIT_RE = /^<i>\s*Images?\s*:\s*([\s\S]*?)\s*<\/i>$/i;
+
+function slug(s) {
+  return String(s || '').replace(/­/g, '').normalize('NFKD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function plain(s) { return String(s || '').replace(/­/g, ''); }
+function htmlEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function htmlUnesc(s) { return String(s).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
+function pick(obj, skip) {
+  const out = {};
+  if (obj && typeof obj === 'object') Object.keys(obj).forEach((k) => { if (skip.indexOf(k) === -1) out[k] = obj[k]; });
+  return out;
+}
+function orderLike(obj, keys) {
+  if (!keys || !keys.length) return obj;
+  const out = {};
+  keys.forEach((k) => { if (k in obj) out[k] = obj[k]; });
+  Object.keys(obj).forEach((k) => { if (!(k in out)) out[k] = obj[k]; });
+  return out;
+}
+function blocksToText(blocks) {
+  return (blocks || []).map((b) => (b.type === 'heading' ? '## ' + (b.text || '')
+    : b.type === 'image' ? '![image](' + (b.src || '') + ')' : (b.text || ''))).join('\n\n');
+}
+function textToBlocks(text) {
+  return String(text || '').split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean).map((t) => {
+    if (/^##\s+/.test(t)) return { type: 'heading', text: t.replace(/^##\s+/, '') };
+    const m = /^!\[[^\]]*\]\((\S+)\)$/.exec(t);
+    return m ? { type: 'image', src: m[1] } : { type: 'text', text: t };
+  });
+}
+function blankItem() {
+  return { label: '', zone: 'corkboard', title: '', text: '', image: '', scopeImage: '', credit: '',
+    srcId: '', srcLabel: '', keys: [], infoKeys: [], scopeKeys: [], extra: {}, infoExtra: {}, scopeExtra: {} };
+}
+function blankGroup(i) {
+  return { name: '', tier: i + 1, explanation: '', articleText: '', articleRaw: null, articleRawText: '', credit: '',
+    nids: '', ankiExtra: null, srcId: '', srcName: '', keys: [], extra: {}, items: [0, 1, 2, 3].map(blankItem) };
+}
+function blankDraft() {
+  return { v: 1, title: '', date: '', srcId: '', srcTitle: '', srcDate: '', keys: [], extra: {}, groups: [0, 1, 2, 3].map(blankGroup) };
+}
+/** Puzzle JSON -> editor draft. Keeps unknown fields so export is lossless. */
+function draftFromPuzzle(p) {
+  const d = blankDraft();
+  const warnings = [];
+  d.title = p.title || ''; d.date = p.date || '';
+  d.srcId = p.id || ''; d.srcTitle = d.title; d.srcDate = d.date;
+  d.keys = Object.keys(p); d.extra = pick(p, ['id', 'title', 'date', 'machines', 'groups', 'items']);
+  const items = Array.isArray(p.items) ? p.items : [];
+  const byId = new Map(items.map((it) => [it.id, it]));
+  const used = new Set();
+  const toDraftItem = (it) => {
+    const info = it.info || {}; const scope = it.scope || {};
+    return Object.assign(blankItem(), {
+      label: it.label || '', zone: ZONES.indexOf(it.zone) !== -1 ? it.zone : 'corkboard',
+      title: info.title || '', text: info.text || '', image: info.image || '', scopeImage: scope.image || '',
+      srcId: it.id || '', srcLabel: it.label || '',
+      keys: Object.keys(it), infoKeys: Object.keys(info), scopeKeys: it.scope ? Object.keys(scope) : [],
+      extra: pick(it, ['id', 'label', 'zone', 'info', 'scope']), infoExtra: pick(info, ['title', 'text', 'image']),
+      scopeExtra: pick(scope, ['image']),
+    });
+  };
+  (Array.isArray(p.groups) ? p.groups : []).forEach((g, gi) => {
+    if (gi > 3) { warnings.push('Only the first 4 groups were loaded.'); return; }
+    const G = d.groups[gi];
+    G.name = g.name || ''; G.tier = [1, 2, 3, 4].indexOf(g.tier) !== -1 ? g.tier : gi + 1;
+    G.explanation = g.explanation || ''; G.srcId = g.id || ''; G.srcName = G.name;
+    G.keys = Object.keys(g); G.extra = pick(g, ['id', 'name', 'tier', 'explanation', 'article', 'anki', 'itemIds']);
+    if (Array.isArray(g.article)) {
+      const art = JSON.parse(JSON.stringify(g.article));
+      const last = art[art.length - 1];
+      const m = last && last.type === 'text' && Object.keys(last).length === 2 ? CREDIT_RE.exec(last.text || '') : null;
+      if (m) { G.credit = htmlUnesc(m[1]); art.pop(); }
+      G.articleRaw = art; G.articleRawText = blocksToText(art); G.articleText = G.articleRawText;
+    }
+    if (g.anki && typeof g.anki === 'object') {
+      G.nids = Array.isArray(g.anki.nids) ? g.anki.nids.join(', ') : '';
+      G.ankiExtra = pick(g.anki, ['nids']);
+    }
+    (g.itemIds || []).forEach((id, ii) => {
+      const it = byId.get(id);
+      if (!it || used.has(id)) return;
+      if (ii > 3) { warnings.push('Group "' + G.name + '" had more than 4 clues; extras were dropped.'); return; }
+      used.add(id); G.items[ii] = toDraftItem(it);
+    });
+  });
+  items.filter((it) => !used.has(it.id)).forEach((it) => {
+    const slot = d.groups.flatMap((G, gi) => G.items.map((x, ii) => [gi, ii, x])).find((s) => !s[2].label && !s[2].srcId);
+    if (slot) { d.groups[slot[0]].items[slot[1]] = toDraftItem(it); warnings.push('Clue "' + plain(it.label) + '" had no group; it was put in group ' + (slot[0] + 1) + '.'); }
+    else warnings.push('Clue "' + plain(it.label) + '" had no room and was dropped.');
+  });
+  return { draft: d, warnings };
+}
+
+function uniqueId(base, used) {
+  let id = base, n = 2;
+  while (used.has(id)) id = base + '-' + n++;
+  used.add(id);
+  return id;
+}
+
+/** Editor draft -> puzzle JSON in the exact shape the game loads. */
+function puzzleFromDraft(d) {
+  const title = d.title.trim(), date = d.date.trim();
+  const pid = d.srcId && title === d.srcTitle && date === d.srcDate ? d.srcId
+    : [slug(title) || 'untitled', date].filter(Boolean).join('-');
+  const usedItem = new Set(); const ids = d.groups.map((G) => G.items.map(() => ''));
+  d.groups.forEach((G, gi) => G.items.forEach((I, ii) => {
+    if (I.srcId && I.label === I.srcLabel && !usedItem.has(I.srcId)) { ids[gi][ii] = I.srcId; usedItem.add(I.srcId); }
+  }));
+  d.groups.forEach((G, gi) => G.items.forEach((I, ii) => {
+    if (!ids[gi][ii]) ids[gi][ii] = uniqueId(slug(I.label) || 'clue', usedItem);
+  }));
+  const usedGroup = new Set(); const items = [];
+  const groups = d.groups.map((G, gi) => {
+    const gid = G.srcId && G.name === G.srcName && !usedGroup.has(G.srcId) ? (usedGroup.add(G.srcId), G.srcId)
+      : uniqueId('g-' + (slug(G.name) || 'group-' + (gi + 1)), usedGroup);
+    const g = { id: gid, name: G.name.trim(), tier: Number(G.tier) || gi + 1, explanation: G.explanation.trim() };
+    let article = G.articleRaw && G.articleText === G.articleRawText ? JSON.parse(JSON.stringify(G.articleRaw)) : textToBlocks(G.articleText);
+    const credits = [];
+    const addCredit = (c) => { c = String(c || '').trim(); if (c && credits.indexOf(c) === -1) credits.push(c); };
+    addCredit(G.credit);
+    G.items.forEach((I) => { if (IMAGE_ZONES.indexOf(I.zone) !== -1 && (I.image || I.scopeImage)) addCredit(I.credit); });
+    if (credits.length) article = article.concat([{ type: 'text', text: '<i>Images: ' + htmlEsc(credits.join('; ')) + '</i>' }]);
+    if (article.length || G.articleRaw) g.article = article;
+    const nids = String(G.nids || '').split(/[\s,;]+/).filter(Boolean).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    if (nids.length) g.anki = Object.assign({}, G.ankiExtra || {}, { nids });
+    else if (G.ankiExtra && Object.keys(G.ankiExtra).length) g.anki = Object.assign({}, G.ankiExtra);
+    g.itemIds = ids[gi].slice();
+    G.items.forEach((I, ii) => {
+      const info = Object.assign({ title: I.title.trim() || plain(I.label).trim(), text: I.text }, I.infoExtra);
+      if (IMAGE_ZONES.indexOf(I.zone) !== -1 && I.image) info.image = I.image;
+      const it = Object.assign({ id: ids[gi][ii], label: I.label.trim(), zone: I.zone, info: orderLike(info, I.infoKeys) }, I.extra);
+      if (I.zone === 'rack') {
+        const scope = Object.assign({}, I.scopeExtra);
+        if (I.scopeImage) scope.image = I.scopeImage;
+        if (Object.keys(scope).length) it.scope = orderLike(scope, I.scopeKeys);
+      }
+      items.push(orderLike(it, I.keys));
+    });
+    return orderLike(Object.assign(g, G.extra), G.keys);
+  });
+  const machines = [];
+  if (items.some((i) => i.zone === 'rack')) machines.push('scope');
+  if (items.some((i) => i.zone === 'tubes')) machines.push('lightbox');
+  const out = Object.assign({ id: pid, title, date, machines, groups, items }, d.extra);
+  return orderLike(out, d.keys);
+}
+/* ===== PURE-END ===== */
+
+/* ===== DOM helpers, state, storage ===== */
+const DRAFT_KEY = 'dp2d:studio-draft';
+const PREVIEW_KEY = 'dp2d:preview-draft';
+const THEME_KEY = 'dp2d:studio-theme';
+const $ = (s, root) => (root || document).querySelector(s);
+const $$ = (s, root) => Array.from((root || document).querySelectorAll(s));
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/** Image paths in published files are relative to the site root; the studio lives one level down. */
+const imgUrl = (src) => (!src ? '' : /^(data:|blob:|https?:|\/)/.test(src) ? src : '../' + src);
+const cssUrl = (src) => 'url("' + imgUrl(src).replace(/["\\\n]/g, (c) => '\\' + c) + '")';
+
+let draft = blankDraft();
+let tab = 0;
+let saveTimer = 0;
+let toastTimer = 0;
+
+function toast(msg, ms) {
+  const t = $('#toast');
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, ms || 2600);
+}
+function setSaved(text, isErr) {
+  const s = $('#saved');
+  s.textContent = text; s.classList.toggle('err', !!isErr);
+}
+function saveNow() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    setSaved('Saved in this browser');
+  } catch (e) {
+    const quota = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+    setSaved(quota ? 'Not saved: browser storage is full' : 'Not saved: browser storage unavailable', true);
+    toast(quota ? 'Draft too big for browser storage. Download the puzzle file to keep your work.' : 'Could not save the draft in this browser. Download the file to keep it.', 5000);
+  }
+}
+function bump() {
+  setSaved('Saving…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 400);
+  drawSide();
+}
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || d.v !== 1 || !Array.isArray(d.groups) || d.groups.length !== 4) return null;
+    // Fill any fields added after the draft was saved.
+    const base = blankDraft();
+    const merged = Object.assign(base, d);
+    merged.groups = d.groups.map((G, gi) => Object.assign(blankGroup(gi), G, {
+      items: (G.items || []).slice(0, 4).concat([0, 1, 2, 3].map(blankItem)).slice(0, 4).map((I) => Object.assign(blankItem(), I)),
+    }));
+    return merged;
+  } catch (e) { return null; }
+}
+
+/* ===== Checks: the game's own validator plus plain-English author checks ===== */
+function gameProblems(p) {
+  return caseProblems(p).map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+}
+function authorChecks(d) {
+  const out = [];
+  const t = (s) => String(s || '').trim();
+  if (!t(d.title)) out.push('Give the puzzle a title');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t(d.date))) out.push('Pick a release date');
+  const tiers = new Set();
+  d.groups.forEach((G, gi) => {
+    const n = 'Group ' + (gi + 1);
+    tiers.add(Number(G.tier));
+    if (!t(G.name)) out.push(n + ' needs a name (the hidden answer)');
+    if (!t(G.explanation)) out.push(n + ' needs a one-line explanation');
+    const filled = G.items.filter((I) => t(I.label)).length;
+    if (filled < 4) out.push(n + ': ' + filled + ' of 4 clue labels filled');
+    G.items.forEach((I, ii) => {
+      const c = n + ', clue ' + (ii + 1);
+      if (!t(I.label)) return;
+      if ((I.zone === 'photo' || I.zone === 'tubes') && !I.image) out.push(c + ': add an image for the ' + ZONE_NAMES[I.zone].toLowerCase());
+      if (I.zone === 'rack' && !I.scopeImage) out.push(c + ': add the microscope image for the slide');
+      const hasImg = IMAGE_ZONES.indexOf(I.zone) !== -1 && (I.image || I.scopeImage);
+      if (hasImg && !t(I.credit) && !t(G.credit)) out.push(c + ': say where the image came from');
+    });
+  });
+  if (tiers.size < 4) out.push('Give each group its own difficulty tier');
+  return out;
+}
+
+/* ===== Image intake: resize to max 1200px long edge, WebP data URL ===== */
+function fileToWebp(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) { reject(new Error('That file is not an image.')); return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const max = 1200, s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      let out = c.toDataURL('image/webp', 0.85);
+      if (!/^data:image\/webp/.test(out)) out = c.toDataURL('image/jpeg', 0.85); // Safari without WebP encode
+      resolve({ src: out, w: c.width, h: c.height });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that image.')); };
+    img.src = url;
+  });
+}
+
+/* ===== Rendering: editor ===== */
+function drawTop() {
+  $('#f-title').value = draft.title;
+  $('#f-date').value = draft.date;
+  drawId();
+}
+function drawId() {
+  let id = '';
+  try { id = puzzleFromDraft(draft).id; } catch (e) { id = 'untitled'; }
+  $('#f-id').textContent = id + '.json';
+}
+function drawTabs() {
+  $('#gtabs').innerHTML = draft.groups.map((G, i) =>
+    '<button role="tab" type="button" id="gtab-' + i + '" data-g="' + i + '" aria-selected="' + (i === tab) + '" tabindex="' + (i === tab ? 0 : -1) + '">' +
+    '<span class="tierdot" style="background:var(--tier-' + esc(G.tier) + ')" aria-hidden="true"></span>Group ' + (i + 1) +
+    (G.name.trim() ? '' : ' <span class="badge">empty</span>') + '</button>').join('');
+  $('#gbody').setAttribute('aria-labelledby', 'gtab-' + tab);
+}
+function dropHtml(I, ii, field, label, extraCls) {
+  const src = I[field];
+  if (src) {
+    return '<div class="drop has ' + (extraCls || '') + '" role="button" tabindex="0" data-drop="' + field + '" data-i="' + ii + '" style="background-image:' + esc(cssUrl(src)) + '" aria-label="' + esc(label) + ': replace image">' +
+      '<button type="button" class="rm" data-rm="' + field + '" data-i="' + ii + '" aria-label="Remove ' + esc(label.toLowerCase()) + '">✕</button></div>';
+  }
+  return '<div class="drop ' + (extraCls ? extraCls.replace('scope', '') : '') + '" role="button" tabindex="0" data-drop="' + field + '" data-i="' + ii + '" aria-label="' + esc(label) + ': add image">' +
+    esc(label) + '<br>Drop, paste, or click</div>';
+}
+function clueHtml(I, ii) {
+  let drops;
+  if (I.zone === 'rack') drops = dropHtml(I, ii, 'scopeImage', 'Microscope view', 'scope') + dropHtml(I, ii, 'image', 'Optional card image', 'small');
+  else if (I.zone === 'photo' || I.zone === 'tubes') drops = dropHtml(I, ii, 'image', I.zone === 'photo' ? 'Photo' : 'X-ray film image', '');
+  else drops = '<div class="drop text-only">Text clue<br>(no image)</div>';
+  const opts = ZONES.map((z) => '<option value="' + z + '"' + (z === I.zone ? ' selected' : '') + '>' + ZONE_NAMES[z] + '</option>').join('');
+  const hasImgSlot = IMAGE_ZONES.indexOf(I.zone) !== -1;
+  return '<div class="clue" data-clue="' + ii + '"><div class="drops">' + drops + '</div>' +
+    '<div class="stack" style="--gap:8px">' +
+    '<div class="row" style="--gap:8px"><span class="clue-num">Clue ' + (ii + 1) + '</span>' +
+    '<select class="input" data-f="zone" data-i="' + ii + '" style="width:170px; flex:none" aria-label="Clue ' + (ii + 1) + ' piece type">' + opts + '</select></div>' +
+    '<div class="two-col"><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="Label on the piece" aria-label="Clue ' + (ii + 1) + ' label on the piece">' +
+    '<input class="input" data-f="title" data-i="' + ii + '" value="' + esc(I.title) + '" placeholder="Clue title (when opened)" aria-label="Clue ' + (ii + 1) + ' title"></div>' +
+    '<textarea class="input" data-f="text" data-i="' + ii + '" rows="2" style="min-height:56px" placeholder="Clue text, e.g. Imaging clue: …" aria-label="Clue ' + (ii + 1) + ' text">' + esc(I.text) + '</textarea>' +
+    (hasImgSlot ? '<input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="Image source (e.g. Wikimedia Commons, CC BY-SA 4.0, author)" aria-label="Clue ' + (ii + 1) + ' image source">' : '') +
+    (I.zone === 'photo' ? '<p class="hint">Photos sit in a portrait frame (about 6 wide by 7 tall) and get cropped to fill it, so crop wide photos first.</p>' : '') +
+    (I.zone === 'rack' ? '<p class="hint">The round microscope view is what players study; the card image is optional.</p>' : '') +
+    '</div></div>';
+}
+function drawGroup() {
+  drawTabs();
+  const G = draft.groups[tab];
+  const tierOpts = [1, 2, 3, 4].map((t) => '<option value="' + t + '"' + (t === Number(G.tier) ? ' selected' : '') + '>Tier ' + t + ' · ' + TIER_WORDS[t - 1] + '</option>').join('');
+  $('#gbody').innerHTML =
+    '<div class="row" style="--gap:12px; align-items:flex-end">' +
+    '<label class="field grow" style="min-width:200px"><span>Group name (the hidden answer)</span><input class="input" data-g-f="name" value="' + esc(G.name) + '" placeholder="e.g. Things that set off an asthma attack"></label>' +
+    '<label class="field" style="width:190px"><span>Difficulty tier</span><select class="input" data-g-f="tier">' + tierOpts + '</select></label></div>' +
+    '<label class="field"><span>One-line explanation (shown after solving)</span><input class="input" data-g-f="explanation" value="' + esc(G.explanation) + '" placeholder="Why these four belong together"></label>' +
+    G.items.map(clueHtml).join('') +
+    '<label class="field"><span>Other image credits for this group (optional)</span><input class="input" data-g-f="credit" value="' + esc(G.credit) + '" placeholder="Used when one credit line covers several images"></label>' +
+    '<details' + (G.articleText || G.nids ? ' open' : '') + '><summary>Teaching note and Anki cards (optional)</summary><div class="stack" style="--gap:10px; margin-top:10px">' +
+    '<label class="field"><span>Teaching note (results screen)</span><textarea class="input" data-g-f="articleText" style="min-height:120px" placeholder="One paragraph per block. Leave a blank line between paragraphs.">' + esc(G.articleText) + '</textarea></label>' +
+    '<p class="hint">Blank lines split paragraphs. A line starting with “## ” becomes a heading. Simple tags like &lt;b&gt; and &lt;i&gt; work. Image credits are added at the end automatically.</p>' +
+    '<label class="field"><span>Anki note IDs</span><input class="input" data-g-f="nids" inputmode="numeric" value="' + esc(G.nids) + '" placeholder="e.g. 1473628085810, 1496178435881"></label>' +
+    '</div></details>';
+}
+
+/* ===== Sidebar: live mini desk + checklist ===== */
+function drawSide() {
+  $('#prev').innerHTML = draft.groups.map((G, gi) =>
+    (gi ? '<span class="mp-sep" style="background:var(--tier-' + esc(G.tier) + ')" aria-hidden="true"></span>' : '') +
+    G.items.map((I, ii) => {
+      const pic = I.zone === 'rack' ? (I.scopeImage || I.image) : (I.zone === 'photo' || I.zone === 'tubes') ? I.image : '';
+      const rot = (((gi * 4 + ii) * 37) % 5) - 2;
+      return '<div class="mp mp-' + esc(I.zone) + (I.label.trim() ? '' : ' empty') + '" style="--rot:' + rot + 'deg" title="' + esc(ZONE_NAMES[I.zone] + (I.label ? ': ' + plain(I.label) : '')) + '">' +
+        (pic ? '<span class="pic" style="background-image:' + esc(cssUrl(pic)) + '"></span>' : '') +
+        '<b>' + (I.label.trim() ? esc(plain(I.label)) : 'empty') + '</b></div>';
+    }).join('')).join('');
+  const game = gameProblems(puzzleFromDraft(draft));
+  const author = authorChecks(draft);
+  const li = (cls, mark, t) => '<li><span class="ic ' + cls + '" aria-hidden="true">' + mark + '</span><span>' + esc(t) + '</span></li>';
+  let html = game.map((t) => li('bad', '!', 'Game check: ' + t)).join('');
+  html += author.slice(0, 8).map((t) => li('no', '!', t)).join('');
+  if (author.length > 8) html += '<li class="hint">…and ' + (author.length - 8) + ' more</li>';
+  if (!game.length) html += li('ok', '✓', 'Passes the game’s own file check');
+  if (!author.length) html += li('ok', '✓', 'Every title, label, explanation, image, and source is filled in');
+  $('#checks').innerHTML = html;
+  drawId();
+}
+
+/* ===== Editor events (delegated once) ===== */
+let imgTarget = null;
+let lastClue = null;
+function itemAt(i) { return draft.groups[tab].items[Number(i)]; }
+async function setImage(target, file) {
+  try {
+    const r = await fileToWebp(file);
+    draft.groups[target.g].items[target.i][target.field] = r.src;
+    if (target.g === tab) drawGroup();
+    bump();
+    const zone = draft.groups[target.g].items[target.i].zone;
+    toast(zone === 'photo' && r.w > r.h * 1.05 ? 'Image added. It is wide, so the portrait photo frame will crop its sides.' : 'Image added (' + r.w + '×' + r.h + ', WebP)');
+  } catch (e) { toast(e.message || 'Could not add that image.'); }
+}
+function bindEditor() {
+  $('#f-title').addEventListener('input', (e) => { draft.title = e.target.value; bump(); });
+  $('#f-date').addEventListener('input', (e) => { draft.date = e.target.value; bump(); });
+  $('#gtabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-g]');
+    if (b) { tab = Number(b.dataset.g); drawGroup(); }
+  });
+  $('#gtabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    tab = (tab + (e.key === 'ArrowRight' ? 1 : 3)) % 4;
+    drawGroup(); $('#gtab-' + tab).focus();
+  });
+  const body = $('#gbody');
+  body.addEventListener('input', (e) => {
+    const el = e.target, G = draft.groups[tab];
+    if (el.dataset.gF) {
+      const f = el.dataset.gF;
+      if (f === 'tier') return;
+      G[f] = el.value;
+      if (f === 'name') drawTabs();
+      bump();
+    } else if (el.dataset.f && el.dataset.f !== 'zone') {
+      itemAt(el.dataset.i)[el.dataset.f] = el.value; bump();
+    }
+  });
+  body.addEventListener('change', (e) => {
+    const el = e.target, G = draft.groups[tab];
+    if (el.dataset.gF === 'tier') { G.tier = Number(el.value); drawTabs(); bump(); }
+    else if (el.dataset.f === 'zone') {
+      itemAt(el.dataset.i).zone = el.value;
+      drawGroup(); bump();
+      const sel = $('[data-f="zone"][data-i="' + el.dataset.i + '"]', body); if (sel) sel.focus();
+    }
+  });
+  body.addEventListener('click', (e) => {
+    const rm = e.target.closest('[data-rm]');
+    if (rm) { itemAt(rm.dataset.i)[rm.dataset.rm] = ''; drawGroup(); bump(); toast('Image removed'); return; }
+    const d = e.target.closest('[data-drop]');
+    if (d) { imgTarget = { g: tab, i: Number(d.dataset.i), field: d.dataset.drop }; $('#file-img').click(); }
+  });
+  body.addEventListener('keydown', (e) => {
+    const d = e.target.closest('[data-drop]');
+    if (d && e.target === d && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); d.click(); }
+  });
+  body.addEventListener('dragover', (e) => {
+    const d = e.target.closest('[data-drop]');
+    if (d) { e.preventDefault(); d.classList.add('over'); }
+  });
+  body.addEventListener('dragleave', (e) => { const d = e.target.closest('[data-drop]'); if (d) d.classList.remove('over'); });
+  body.addEventListener('drop', (e) => {
+    const d = e.target.closest('[data-drop]');
+    if (!d) return;
+    e.preventDefault(); d.classList.remove('over');
+    const f = e.dataTransfer && e.dataTransfer.files[0];
+    if (f) setImage({ g: tab, i: Number(d.dataset.i), field: d.dataset.drop }, f);
+  });
+  const track = (e) => { const c = e.target.closest && e.target.closest('[data-clue]'); if (c) lastClue = { g: tab, i: Number(c.dataset.clue) }; };
+  body.addEventListener('focusin', track);
+  body.addEventListener('pointerover', track);
+  document.addEventListener('paste', (e) => {
+    if ($('#view-edit').hidden || !lastClue || lastClue.g !== tab) return;
+    const file = Array.from((e.clipboardData && e.clipboardData.files) || []).find((f) => /^image\//.test(f.type));
+    if (!file) return;
+    const I = draft.groups[tab].items[lastClue.i];
+    if (IMAGE_ZONES.indexOf(I.zone) === -1) { toast('That clue type is text only. Switch it to a photo, slide, or film first.'); return; }
+    e.preventDefault();
+    setImage({ g: tab, i: lastClue.i, field: I.zone === 'rack' ? 'scopeImage' : 'image' }, file);
+  });
+  $('#file-img').addEventListener('change', (e) => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (f && imgTarget) setImage(imgTarget, f);
+  });
+}
+
+/* ===== Modal ===== */
+function openModal(html, onOpen) {
+  const prevFocus = document.activeElement;
+  const root = $('#modal-root');
+  root.innerHTML = '<div class="scrim"><div class="modal" role="dialog" aria-modal="true" tabindex="-1">' + html + '</div></div>';
+  const m = $('.modal', root);
+  const close = () => { root.innerHTML = ''; document.removeEventListener('keydown', onKey); if (prevFocus && prevFocus.focus) prevFocus.focus(); };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  $('.scrim', root).addEventListener('click', (e) => { if (e.target.classList.contains('scrim')) close(); });
+  $$('[data-dismiss]', m).forEach((b) => b.addEventListener('click', close));
+  if (onOpen) onOpen(m, close);
+  (m.querySelector('.btn.primary') || m.querySelector('button') || m).focus();
+  return close;
+}
+function confirmModal(title, text, okLabel) {
+  return new Promise((resolve) => {
+    let done = false;
+    openModal('<div class="stack" style="--gap:14px"><h2>' + esc(title) + '</h2><p class="muted">' + esc(text) + '</p>' +
+      '<div class="row" style="justify-content:flex-end"><button class="btn ghost" type="button" data-dismiss>Cancel</button><button class="btn primary" type="button" id="m-ok">' + esc(okLabel) + '</button></div></div>',
+    (m, close) => {
+      $('#m-ok', m).addEventListener('click', () => { done = true; close(); resolve(true); });
+      $$('[data-dismiss]', m).forEach((b) => b.addEventListener('click', () => { if (!done) resolve(false); }));
+      const obs = new MutationObserver(() => { if (!m.isConnected) { obs.disconnect(); if (!done) resolve(false); } });
+      obs.observe($('#modal-root'), { childList: true });
+    });
+  });
+}
+
+/* ===== Files: open, download, published picker, new ===== */
+function hasWork() {
+  return !!(draft.title.trim() || draft.groups.some((G) => G.name.trim() || G.items.some((I) => I.label.trim() || I.image || I.scopeImage)));
+}
+function loadPuzzle(p, what) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) throw new Error('That file is not a puzzle.');
+  normalizeKinds(p);
+  const r = draftFromPuzzle(p);
+  draft = r.draft; tab = 0;
+  drawTop(); drawGroup(); drawSide(); saveNow();
+  toast(r.warnings.length ? what + ' loaded. ' + r.warnings.join(' ') : what + ' loaded into the editor.', r.warnings.length ? 6000 : 2600);
+}
+function readJsonFile(file) {
+  return file.text().then((t) => JSON.parse(t));
+}
+function download() {
+  const p = puzzleFromDraft(draft);
+  const blob = new Blob([JSON.stringify(p, null, 2) + '\n'], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = p.id + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  const n = caseProblems(p).length;
+  toast(n ? 'Downloaded ' + p.id + '.json, but the game check found ' + n + ' problem' + (n > 1 ? 's' : '') + '.' : 'Downloaded ' + p.id + '.json', n ? 5000 : 2600);
+}
+async function pickPublished() {
+  let index;
+  try {
+    const r = await fetch('../puzzles/index.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    index = await r.json();
+  } catch (e) { toast('Could not load the puzzle list (' + e.message + ').'); return; }
+  const list = (index.puzzles || []).filter((x) => x && x.file);
+  openModal('<div class="stack" style="--gap:12px"><h2>Start from a published puzzle</h2><p class="muted">This copies it into the editor. The live puzzle is not changed.</p>' +
+    '<ul class="pick-list">' + list.map((x, i) => '<li><button class="btn" type="button" data-pick="' + i + '"><span>' + esc(x.title || x.id) + '</span><span class="badge">' + esc(x.date || '') + '</span></button></li>').join('') + '</ul>' +
+    '<div class="row" style="justify-content:flex-end"><button class="btn ghost" type="button" data-dismiss>Cancel</button></div></div>',
+  (m, close) => {
+    $$('[data-pick]', m).forEach((b) => b.addEventListener('click', async () => {
+      const x = list[Number(b.dataset.pick)];
+      close();
+      if (hasWork() && !(await confirmModal('Replace your draft?', 'Your current draft will be replaced by “' + (x.title || x.id) + '”. Download it first if you want to keep it.', 'Replace draft'))) return;
+      try {
+        const r = await fetch('../puzzles/' + encodeURIComponent(x.file), { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        loadPuzzle(await r.json(), '“' + (x.title || x.id) + '”');
+      } catch (e) { toast('Could not load that puzzle (' + e.message + ').'); }
+    }));
+  });
+}
+function bindFiles() {
+  $('#btn-download').addEventListener('click', download);
+  $('#btn-pick').addEventListener('click', pickPublished);
+  $('#btn-open').addEventListener('click', () => $('#file-open').click());
+  $('#file-open').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const p = await readJsonFile(f);
+      if (hasWork() && !(await confirmModal('Replace your draft?', 'Opening “' + f.name + '” replaces what is in the editor now.', 'Open file'))) return;
+      loadPuzzle(p, f.name);
+    } catch (err) { toast('Could not open that file: ' + (err.message || err), 5000); }
+  });
+  $('#btn-new').addEventListener('click', async () => {
+    if (hasWork() && !(await confirmModal('Start a new blank puzzle?', 'This clears the editor. Download your draft first if you want to keep it.', 'Clear and start over'))) return;
+    draft = blankDraft(); tab = 0;
+    drawTop(); drawGroup(); drawSide(); saveNow();
+    toast('New blank puzzle');
+  });
+}
+
+/* ===== Test play: the real game in preview mode ===== */
+let playFile = null;
+let warnedResultsEdit = false;
+function playSource() { return ($('input[name="play-src"]:checked') || {}).value || 'draft'; }
+function showPlayProblems(items) {
+  const ul = $('#play-problems');
+  ul.hidden = !items.length;
+  ul.innerHTML = items.map((x) => '<li><span class="ic ' + x[0] + '" aria-hidden="true">!</span><span>' + esc(x[1]) + '</span></li>').join('');
+}
+/** Validate the chosen source and write it to the key preview mode reads. Returns true when ready. */
+function stagePreview() {
+  let p;
+  if (playSource() === 'file') {
+    if (!playFile) { showPlayProblems([['no', 'Choose a .json file first.']]); return false; }
+    p = JSON.parse(JSON.stringify(playFile));
+  } else p = puzzleFromDraft(draft);
+  normalizeKinds(p);
+  const bad = gameProblems(p);
+  if (bad.length) {
+    showPlayProblems([['bad', 'The game would refuse this puzzle. Fix these first:']].concat(bad.map((t) => ['bad', t])));
+    return false;
+  }
+  const heads = playSource() === 'draft' ? authorChecks(draft) : [];
+  showPlayProblems(heads.length ? [['no', 'Playable, but not ready to publish yet (' + heads.length + ' item' + (heads.length > 1 ? 's' : '') + ' on the Edit checklist).']] : []);
+  try { localStorage.setItem(PREVIEW_KEY, JSON.stringify(p)); } catch (e) {
+    showPlayProblems([['bad', 'This puzzle is too big for browser storage, so it cannot be test played here. Externalize the images or use smaller ones.']]);
+    return false;
+  }
+  return true;
+}
+function frame() { return $('#frame-wrap iframe'); }
+function play() {
+  if (!stagePreview()) return;
+  const f = frame();
+  if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'dp2d-preview' }, '*');
+  else {
+    $('#frame-wrap').innerHTML = '<iframe title="Test play: the real game in preview mode" src="../index.html?preview=1"></iframe>';
+  }
+  $('#btn-restart').disabled = false; $('#btn-results').disabled = false;
+}
+function bindPlay() {
+  $$('input[name="play-src"]').forEach((r) => r.addEventListener('change', () => {
+    $('#btn-play-file').hidden = playSource() !== 'file';
+    showPlayProblems([]);
+  }));
+  $('#btn-play-file').addEventListener('click', () => $('#file-play').click());
+  $('#file-play').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const p = await readJsonFile(f);
+      if (!p || typeof p !== 'object' || Array.isArray(p)) throw new Error('not a puzzle');
+      playFile = p; $('#play-file-name').textContent = f.name; showPlayProblems([]);
+    } catch (err) { playFile = null; $('#play-file-name').textContent = ''; showPlayProblems([['bad', 'Could not read that file: ' + (err.message || err)]]); }
+  });
+  $('#btn-play').addEventListener('click', play);
+  $('#btn-restart').addEventListener('click', play);
+  $('#btn-results').addEventListener('click', () => {
+    if (!stagePreview()) return;
+    const f = frame();
+    if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'dp2d-preview-results' }, '*');
+  });
+  $('#btn-full').addEventListener('click', (e) => { if (!stagePreview()) e.preventDefault(); });
+  window.addEventListener('message', (ev) => {
+    const f = frame();
+    if (!f || ev.source !== f.contentWindow || !ev.data) return;
+    if (ev.data.type === 'dp2d-results-edit' && ev.data.final && !warnedResultsEdit) {
+      warnedResultsEdit = true;
+      toast('Edits on the results screen are not saved here. Make them in the editor.', 5000);
+    }
+  });
+}
+
+/* ===== Views + theme + boot ===== */
+function showView(which) {
+  const play = which === 'play';
+  $('#view-edit').hidden = play; $('#view-play').hidden = !play;
+  $('#tab-edit').setAttribute('aria-selected', String(!play));
+  $('#tab-play').setAttribute('aria-selected', String(play));
+}
+function applyTheme(t) {
+  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+  $('#theme-btn').textContent = 'Theme: ' + (t === 'light' || t === 'dark' ? t : 'auto');
+}
+function bindChrome() {
+  $('#tab-edit').addEventListener('click', () => showView('edit'));
+  $('#tab-play').addEventListener('click', () => showView('play'));
+  let theme = 'auto';
+  try { theme = localStorage.getItem(THEME_KEY) || 'auto'; } catch (e) { theme = 'auto'; }
+  applyTheme(theme);
+  $('#theme-btn').addEventListener('click', () => {
+    theme = theme === 'auto' ? 'light' : theme === 'light' ? 'dark' : 'auto';
+    applyTheme(theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* theme just won't persist */ }
+  });
+}
+
+draft = loadSaved() || blankDraft();
+bindChrome(); bindEditor(); bindFiles(); bindPlay();
+drawTop(); drawGroup(); drawSide();
+if (!PIECE_KIND_NAMES.corkboard) toast('Warning: the game engine piece list changed; check the studio.');
+</script>
+</body>
+</html>
