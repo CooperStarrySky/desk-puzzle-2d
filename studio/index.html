@@ -9,6 +9,7 @@
 <script>/* set the theme before first paint (applyTheme below keeps it in sync) */
 try { var t = localStorage.getItem('dp2d:studio-theme'); if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', t); } catch (e) {}
 </script>
+<script src="config.js"></script>
 <style>
 /* Puzzle Studio: author editor in the game's "stain room" look.
    TOKENS: copied from ../styles.css (:root and :root[data-theme="dark"]), which is the
@@ -203,6 +204,14 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .private-note { font-size: 0.8rem; color: var(--ink-soft); }
 .private-note b { color: var(--ink); }
 .done-file { font-family: var(--mono); font-size: 0.82rem; word-break: break-all; background: var(--paper-2); border-radius: var(--r-s); padding: 6px 9px; }
+/* sending to the inbox */
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.human:empty { display: none; }
+.receipt { font-family: var(--mono); font-size: 1.5rem; font-weight: 700; letter-spacing: 0.08em; text-align: center; background: var(--accent-soft); color: var(--ink); border: 1px dashed var(--accent); border-radius: var(--r-m); padding: 12px; user-select: all; }
+.send-err { border-left: 3px solid var(--danger); background: var(--danger-soft); border-radius: var(--r-s); padding: 10px 12px; font-size: 0.9rem; }
+.sent-list { font-family: var(--mono); font-size: 0.78rem; }
+.btn.busy { position: relative; color: transparent !important; }
+.btn.busy::after { content: "Sending…"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--accent-ink); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 </style>
 </head>
@@ -230,9 +239,13 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
         <p class="muted">Each weekly puzzle has four hidden groups of four clues. Most people send in one group, and the puzzle group puts four of them together.</p></div>
       <div class="choice-grid">
         <a class="choice-card primary" href="?submit"><span class="eyebrow">For everyone</span><h2>Submit a category to the puzzle group</h2>
-          <p class="muted">Write one group: a hidden answer, four clues, and an optional teaching note. You download one file and send it in.</p><span class="go">Start a category →</span></a>
-        <a class="choice-card" href="?build"><span class="eyebrow">For the puzzle group</span><h2>Build a full puzzle</h2>
-          <p class="muted">All four groups, release date, and test play in the real game.</p><span class="go">Open the full editor →</span></a>
+          <p class="muted">Write one group: a hidden answer, four clues, and an optional teaching note. <span id="choice-how">You download one file and send it in.</span></p><span class="go">Start a category →</span></a>
+        <div class="stack" style="--gap:16px">
+          <a class="choice-card" href="?build"><span class="eyebrow">For the puzzle group</span><h2>Build a full puzzle</h2>
+            <p class="muted">All four groups, release date, and test play in the real game.</p><span class="go">Open the full editor →</span></a>
+          <a class="choice-card" href="inbox.html" id="choice-inbox"><span class="eyebrow">For the puzzle group</span><h2>Submissions inbox</h2>
+            <p class="muted">Read, shortlist, and download the categories students send in.</p><span class="go">Open the inbox →</span></a>
+        </div>
       </div>
       <p class="hint" id="choice-drafts"></p>
     </div>
@@ -247,6 +260,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
       <div class="row" style="--gap:8px">
         <button class="btn" type="button" id="s-new">Start over</button>
         <button class="btn primary" type="button" id="s-download">Download submission</button>
+        <button class="btn primary" type="button" id="s-send" hidden>Send to the puzzle group</button>
       </div>
     </div>
     <div class="editor">
@@ -255,7 +269,10 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
         <div class="placard stack" style="--gap:10px"><span class="eyebrow">Live preview</span>
           <div class="desk"><div class="pieces" id="s-prev"></div></div>
           <p class="hint">How your four pieces look on the bench. In the puzzle they get mixed in with 12 others.</p></div>
-        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Ready to send?</span><ul class="checklist" id="s-checks"></ul></div>
+        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Ready to send?</span><ul class="checklist" id="s-checks"></ul>
+          <div class="human" id="s-human"></div>
+          <div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" id="s-website" name="website" tabindex="-1" autocomplete="off"></label></div>
+          <p class="hint sent-list" id="s-sent" hidden></p></div>
         <div class="placard stack" style="--gap:8px"><span class="eyebrow">Images</span>
           <p style="font-size:.86rem" class="muted">Use your own photos or open-license images (for example Wikimedia Commons, or Radiopaedia cases that allow reuse). Every image needs a source, and nobody in it can be identifiable.</p></div>
       </aside>
@@ -504,6 +521,14 @@ function puzzleFromDraft(d) {
 const SUGGESTED_TIERS = ['Easy', 'Medium', 'Hard', 'Hardest'];
 const CREDIT_NAME_MAX = 60, CREDIT_LINE_MAX = 40;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Size limits the inbox enforces. Keep in step with LIMITS in
+// supabase/functions/submit/validate.js (supabase/tests/studio_limits.test.mjs checks).
+const SEND_LIMITS = { maxImageBytes: 700 * 1024, name: 120, explanation: 400, label: 80, title: 120, text: 1500, source: 300, article: 6000 };
+/** Decoded size of a data: URI image, in bytes (0 if not a data URI). */
+function dataUriBytes(src) {
+  const i = String(src || '').indexOf(';base64,');
+  return /^data:/.test(String(src || '')) && i !== -1 ? Math.floor((String(src).length - i - 8) * 3 / 4) : 0;
+}
 function blankCategory() {
   return { v: 1, group: blankGroup(0), suggestedTier: 0, creditMode: '', name: '', line: '', email: '',
     consent: false, noPatient: [false, false, false, false] };
@@ -521,6 +546,10 @@ function categoryChecks(c) {
   const G = c.group;
   if (!t(G.name)) problems.push('Name the category (the hidden answer)');
   if (!t(G.explanation)) problems.push('Add a one-line explanation');
+  const cap = (what, v, max) => { if (t(v).length > max) problems.push(what + ' is too long (' + t(v).length + ' characters; ' + max + ' max)'); };
+  cap('The category name', G.name, SEND_LIMITS.name);
+  cap('The explanation', G.explanation, SEND_LIMITS.explanation);
+  cap('The teaching note', G.articleText, SEND_LIMITS.article);
   if ([1, 2, 3, 4].indexOf(Number(c.suggestedTier)) === -1) problems.push('Pick a suggested difficulty');
   G.items.forEach((I, ii) => {
     const n = 'Clue ' + (ii + 1);
@@ -532,7 +561,15 @@ function categoryChecks(c) {
     if (itemHasImage(I)) {
       if (!t(I.credit)) problems.push(n + ': say where the image came from');
       if (!c.noPatient[ii]) problems.push(n + ': confirm no patient can be identified in the image');
+      cap(n + ': the image source', I.credit, SEND_LIMITS.source);
+      ['image', 'scopeImage'].forEach((f) => {
+        const kb = Math.round(dataUriBytes(I[f]) / 1024);
+        if (kb > SEND_LIMITS.maxImageBytes / 1024) problems.push(n + ': the ' + (f === 'scopeImage' ? 'microscope image' : 'image') + ' is too big (' + kb + ' KB; ' + (SEND_LIMITS.maxImageBytes / 1024) + ' KB max). Try a smaller or simpler image');
+      });
     }
+    cap(n + ': the label', I.label, SEND_LIMITS.label);
+    cap(n + ': the title', I.title, SEND_LIMITS.title);
+    cap(n + ': the short text', I.text, SEND_LIMITS.text);
   });
   const badNid = String(G.nids || '').split(/[\s,;]+/).filter(Boolean).find((x) => !/^[1-9]\d*$/.test(x));
   if (badNid) problems.push('Anki note IDs are numbers only (check “' + badNid + '”)');
@@ -1039,11 +1076,17 @@ function bindPlay() {
 }
 
 /* ===== Submit a category (what students use) ===== */
-// Where students send the downloaded file, shown after they download it.
-// Thirth: put the group's email address or GroupMe link here, for example
-// 'deskpuzzle@example.com' or 'https://groupme.com/join_group/...'. Emails and
-// https links are turned into clickable links automatically.
-const SUBMIT_TO = 'the CMSRU Desk Puzzle group';
+// Settings live in studio/config.js (window.DESK_PUZZLE_CONFIG). With a Supabase
+// URL and public key there, "Send to the puzzle group" posts straight to the
+// private inbox; without them the Studio only offers the download.
+const CFG = Object.assign({ supabaseUrl: '', supabaseAnonKey: '', turnstileSiteKey: '', submitTo: '' }, window.DESK_PUZZLE_CONFIG || {});
+// Where students send a downloaded file (email or link), shown after a download.
+const SUBMIT_TO = String(CFG.submitTo || '').trim() || 'the CMSRU Desk Puzzle group';
+const SEND_KEY = String(CFG.supabaseAnonKey || '').trim();
+const SEND_URL = String(CFG.supabaseUrl || '').trim() && SEND_KEY ? String(CFG.supabaseUrl).trim().replace(/\/+$/, '') + '/functions/v1/submit' : '';
+const SEND_ON = !!SEND_URL;
+const TURNSTILE_KEY = SEND_ON ? String(CFG.turnstileSiteKey || '').trim() : '';
+const SENT_KEY = 'dp2d:studio-sent';
 const CATEGORY_KEY = 'dp2d:studio-category';
 let cat = blankCategory();
 let catTimer = 0;
@@ -1144,7 +1187,7 @@ function drawCatSide() {
   const li = (cls, mark, t) => '<li><span class="ic ' + cls + '" aria-hidden="true">' + mark + '</span><span>' + esc(t) + '</span></li>';
   let html = r.problems.slice(0, 8).map((t) => li('no', '!', t)).join('');
   if (r.problems.length > 8) html += '<li class="hint">…and ' + (r.problems.length - 8) + ' more</li>';
-  if (!r.problems.length) html += li('ok', '✓', 'Ready to download');
+  if (!r.problems.length) html += li('ok', '✓', SEND_ON ? 'Ready to send' : 'Ready to download');
   html += r.notes.map((t) => li('info', 'i', t)).join('');
   $('#s-checks').innerHTML = html;
 }
@@ -1180,12 +1223,122 @@ function catDownload() {
 }
 async function catStartOver() {
   const empty = !cat.group.name.trim() && cat.group.items.every((I) => !I.label.trim() && !I.image && !I.scopeImage);
-  if (!empty && !(await confirmModal('Start over?', 'This clears the form. Download your submission first if you haven’t yet.', 'Clear and start over'))) return;
+  if (!empty && !(await confirmModal('Start over?', SEND_ON ? 'This clears the form. Send it (or download a copy) first if you haven’t yet.' : 'This clears the form. Download your submission first if you haven’t yet.', 'Clear and start over'))) return;
   // Keep who you are (credit choice and email) so a second category is quicker.
   const keep = { creditMode: cat.creditMode, name: cat.name, line: cat.line, email: cat.email };
   cat = Object.assign(blankCategory(), keep); catSaveFailed = false;
   drawCat(); catSaveNow();
   toast('Blank category ready');
+}
+/* ----- Send to the puzzle group's private inbox (only when studio/config.js is filled in) ----- */
+let turnstileId = null;
+let turnstileToken = '';
+let sending = false;
+function loadTurnstile() {
+  if (!TURNSTILE_KEY || window.turnstile || $('#ts-script')) return;
+  window.dpTurnstileReady = () => {
+    turnstileId = window.turnstile.render('#s-human', {
+      sitekey: TURNSTILE_KEY, theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
+      callback: (tok) => { turnstileToken = tok; },
+      'expired-callback': () => { turnstileToken = ''; },
+      'error-callback': () => { turnstileToken = ''; },
+    });
+  };
+  const sc = document.createElement('script');
+  sc.id = 'ts-script'; sc.async = true; sc.defer = true;
+  sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=dpTurnstileReady';
+  sc.onerror = () => { $('#s-human').innerHTML = '<p class="send-err">The “are you human” check could not load. Check your internet, reload the page, or download a copy instead.</p>'; };
+  document.head.appendChild(sc);
+}
+function resetTurnstile() {
+  turnstileToken = '';
+  if (window.turnstile && turnstileId !== null) { try { window.turnstile.reset(turnstileId); } catch (e) { /* widget gone */ } }
+}
+function sentList() {
+  try { const a = JSON.parse(localStorage.getItem(SENT_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+function drawSent() {
+  const a = sentList().slice(0, 3);
+  const el = $('#s-sent');
+  el.hidden = !a.length;
+  el.innerHTML = a.length ? 'Sent from this browser:<br>' + a.map((x) => esc(x.code) + ' · ' + esc(x.name)).join('<br>') : '';
+}
+function rememberSent(code, name) {
+  try { localStorage.setItem(SENT_KEY, JSON.stringify([{ code, name, at: new Date().toISOString() }].concat(sentList()).slice(0, 20))); } catch (e) { /* the code is still on screen */ }
+  drawSent();
+}
+async function catSend() {
+  if (sending) return;
+  const r = categoryChecks(cat);
+  if (r.problems.length) {
+    toast('Almost there: finish the ' + r.problems.length + ' item' + (r.problems.length > 1 ? 's' : '') + ' under “Ready to send?” first.', 4500);
+    $('#s-checks').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return;
+  }
+  if (TURNSTILE_KEY && !turnstileToken) {
+    toast('One more step: finish the “are you human” check under “Ready to send?”.', 4500);
+    loadTurnstile();
+    $('#s-human').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return;
+  }
+  const sub = submissionFromCategory(cat, new Date().toISOString());
+  const btn = $('#s-send');
+  sending = true; btn.disabled = true; btn.classList.add('busy'); btn.setAttribute('aria-busy', 'true');
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = setTimeout(() => { if (ctl) ctl.abort(); }, 90000);
+  let res = null, body = null, netErr = false;
+  try {
+    res = await fetch(SEND_URL, {
+      method: 'POST', signal: ctl ? ctl.signal : undefined,
+      headers: { 'Content-Type': 'application/json', apikey: SEND_KEY, Authorization: 'Bearer ' + SEND_KEY },
+      body: JSON.stringify({ submission: sub, turnstileToken, website: $('#s-website').value }),
+    });
+    try { body = await res.json(); } catch (e) { body = null; }
+  } catch (e) { netErr = true; }
+  clearTimeout(timer);
+  sending = false; btn.disabled = false; btn.classList.remove('busy'); btn.removeAttribute('aria-busy');
+  resetTurnstile();
+  if (!netErr && res && res.ok && body && body.ok && body.receipt) { sendDone(body.receipt, sub.group.name); return; }
+  let msg;
+  if (netErr) msg = 'We couldn’t reach the puzzle group’s inbox. Check your internet connection and try again.';
+  else if (body && body.error) msg = body.error;
+  else if (res && res.status === 404) msg = 'The puzzle group’s inbox isn’t set up yet. Download a copy and send the file instead.';
+  else msg = 'Something went wrong on our side (error ' + (res ? res.status : '?') + '). Please try again in a few minutes.';
+  sendFailed(msg);
+}
+function sendDone(code, name) {
+  rememberSent(code, name);
+  openModal('<div class="stack" style="--gap:14px"><h2>Sent to the puzzle group</h2>' +
+    '<p>Thanks! “' + esc(name) + '” is in the puzzle group’s inbox.</p>' +
+    '<div class="stack" style="--gap:6px"><span class="eyebrow">Your receipt code</span><div class="receipt" id="m-code">' + esc(code) + '</div>' +
+    '<p class="muted">Keep this code. If you want to ask about your category later, it tells the puzzle group which one is yours. The puzzle group may tweak the wording or an image, and picks the final difficulty.</p></div>' +
+    '<div class="panel stack" style="--gap:8px; padding:12px 14px"><b>Clear the form?</b><p class="muted" style="font-size:.88rem">Your category is safely sent. Clearing keeps your name, credit choice, and email for the next one.</p></div>' +
+    '<div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="m-copy">Copy code</button><button class="btn" type="button" data-dismiss>Keep the form</button>' +
+    '<button class="btn primary" type="button" id="m-clear">Clear and start another</button></div></div>',
+  (m, close) => {
+    $('#m-copy', m).addEventListener('click', () => {
+      const done = () => toast('Receipt code copied');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, () => toast('Select the code and copy it'));
+      else toast('Select the code and copy it');
+    });
+    $('#m-clear', m).addEventListener('click', () => {
+      close();
+      const keep = { creditMode: cat.creditMode, name: cat.name, line: cat.line, email: cat.email };
+      cat = Object.assign(blankCategory(), keep); catSaveFailed = false;
+      drawCat(); catSaveNow();
+      toast('Blank category ready');
+    });
+  });
+}
+function sendFailed(msg) {
+  openModal('<div class="stack" style="--gap:14px"><h2>Not sent yet</h2><p class="send-err">' + esc(msg) + '</p>' +
+    '<p class="muted">Your draft is still saved in this browser. You can try again, or download a copy and send the file to ' + linkFor(SUBMIT_TO) + ' instead.</p>' +
+    '<div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="m-dl">Download a copy instead</button>' +
+    '<button class="btn primary" type="button" id="m-retry">Try again</button></div></div>',
+  (m, close) => {
+    $('#m-dl', m).addEventListener('click', () => { close(); catDownload(); });
+    $('#m-retry', m).addEventListener('click', () => { close(); catSend(); });
+  });
 }
 function bindCat() {
   const body = $('#sbody');
@@ -1246,6 +1399,13 @@ function bindCat() {
   });
   $('#s-download').addEventListener('click', catDownload);
   $('#s-new').addEventListener('click', catStartOver);
+  $('#s-send').addEventListener('click', catSend);
+  if (SEND_ON) {
+    $('#s-send').hidden = false;
+    const dl = $('#s-download');
+    dl.classList.remove('primary'); dl.textContent = 'Download a copy instead';
+  }
+  drawSent();
 }
 
 /* ===== Modes: start screen (studio/), submit a category (?submit), full puzzle (?build) ===== */
@@ -1260,6 +1420,8 @@ function showMode(mode) {
   $('#mode-link').hidden = mode === 'choice';
   if (mode === 'build') showView('edit');
   else { $('#view-edit').hidden = true; $('#view-play').hidden = true; }
+  if (mode === 'submit') loadTurnstile();
+  if (SEND_ON) $('#choice-how').textContent = 'You send it straight to the puzzle group from this page.';
   document.title = (mode === 'submit' ? 'Submit a category' : mode === 'build' ? 'Puzzle Studio' : 'Make a puzzle') + ' · Desk Puzzle';
   if (mode === 'choice') {
     const bits = [];
