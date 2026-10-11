@@ -9,8 +9,9 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <!--
   Submissions inbox for the CMSRU puzzle group. Unlisted on purpose: nothing on
-  the site links here (the address is in supabase/SETUP.md for the group). Sign in with an emailed link;
-  only emails on the admins list (Supabase table "admins") can read anything.
+  the site links here (the address is in supabase/SETUP.md for the group). Sign in with email +
+  password; new accounts and password resets are confirmed with a 6-digit emailed code (never a
+  link). Only emails on the admins list (Supabase table "admins") can make an account or read anything.
   Settings come from config.js (same file as the Studio). See supabase/SETUP.md.
 -->
 <script>/* theme before first paint, shared with the Studio */
@@ -196,6 +197,13 @@ textarea.input { resize: vertical; min-height: 70px; }
 .kind-tag { font-size: 0.7rem; font-weight: 700; border-radius: 4px; padding: 1px 7px; text-transform: uppercase; letter-spacing: 0.06em; background: var(--paper-2); color: var(--ink-soft); }
 .kind-tag.puzzle { background: var(--eosin-soft); color: var(--eosin); }
 .pz-group { border-left: 4px solid var(--tier, var(--panel-edge)); }
+/* sign-in forms */
+.check { display: inline-flex; gap: 8px; align-items: center; font-size: 0.9rem; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+.linkish { background: none; border: 0; padding: 4px 0; color: var(--accent); font-weight: 600; font-size: 0.86rem; text-decoration: underline; text-underline-offset: 3px; align-self: flex-start; }
+.linkish:hover { color: var(--accent-hover); }
+.code-box { font-family: var(--mono); font-size: 1.15rem; letter-spacing: 0.2em; max-width: 12em; }
+.gate .tabs { margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -205,6 +213,7 @@ textarea.input { resize: vertical; min-height: 70px; }
       <span class="brand-name">Submissions inbox<small>Desk Puzzle · CMSRU</small></span></div>
     <div class="row" style="--gap:12px; margin-left:auto">
       <span class="who" id="who" hidden></span>
+      <button class="btn small ghost" type="button" id="btn-chpw" hidden>Change password</button>
       <button class="btn small" type="button" id="btn-signout" hidden>Sign out</button>
       <a class="mode-link" href="../studio/">Puzzle Studio</a>
       <button class="btn small ghost" id="theme-btn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
@@ -230,25 +239,70 @@ textarea.input { resize: vertical; min-height: 70px; }
       <p class="muted">Check your internet connection and reload the page. A strict ad blocker can also block it.</p>
     </section>
 
-    <!-- Sign in -->
+    <!-- Sign in / create account / forgot password. Emails only ever carry a
+         6-digit code, never a link: Rowan's email scanner opens links and uses them up. -->
     <section id="v-signin" class="gate panel stack" hidden>
       <span class="eyebrow">For the CMSRU puzzle group</span>
-      <h1>Sign in to the inbox</h1>
-      <p class="muted">Type your email and we’ll send you a 6-digit sign-in code. No password needed.</p>
-      <form id="signin-form" class="stack" style="--gap:10px">
-        <label class="field"><span>Your email</span><input class="input" id="signin-email" type="email" autocomplete="email" required placeholder="you@rowan.edu"></label>
-        <label class="check"><input type="checkbox" id="signin-keep" checked> <span>Keep me signed in on this device</span></label>
-        <p class="hint" style="margin:0">Untick on a shared or library computer: you'll be signed out when the tab closes.</p>
-        <div class="row"><button class="btn primary" type="submit" id="signin-btn">Email me a code</button></div>
-      </form>
-      <p id="signin-msg" hidden></p>
-      <form id="code-form" class="stack" style="--gap:10px" hidden>
-        <label class="field"><span>6-digit code from the email</span><input class="input" id="code-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required placeholder="123456"></label>
-        <div class="row"><button class="btn primary" type="submit" id="code-btn">Sign in with code</button></div>
-        <p class="hint" style="margin:0">The code works once and expires in about an hour.</p>
-      </form>
-    </section>
+      <h1 id="auth-title">Sign in to the inbox</h1>
+      <div class="tabs" role="tablist" aria-label="Account">
+        <button type="button" role="tab" id="tab-signin" data-auth="signin" aria-controls="f-signin" aria-selected="true">Sign in</button>
+        <button type="button" role="tab" id="tab-signup" data-auth="signup" aria-controls="f-signup" aria-selected="false" tabindex="-1">Create account</button>
+        <button type="button" role="tab" id="tab-forgot" data-auth="forgot" aria-controls="f-forgot" aria-selected="false" tabindex="-1">Forgot password</button>
+      </div>
 
+      <form id="f-signin" class="stack auth-form" style="--gap:10px" role="tabpanel" aria-labelledby="tab-signin" novalidate>
+        <label class="field"><span>Email</span><input class="input" id="signin-email" name="email" type="email" autocomplete="username" required placeholder="you@rowan.edu"></label>
+        <label class="field"><span>Password</span><input class="input" id="signin-password" name="password" type="password" autocomplete="current-password" required></label>
+        <div class="row spread"><button class="btn primary" type="submit" id="signin-btn">Sign in</button>
+          <button class="linkish" type="button" data-auth="forgot">Forgot your password?</button></div>
+        <p class="hint" style="margin:0">Used the inbox before passwords? Choose <b>Forgot password</b> once to set one.</p>
+      </form>
+
+      <form id="f-signup" class="stack auth-form" style="--gap:10px" role="tabpanel" aria-labelledby="tab-signup" novalidate hidden>
+        <p class="muted">Only puzzle-group members can create an account. If your email isn’t on the group’s list, sign-up will say so.</p>
+        <label class="field"><span>Email</span><input class="input" id="signup-email" name="email" type="email" autocomplete="username" required placeholder="you@rowan.edu"></label>
+        <label class="field"><span>Password (at least 8 characters)</span><input class="input" id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="field"><span>Type the password again</span><input class="input" id="signup-confirm" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="check"><input type="checkbox" class="show-pw" data-for="signup-password signup-confirm"> <span>Show password</span></label>
+        <div class="row"><button class="btn primary" type="submit" id="signup-btn">Create account</button></div>
+      </form>
+
+      <form id="f-signup-code" class="stack auth-form" style="--gap:10px" novalidate hidden>
+        <p class="note-box" id="signup-code-note">We emailed you a 6-digit code.</p>
+        <label class="field"><span>6-digit code from the email</span><input class="input code-box" id="signup-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required placeholder="123456"></label>
+        <div class="row"><button class="btn primary" type="submit" id="signup-code-btn">Confirm and sign in</button>
+          <button class="btn" type="button" id="signup-resend" data-resend="signup">Resend code</button></div>
+        <button class="linkish" type="button" data-auth="signup">Use a different email</button>
+      </form>
+
+      <form id="f-forgot" class="stack auth-form" style="--gap:10px" role="tabpanel" aria-labelledby="tab-forgot" novalidate hidden>
+        <p class="muted">We’ll email you a 6-digit code. Type it here and you can choose a new password.</p>
+        <label class="field"><span>Email</span><input class="input" id="forgot-email" name="email" type="email" autocomplete="username" required placeholder="you@rowan.edu"></label>
+        <div class="row"><button class="btn primary" type="submit" id="forgot-btn">Email me a reset code</button></div>
+      </form>
+
+      <form id="f-forgot-code" class="stack auth-form" style="--gap:10px" novalidate hidden>
+        <p class="note-box" id="forgot-code-note">We emailed you a 6-digit code.</p>
+        <label class="field"><span>6-digit code from the email</span><input class="input code-box" id="forgot-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required placeholder="123456"></label>
+        <div class="row"><button class="btn primary" type="submit" id="forgot-code-btn">Check code</button>
+          <button class="btn" type="button" id="forgot-resend" data-resend="recovery">Resend code</button></div>
+        <button class="linkish" type="button" data-auth="forgot">Use a different email</button>
+      </form>
+
+      <form id="f-newpw" class="stack auth-form" style="--gap:10px" novalidate hidden>
+        <p class="muted">Code accepted. Choose a new password for <b id="newpw-email"></b>.</p>
+        <label class="field"><span>New password (at least 8 characters)</span><input class="input" id="newpw-password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="field"><span>Type it again</span><input class="input" id="newpw-confirm" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="check"><input type="checkbox" class="show-pw" data-for="newpw-password newpw-confirm"> <span>Show password</span></label>
+        <div class="row"><button class="btn primary" type="submit" id="newpw-btn">Save password and sign in</button></div>
+      </form>
+
+      <div class="stack" style="--gap:4px" id="keep-wrap">
+        <label class="check"><input type="checkbox" id="signin-keep" checked> <span>Keep me signed in on this device</span></label>
+        <p class="hint" style="margin:0">Untick on a shared or library computer: you’ll be signed out when the tab closes.</p>
+      </div>
+      <p id="signin-msg" role="alert" hidden></p>
+    </section>
     <!-- Signed in, but not on the admins list -->
     <section id="v-notadmin" class="gate panel stack" hidden>
       <span class="eyebrow">Signed in</span>
@@ -319,7 +373,7 @@ function creditText(r) {
 }
 function plainError(e) {
   const m = String((e && (e.message || e.error_description)) || e || '');
-  if (/rate limit|too many/i.test(m)) return 'Too many sign-in emails were sent recently. Wait a few minutes and try again.';
+  if (/rate limit|too many/i.test(m)) return 'Too many emails just now. Wait a minute and try again.';
   if (/fetch|network/i.test(m)) return 'Could not reach the inbox. Check your internet connection and try again.';
   return m || 'Something went wrong. Please try again.';
 }
@@ -345,20 +399,20 @@ function makeClient() {
   if (!String(CFG.supabaseUrl).trim() || !KEY) return 'setup';
   if (!window.supabase || typeof window.supabase.createClient !== 'function') return 'noscript';
   return window.supabase.createClient(String(CFG.supabaseUrl).trim().replace(/\/+$/, ''), KEY, {
-    // "implicit" so the emailed link also works when it opens in a different browser app
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit', storage: inboxStorage },
+    // No sign-in links are ever emailed (codes only), so nothing to read from the address bar.
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: inboxStorage },
   });
 }
 
 /* ===== Routing: who is this, and what do they get to see ===== */
 async function route() {
-  if (routing) return;
+  if (routing || holdAuth) return;
   routing = true;
   try {
     const { data } = await sb.auth.getSession();
     const session = data && data.session;
     me = session && session.user ? String(session.user.email || '') : null;
-    $('#who').hidden = !me; $('#who').textContent = me || ''; $('#btn-signout').hidden = !me;
+    $('#who').hidden = !me; $('#who').textContent = me || ''; $('#btn-signout').hidden = !me; $('#btn-chpw').hidden = !me;
     if (!me) { show('v-signin'); return; }
     // Admins can see the admins list (row rules); anyone else gets zero rows back.
     const res = await sb.from('admins').select('email').limit(1);
@@ -376,41 +430,234 @@ async function route() {
   } finally { routing = false; }
 }
 
-async function signInWithCode(ev) {
-  ev.preventDefault();
-  const email = $('#signin-email').value.trim();
-  const token = $('#code-input').value.replace(/\s+/g, '');
-  const msg = $('#signin-msg'); const btn = $('#code-btn');
-  if (!/^[0-9]{6,10}$/.test(token)) { msg.hidden = false; msg.className = 'err-box'; msg.textContent = 'The code is the 6 digits in the email.'; return; }
-  btn.disabled = true; btn.textContent = 'Checking…';
-  const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
-  btn.disabled = false; btn.textContent = 'Sign in with code';
-  if (error) { msg.hidden = false; msg.className = 'err-box'; msg.textContent = 'That code didn’t work. It may have expired: send a new email and use the newest code.'; return; }
-  $('#code-form').hidden = true; $('#code-input').value = '';
-  msg.hidden = true;
-  route();
+/* ===== Accounts: email + password. New accounts and password resets are
+   confirmed with a 6-digit code typed on this page. Emails never carry a link,
+   because Rowan's email scanner opens links and uses them up. ===== */
+const GATE_MSG = 'This inbox is only for the CMSRU puzzle group.';
+const RESEND_SECONDS = 60;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const AUTH_VIEWS = {
+  signin: { form: 'f-signin', tab: 'signin', title: 'Sign in to the inbox' },
+  signup: { form: 'f-signup', tab: 'signup', title: 'Create your account' },
+  'signup-code': { form: 'f-signup-code', tab: 'signup', title: 'Check your email' },
+  forgot: { form: 'f-forgot', tab: 'forgot', title: 'Reset your password' },
+  'forgot-code': { form: 'f-forgot-code', tab: 'forgot', title: 'Check your email' },
+  newpw: { form: 'f-newpw', tab: 'forgot', title: 'Choose a new password' },
+};
+let authView = 'signin';
+let authEmail = '';      // the email a code was sent to
+let holdAuth = false;    // true while a reset code has signed you in but no new password is saved yet
+const cooldown = { signup: { until: 0, email: '' }, recovery: { until: 0, email: '' } }; // per kind, for one email
+
+/* Supabase error -> plain English. Codes are from Supabase Auth's error list. */
+function authError(e) {
+  const code = String((e && e.code) || '');
+  const m = String((e && (e.message || e.error_description)) || e || '');
+  if (/CMSRU puzzle group/i.test(m) || /^hook/.test(code)) return GATE_MSG;
+  if (code === 'user_already_exists' || code === 'email_exists' || /already (been )?registered|already exists/i.test(m)) return 'That email already has an account. Sign in, or reset your password.';
+  if (code === 'invalid_credentials' || /invalid login credentials/i.test(m)) return 'Email or password is wrong.';
+  if (code === 'email_not_confirmed' || /email not confirmed/i.test(m)) return 'This email hasn’t been confirmed yet.';
+  if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit' || /rate limit|too many|only request this after/i.test(m)) return 'Too many emails just now. Wait a minute and try again.';
+  if (code === 'otp_expired' || /token has expired|token.*invalid|invalid.*(code|token|otp)/i.test(m)) return 'That code expired or isn’t right. Request a new one and use the newest code.';
+  if (code === 'same_password' || /different from the old/i.test(m)) return 'That’s already your password. Choose a different one.';
+  if (code === 'weak_password' || /password should|at least 8|weak password/i.test(m)) return 'That password is too short. Use at least 8 characters.';
+  if (code === 'signup_disabled' || /signups not allowed/i.test(m)) return 'New accounts are switched off right now. Ask Thirth.';
+  if (code === 'email_address_invalid' || /unable to validate email|invalid format/i.test(m)) return 'That doesn’t look like an email address.';
+  return plainError(e);
+}
+function say(text, kind, button) {
+  const msg = $('#signin-msg');
+  msg.hidden = !text; msg.className = kind === 'ok' ? 'note-box' : 'err-box';
+  msg.textContent = text || '';
+  if (button) { msg.append(' '); msg.append(button); }
+}
+function rememberChoice(email) {
+  const keep = $('#signin-keep').checked;
+  prefSet(KEEP_KEY, keep ? '1' : '0');
+  prefSet(EMAIL_KEY, keep ? email : null);
+}
+function currentEmailField() { const f = $('#' + AUTH_VIEWS[authView].form); return f && $('input[type=email]', f); }
+function setAuthView(name) {
+  const from = currentEmailField();
+  const typed = from ? from.value.trim() : '';
+  authView = name;
+  const v = AUTH_VIEWS[name];
+  Object.keys(AUTH_VIEWS).forEach((k) => { $('#' + AUTH_VIEWS[k].form).hidden = k !== name; });
+  $$('[role=tab]', $('#v-signin')).forEach((t) => {
+    const on = t.dataset.auth === v.tab;
+    t.setAttribute('aria-selected', on ? 'true' : 'false'); t.tabIndex = on ? 0 : -1;
+  });
+  $('[role=tablist]', $('#v-signin')).hidden = name === 'newpw';
+  $('#auth-title').textContent = v.title;
+  const to = currentEmailField();
+  if (to && typed && !to.value) to.value = typed;
+  say('');
+  const first = $('#' + v.form + ' input:not([type=checkbox])');
+  if (first && $('#v-signin').hidden === false) first.focus();
+}
+/* Buttons stay disabled while a request is out, so nothing is sent twice. */
+async function busy(btn, label, fn) {
+  if (btn.disabled) return undefined;
+  const old = btn.textContent; btn.disabled = true; btn.textContent = label;
+  try { return await fn(); } finally { btn.disabled = false; btn.textContent = old; refreshCooldowns(); }
+}
+function secondsLeft(kind, email) {
+  const c = cooldown[kind];
+  return c.email === email ? Math.ceil((c.until - Date.now()) / 1000) : 0;
+}
+function refreshCooldowns() {
+  $$('[data-resend]').forEach((b) => {
+    const left = secondsLeft(b.dataset.resend, authEmail);
+    if (left > 0) { b.disabled = true; b.textContent = 'Resend code (' + left + ' s)'; }
+    else if (b.textContent !== 'Sending…') { b.disabled = false; b.textContent = 'Resend code'; }
+  });
+}
+function startCooldown(kind) { cooldown[kind] = { until: Date.now() + RESEND_SECONDS * 1000, email: authEmail }; refreshCooldowns(); }
+function codeFrom(id) { return $('#' + id).value.replace(/\s+/g, ''); }
+function passwordsOk(pw, again) {
+  if (pw.length < 8) { say('Passwords need at least 8 characters.'); return false; }
+  if (pw !== again) { say('The two passwords don’t match.'); return false; }
+  return true;
 }
 async function signIn(ev) {
   ev.preventDefault();
   const email = $('#signin-email').value.trim();
-  const msg = $('#signin-msg'); const btn = $('#signin-btn');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.hidden = false; msg.className = 'err-box'; msg.textContent = 'That doesn’t look like an email address.'; return; }
-  const keep = $('#signin-keep').checked;
-  prefSet(KEEP_KEY, keep ? '1' : '0');
-  prefSet(EMAIL_KEY, keep ? email : null);
-  btn.disabled = true; btn.textContent = 'Sending…';
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
-  btn.disabled = false; btn.textContent = 'Email me a code';
-  msg.hidden = false;
-  if (error) { msg.className = 'err-box'; msg.textContent = plainError(error); return; }
-  msg.className = 'note-box';
-  msg.textContent = 'Check ' + email + ' for an email from Desk Puzzle and type its 6-digit code below. School email can take a few minutes, and it may land in Junk. Only the newest code works.';
-  $('#code-form').hidden = false;
-  $('#code-input').focus();
+  const password = $('#signin-password').value;
+  if (!EMAIL_RE.test(email)) { say('That doesn’t look like an email address.'); return; }
+  if (!password) { say('Type your password.'); return; }
+  rememberChoice(email);
+  await busy($('#signin-btn'), 'Signing in…', async () => {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (!error) { $('#signin-password').value = ''; say(''); route(); return; }
+    const text = authError(error);
+    if (text.startsWith('This email hasn’t been confirmed')) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn small'; b.id = 'signin-confirm-resend'; b.textContent = 'Email me a new code';
+      b.addEventListener('click', () => resendCode('signup', email, b));
+      say(text + ' Finish setting up with the code we emailed you, or get a new one.', 'err', b);
+      return;
+    }
+    say(text);
+  });
+}
+async function signUp(ev) {
+  ev.preventDefault();
+  const email = $('#signup-email').value.trim();
+  const password = $('#signup-password').value;
+  if (!EMAIL_RE.test(email)) { say('That doesn’t look like an email address.'); return; }
+  if (!passwordsOk(password, $('#signup-confirm').value)) return;
+  rememberChoice(email);
+  await busy($('#signup-btn'), 'Creating…', async () => {
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) { say(authError(error)); return; }
+    const user = data && data.user;
+    // With "Confirm email" on, Supabase hides whether an email already has an
+    // account: it answers with a user that has no identities and sends nothing.
+    if (user && Array.isArray(user.identities) && user.identities.length === 0) {
+      say('That email already has an account. Sign in, or reset your password.'); return;
+    }
+    $('#signup-password').value = ''; $('#signup-confirm').value = '';
+    if (data && data.session) { route(); return; } // "Confirm email" switched off: already signed in
+    showCodeStep('signup', email);
+  });
+}
+function showCodeStep(kind, email) {
+  authEmail = email;
+  const view = kind === 'signup' ? 'signup-code' : 'forgot-code';
+  setAuthView(view);
+  $('#' + (kind === 'signup' ? 'signup' : 'forgot') + '-code-note').textContent = 'We emailed you a 6-digit code at ' + email +
+    '. Type it below. School email can take a few minutes and may land in Junk. Only the newest code works.';
+  startCooldown(kind);
+}
+async function resendCode(kind, email, btn) {
+  email = email || authEmail;
+  if (secondsLeft(kind, email) > 0) { say('You can ask for another code in ' + secondsLeft(kind, email) + ' seconds.'); return; }
+  await busy(btn, 'Sending…', async () => {
+    const { error } = kind === 'signup' ? await sb.auth.resend({ type: 'signup', email }) : await sb.auth.resetPasswordForEmail(email);
+    if (error) { say(authError(error)); return; }
+    if (authView !== (kind === 'signup' ? 'signup-code' : 'forgot-code') || email !== authEmail) { showCodeStep(kind, email); return; }
+    startCooldown(kind);
+    say('New code sent. Use the newest one.', 'ok');
+  });
+}
+async function confirmSignup(ev) {
+  ev.preventDefault();
+  const token = codeFrom('signup-code');
+  if (!/^[0-9]{6,10}$/.test(token)) { say('The code is the 6 digits in the email.'); return; }
+  rememberChoice(authEmail);
+  await busy($('#signup-code-btn'), 'Checking…', async () => {
+    const { error } = await sb.auth.verifyOtp({ email: authEmail, token, type: 'signup' });
+    if (error) { say(authError(error)); return; }
+    $('#signup-code').value = ''; say(''); setAuthView('signin');
+    route();
+  });
+}
+async function forgot(ev) {
+  ev.preventDefault();
+  const email = $('#forgot-email').value.trim();
+  if (!EMAIL_RE.test(email)) { say('That doesn’t look like an email address.'); return; }
+  rememberChoice(email);
+  await busy($('#forgot-btn'), 'Sending…', async () => {
+    // No redirect address: the email template only shows the code.
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    if (error) { say(authError(error)); return; }
+    showCodeStep('recovery', email);
+  });
+}
+async function checkResetCode(ev) {
+  ev.preventDefault();
+  const token = codeFrom('forgot-code');
+  if (!/^[0-9]{6,10}$/.test(token)) { say('The code is the 6 digits in the email.'); return; }
+  rememberChoice(authEmail);
+  await busy($('#forgot-code-btn'), 'Checking…', async () => {
+    holdAuth = true; // the code signs you in; stay here until the new password is saved
+    const { error } = await sb.auth.verifyOtp({ email: authEmail, token, type: 'recovery' });
+    if (error) { holdAuth = false; say(authError(error)); return; }
+    $('#forgot-code').value = '';
+    $('#newpw-email').textContent = authEmail;
+    setAuthView('newpw');
+  });
+}
+async function saveNewPassword(ev) {
+  ev.preventDefault();
+  const password = $('#newpw-password').value;
+  if (!passwordsOk(password, $('#newpw-confirm').value)) return;
+  await busy($('#newpw-btn'), 'Saving…', async () => {
+    const { error } = await sb.auth.updateUser({ password });
+    if (error) { say(authError(error)); return; }
+    $('#newpw-password').value = ''; $('#newpw-confirm').value = '';
+    holdAuth = false; setAuthView('signin');
+    toast('Password saved. You’re signed in.');
+    route();
+  });
+}
+function changePassword() {
+  openModal('<form class="stack" style="--gap:12px" id="m-pw" novalidate><h2>Change password</h2>' +
+    '<label class="field"><span>New password (at least 8 characters)</span><input class="input" id="m-pw1" type="password" autocomplete="new-password" minlength="8" required></label>' +
+    '<label class="field"><span>Type it again</span><input class="input" id="m-pw2" type="password" autocomplete="new-password" minlength="8" required></label>' +
+    '<label class="check"><input type="checkbox" class="show-pw" data-for="m-pw1 m-pw2"> <span>Show password</span></label>' +
+    '<p id="m-pw-msg" class="err-box" role="alert" hidden></p>' +
+    '<div class="row" style="justify-content:flex-end"><button class="btn ghost" type="button" data-dismiss>Cancel</button>' +
+    '<button class="btn primary" type="submit" id="m-pw-btn">Save password</button></div></form>',
+  (m, close) => {
+    const err = (t) => { const p = $('#m-pw-msg', m); p.hidden = !t; p.textContent = t || ''; };
+    $('#m-pw', m).addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pw = $('#m-pw1', m).value;
+      if (pw.length < 8) { err('Passwords need at least 8 characters.'); return; }
+      if (pw !== $('#m-pw2', m).value) { err('The two passwords don’t match.'); return; }
+      await busy($('#m-pw-btn', m), 'Saving…', async () => {
+        const { error } = await sb.auth.updateUser({ password: pw });
+        if (error) { err(authError(error)); return; }
+        close(); toast('Password changed');
+      });
+    });
+  });
 }
 async function signOut() {
   try { await sb.auth.signOut(); } catch (e) { /* signed out locally anyway */ }
   me = null; rows = []; signed.clear();
+  holdAuth = false; setAuthView('signin');
   history.replaceState(null, '', location.pathname + location.search);
   route();
 }
@@ -673,10 +920,30 @@ function boot() {
   sb = makeClient();
   if (sb === 'setup') { show('v-setup'); return; }
   if (sb === 'noscript') { show('v-noscript'); return; }
-  $('#signin-form').addEventListener('submit', signIn);
-  $('#code-form').addEventListener('submit', signInWithCode);
+  $('#f-signin').addEventListener('submit', signIn);
+  $('#f-signup').addEventListener('submit', signUp);
+  $('#f-signup-code').addEventListener('submit', confirmSignup);
+  $('#f-forgot').addEventListener('submit', forgot);
+  $('#f-forgot-code').addEventListener('submit', checkResetCode);
+  $('#f-newpw').addEventListener('submit', saveNewPassword);
+  $('#v-signin').addEventListener('click', (e) => {
+    const go = e.target.closest('[data-auth]'); if (go) { setAuthView(go.dataset.auth); return; }
+    const re = e.target.closest('[data-resend]'); if (re) resendCode(re.dataset.resend, null, re);
+  });
+  $('[role=tablist]', $('#v-signin')).addEventListener('keydown', (e) => { // arrow keys move between tabs
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const tabs = $$('[role=tab]', e.currentTarget); const i = tabs.indexOf(document.activeElement);
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    setAuthView(next.dataset.auth); next.focus();
+  });
+  document.addEventListener('change', (e) => { // "Show password" ticks
+    const t = e.target.closest('.show-pw'); if (!t) return;
+    t.dataset.for.split(' ').forEach((id) => { const f = document.getElementById(id); if (f) f.type = t.checked ? 'text' : 'password'; });
+  });
+  setInterval(refreshCooldowns, 1000);
   $('#signin-keep').checked = keepSignedIn();
-  if (prefGet(EMAIL_KEY)) $('#signin-email').value = prefGet(EMAIL_KEY);
+  if (prefGet(EMAIL_KEY)) ['signin-email', 'signup-email', 'forgot-email'].forEach((id) => { $('#' + id).value = prefGet(EMAIL_KEY); });
+  $('#btn-chpw').addEventListener('click', changePassword);
   $('#btn-signout').addEventListener('click', signOut);
   $('#notadmin-signout').addEventListener('click', signOut);
   $('#btn-refresh').addEventListener('click', async () => {
