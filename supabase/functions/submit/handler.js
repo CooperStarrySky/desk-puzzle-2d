@@ -6,13 +6,20 @@
 //                   v1 or v2, kind "category" or "puzzle"; see ../../SUBMISSION_FORMAT.md)
 //   turnstileToken  Cloudflare's "are you human" token (only checked if TURNSTILE_SECRET is set)
 //   website         honeypot: a hidden field people never fill in; bots often do
+//   clientId        optional random id the Studio keeps per browser (letters,
+//                   digits, hyphens, 8-64 long); adds the per-browser limit
 // Reply: { ok: true, receipt: "DP-XXXX-XXXX" } or { ok: false, error: "plain English" }.
 
 import { LIMITS, validateSubmission, itemIds, receiptCode } from './validate.js';
 
 export const DEFAULT_ORIGINS = 'https://cooperstarrysky.github.io,http://localhost:4607';
 export const BUCKET = 'submissions';
-export const RATE_PER_HOUR = 5;
+// Hourly limits. A whole class on campus wifi can share one public IP, so the
+// IP limit is loose; the per-browser limit (clientId) is the tight one. With
+// no (or a malformed) clientId only the IP limit applies.
+export const RATE_PER_HOUR = 40;        // per IP (hashed)
+export const CLIENT_RATE_PER_HOUR = 5;  // per browser clientId (hashed)
+const CLIENT_ID_RE = /^[A-Za-z0-9-]{8,64}$/;
 const DEFAULT_SALT = 'desk-puzzle-submit-rate-v1';
 const SITEVERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
@@ -88,19 +95,32 @@ export function createHandler(deps) {
       if (!good) return fail(403, 'The “are you human” check did not go through. Please try it again.', { retryTurnstile: true });
     }
 
-    // ── Rate limit: RATE_PER_HOUR attempts per IP per hour ──
+    // ── Rate limits: RATE_PER_HOUR attempts per IP, CLIENT_RATE_PER_HOUR per
+    // browser. Both live in submit_rate.ip_hash as salted hashes; the browser
+    // one hashes 'c:' + clientId so the two can never collide. ──
     const t = now();
-    const ipHash = await sha256Hex((env('RATE_SALT') || DEFAULT_SALT) + '|' + (ip || 'unknown'));
+    const salt = env('RATE_SALT') || DEFAULT_SALT;
+    const ipHash = await sha256Hex(salt + '|' + (ip || 'unknown'));
+    const cid = typeof body.clientId === 'string' && CLIENT_ID_RE.test(body.clientId) ? body.clientId : '';
+    const clientHash = cid ? await sha256Hex(salt + '|c:' + cid) : '';
+    const hourAgo = new Date(t.getTime() - 3600e3).toISOString();
+    const recent = async (hash) => {
+      const { count, error } = await db.from('submit_rate').select('ip_hash', { count: 'exact', head: true })
+        .eq('ip_hash', hash).gte('at', hourAgo);
+      if (error) throw error;
+      return count || 0;
+    };
     try {
       await db.from('submit_rate').delete().lt('at', new Date(t.getTime() - 24 * 3600e3).toISOString());
-      const { count, error } = await db.from('submit_rate').select('ip_hash', { count: 'exact', head: true })
-        .eq('ip_hash', ipHash).gte('at', new Date(t.getTime() - 3600e3).toISOString());
-      if (error) throw error;
-      if ((count || 0) >= RATE_PER_HOUR) {
+      if (await recent(ipHash) >= RATE_PER_HOUR || (clientHash && await recent(clientHash) >= CLIENT_RATE_PER_HOUR)) {
         return fail(429, 'That is a lot of submissions in one hour. Please wait a bit and send this one later. Your draft is still saved.');
       }
-      const ins = await db.from('submit_rate').insert({ ip_hash: ipHash, at: t.toISOString() });
-      if (ins && ins.error) throw ins.error;
+      const marks = [{ ip_hash: ipHash, at: t.toISOString() }];
+      if (clientHash) marks.push({ ip_hash: clientHash, at: t.toISOString() });
+      for (const m of marks) {
+        const ins = await db.from('submit_rate').insert(m);
+        if (ins && ins.error) throw ins.error;
+      }
     } catch (e) {
       return fail(503, 'The submission box is not answering right now. Please try again in a few minutes.');
     }

@@ -1,7 +1,7 @@
 // node supabase/tests/handler.test.mjs
 // Drives supabase/functions/submit/handler.js with a fake Supabase client and a
 // fake fetch (for Turnstile). No network. Exit 1 on any failure.
-import { createHandler, RATE_PER_HOUR, pickServerKey } from '../functions/submit/handler.js';
+import { createHandler, RATE_PER_HOUR, CLIENT_RATE_PER_HOUR, pickServerKey } from '../functions/submit/handler.js';
 import { goodSample, goodSampleV2, goodPuzzleSample } from './samples.mjs';
 
 let fails = 0;
@@ -207,6 +207,28 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   db.st.rate.forEach((x) => { x.at = '2026-10-08T10:00:00.000Z'; });
   await handle(post({ submission: goodSample() }));
   ok(db.st.rate.length === 1, 'rows older than a day are pruned');
+}
+// Per-browser limit (clientId), many students behind one campus IP
+{
+  const { handle, db } = setup();
+  ok(RATE_PER_HOUR === 40 && CLIENT_RATE_PER_HOUR === 5, 'limits: 40 per IP, 5 per browser, per hour');
+  const A = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa', B = 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb';
+  for (let i = 0; i < CLIENT_RATE_PER_HOUR; i++) await handle(post({ submission: goodSample(), clientId: A }));
+  const r = await json(await handle(post({ submission: goodSample(), clientId: A })));
+  ok(db.st.rows.length === CLIENT_RATE_PER_HOUR && r.status === 429, `${CLIENT_RATE_PER_HOUR + 1}th send from one browser -> 429`);
+  const rb = await handle(post({ submission: goodSample(), clientId: B }));
+  ok(rb.status === 200, 'another browser on the same IP is not affected');
+  const rn = await handle(post({ submission: goodSample() }));
+  ok(rn.status === 200, 'no clientId -> only the IP limit applies');
+  const rm = await handle(post({ submission: goodSample(), clientId: 'bad id!' }));
+  ok(rm.status === 200, 'malformed clientId is ignored (IP limit only)');
+  ok(!JSON.stringify(db.st.rate).includes(A) && db.st.rate.every((x) => /^[0-9a-f]{64}$/.test(x.ip_hash)), 'clientId stored only as a salted hash in submit_rate.ip_hash');
+  const ipRows = db.st.rate.filter((x) => x.ip_hash === db.st.rate[0].ip_hash).length;
+  ok(ipRows === CLIENT_RATE_PER_HOUR + 3, 'every accepted attempt also counts toward the IP limit; refused ones do not (' + ipRows + ')');
+  const shared = setup();
+  for (let i = 0; i < RATE_PER_HOUR; i++) await shared.handle(post({ submission: goodSample(), clientId: 'student-' + String(i).padStart(4, '0') }));
+  const r41 = await json(await shared.handle(post({ submission: goodSample(), clientId: 'student-new1' })));
+  ok(shared.db.st.rows.length === RATE_PER_HOUR && r41.status === 429, `${RATE_PER_HOUR} different browsers on one IP fill the IP limit; the next -> 429`);
 }
 // Cleanup on failure
 {
