@@ -4,12 +4,13 @@
  * the upcoming server step (nothing is sent anywhere yet).
  *
  * Imports: state.js, stats-core.js, ui-menu.js (loadRegistry).
- * Exports: statsSharingEnabled, getAnonId, readAllSaves, openStats,
+ * Exports: statsSharingEnabled, getAnonId, readAllSaves, readAllFirstResults,
+ *   getFirstResult, openStats,
  *   closeStats, openMenuSettings, closeMenuSettings, bindStatsUi.
  * ════════════════════════════════════════════════════════════════════ */
 
-import { state, els, SAVE_NS, SAVE_PREFIX, saveSettings, syncSettingsUi } from './state.js';
-import { computeStats, classifySave } from './stats-core.js';
+import { state, els, SAVE_NS, SAVE_PREFIX, FIRST_NS, getFirstResult, saveSettings, syncSettingsUi } from './state.js';
+import { computeStats, classifySave, classifyFirst } from './stats-core.js';
 import { loadRegistry } from './ui-menu.js';
 
 var ANON_KEY = SAVE_PREFIX + 'anon';
@@ -32,18 +33,24 @@ export function getAnonId() {
   } catch (e) { return null; }
 }
 
-/** Every dp2d:save3:* save in this browser, keyed by puzzle id. */
-export function readAllSaves() {
+/** Every localStorage value under one key prefix, parsed, keyed by puzzle id. */
+function readAllUnder(ns) {
   var out = {};
   try {
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
-      if (!k || k.indexOf(SAVE_NS) !== 0) continue;
-      try { out[k.slice(SAVE_NS.length)] = JSON.parse(localStorage.getItem(k)); } catch (e) { /* skip bad save */ }
+      if (!k || k.indexOf(ns) !== 0) continue;
+      try { out[k.slice(ns.length)] = JSON.parse(localStorage.getItem(k)); } catch (e) { /* skip bad value */ }
     }
   } catch (e) { /* storage unavailable */ }
   return out;
 }
+/** Every dp2d:save3:* save in this browser, keyed by puzzle id. */
+export function readAllSaves() { return readAllUnder(SAVE_NS); }
+/** Every permanent first-result record (dp2d:first:*), keyed by puzzle id. */
+export function readAllFirstResults() { return readAllUnder(FIRST_NS); }
+/** The first win/loss record for one puzzle, or null (for the server stats step). */
+export { getFirstResult };
 
 function el(tag, cls, text) {
   var n = document.createElement(tag);
@@ -56,7 +63,9 @@ function el(tag, cls, text) {
 function highlightRow() {
   var g = state.game;
   if (!g || state.previewMode || (g.phase !== 'won' && g.phase !== 'lost')) return null;
-  var c = classifySave({ phase: g.phase, mistakes: g.mistakes, casual: !!state.settings.casual, desk: state.desk });
+  // The chart counts the first finish, so a replay highlights that game's row, not this one's.
+  var c = classifyFirst(getFirstResult(g.puzzle.id)) ||
+    classifySave({ phase: g.phase, mistakes: g.mistakes, casual: !!state.settings.casual, desk: state.desk });
   if (!c || c.casual) return null;
   return c.won ? Math.min(c.mistakes, 3) : 'lost';
 }
@@ -110,7 +119,7 @@ export function openStats() {
   var hl = highlightRow();
   lastFocus = document.activeElement;
   loadRegistry().catch(function () { return { puzzles: [] }; }).then(function (registry) {
-    renderStats(computeStats(registry.puzzles || [], readAllSaves()), hl);
+    renderStats(computeStats(registry.puzzles || [], readAllSaves(), readAllFirstResults()), hl);
     els.overlayStats.hidden = false;
     if (els.btnCloseStats) els.btnCloseStats.focus();
   });

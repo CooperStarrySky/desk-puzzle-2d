@@ -2,8 +2,9 @@
  * stats-core.js — pure "My stats" math. No DOM, no localStorage, so it
  * runs unchanged under node for unit tests.
  *
- * Input: the puzzle registry entries (puzzles/index.json) and a map of
- * puzzleId -> parsed save object (the dp2d:save3:<id> values).
+ * Input: the puzzle registry entries (puzzles/index.json), a map of
+ * puzzleId -> parsed save object (the dp2d:save3:<id> values), and a map
+ * of puzzleId -> first-result record (the dp2d:first:<id> values).
  *
  * Definitions (owner decisions 2026-10-11, docs/08-stats-plan.md §7):
  * - Finished game: saved phase is 'won' or 'lost'. In-progress games
@@ -22,6 +23,11 @@
  *   before you've had the chance to finish it.
  * - Only puzzles listed in the registry count (stale saves for removed
  *   puzzles are ignored).
+ * - First finish is permanent (owner decision 2026-10-11): the first win
+ *   or loss of each puzzle is kept in its own record (dp2d:first:<id>),
+ *   written once and never overwritten, so "Play again" or Reset after a
+ *   loss can't turn it into a win. computeStats uses that record when it
+ *   exists and falls back to the save for games finished before it.
  * ════════════════════════════════════════════════════════════════════ */
 
 export var CHART_MAX_MISTAKES = 3; // standard wins have 0..3 mistakes (4 = lost)
@@ -57,6 +63,37 @@ export function classifySave(save) {
   };
 }
 
+/** The permanent first-result record for a save that has just finished
+    (phase 'won' or 'lost'), or null while the game is still going. This
+    is also what the server stats step will send. */
+export function firstResultFromSave(save, finishedAt) {
+  if (!save || typeof save !== 'object' || (save.phase !== 'won' && save.phase !== 'lost')) return null;
+  var h = (save.desk && save.desk.hints) || {};
+  return {
+    v: 1,
+    outcome: save.phase,
+    mistakes: (typeof save.mistakes === 'number' && save.mistakes >= 0) ? Math.floor(save.mistakes) : 0,
+    guesses: Array.isArray(save.attempts) ? save.attempts.length : 0,
+    hints: { labels: h.labels === true, seeds: h.seeds === true, category: h.category === true },
+    hintUsed: saveUsedHint(save),
+    everCasual: saveEverCasual(save),
+    finishedAt: finishedAt || null,
+  };
+}
+
+/** Classify a first-result record like classifySave; null if malformed. */
+export function classifyFirst(rec) {
+  if (!rec || typeof rec !== 'object' || (rec.outcome !== 'won' && rec.outcome !== 'lost')) return null;
+  var h = rec.hints || {};
+  return {
+    finished: true,
+    won: rec.outcome === 'won',
+    casual: rec.everCasual === true,
+    mistakes: (typeof rec.mistakes === 'number' && rec.mistakes >= 0) ? Math.floor(rec.mistakes) : 0,
+    hinted: rec.hintUsed === true || h.labels === true || h.seeds === true || h.category === true,
+  };
+}
+
 /** Registry entries in release order (oldest first). Stable on ties. */
 export function releaseOrder(entries) {
   return (entries || []).map(function (e, i) { return { e: e, i: i }; })
@@ -67,8 +104,10 @@ export function releaseOrder(entries) {
     .map(function (x) { return x.e; });
 }
 
-export function computeStats(entries, saves) {
+/** firsts: optional map puzzleId -> first-result record; it wins over the save. */
+export function computeStats(entries, saves, firsts) {
   saves = saves || {};
+  firsts = firsts || {};
   var ordered = releaseOrder(entries);
   var out = {
     played: 0, casualPlayed: 0, standardPlayed: 0, solved: 0, solvedPct: 0,
@@ -77,7 +116,7 @@ export function computeStats(entries, saves) {
   };
   var seq = []; // per puzzle in release order: 'win' | 'break' | 'open'
   ordered.forEach(function (entry) {
-    var c = classifySave(saves[entry.id]);
+    var c = classifyFirst(firsts[entry.id]) || classifySave(saves[entry.id]);
     if (!c || !c.finished) { seq.push('open'); return; }
     out.played++;
     if (c.casual) { out.casualPlayed++; seq.push('break'); return; }

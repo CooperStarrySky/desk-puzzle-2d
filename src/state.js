@@ -6,6 +6,7 @@
  * ════════════════════════════════════════════════════════════════════ */
 
 import { BOX_COUNT, SLOT_COUNT } from './engine.js';
+import { firstResultFromSave } from './stats-core.js';
 
 /* ── Save / storage keys ─────────────────────────────────────────── */
 
@@ -264,6 +265,24 @@ export function applyLayout() {
 
 export function saveKey(puzzleId) { return SAVE_NS + puzzleId; }
 
+/* First finish is permanent: the first win/loss of each puzzle is stored
+   once under its own key and never overwritten (Play again / Reset only
+   clear the save). Stats read it; the server stats step will send it. */
+export var FIRST_NS = SAVE_PREFIX + 'first:';
+export function getFirstResult(puzzleId) {
+  try {
+    var raw = localStorage.getItem(FIRST_NS + puzzleId);
+    var rec = raw ? JSON.parse(raw) : null;
+    return rec && typeof rec === 'object' ? rec : null;
+  } catch (e) { return null; }
+}
+function recordFirstResult(puzzleId, snap) {
+  if (getFirstResult(puzzleId)) return; // already recorded: never overwrite
+  var rec = firstResultFromSave(snap, new Date().toISOString());
+  if (!rec) return;
+  try { localStorage.setItem(FIRST_NS + puzzleId, JSON.stringify(rec)); } catch (e) { /* storage full/unavailable */ }
+}
+
 export function persistGame() {
   if (!state.game || !state.desk || state.previewMode) return;
   var snap = state.game.snapshot();
@@ -275,6 +294,7 @@ export function persistGame() {
   try {
     localStorage.setItem(saveKey(state.game.puzzle.id), JSON.stringify(snap));
   } catch (e) { /* storage full/unavailable */ }
+  if (snap.phase === 'won' || snap.phase === 'lost') recordFirstResult(state.game.puzzle.id, snap);
 }
 
 export function loadSavedGame(puzzleId) {
