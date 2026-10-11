@@ -281,6 +281,27 @@
             </div>
           </div>
         </section>
+        <section id="results-class" class="results-class" aria-labelledby="results-class-title" hidden>
+          <div id="results-class-everyone" hidden>
+            <h3 id="results-class-title" class="results-class-title">How everyone did</h3>
+            <p id="results-class-line" class="results-class-line"></p>
+            <p id="results-class-wait" class="results-class-wait" hidden>Not enough players yet — check back later.</p>
+            <ol id="results-class-chart" class="stats-chart results-class-chart" aria-label="Standard games by mistakes, all players"></ol>
+            <p id="results-class-hints" class="results-class-hints"></p>
+          </div>
+          <div id="results-rate" class="results-rate" hidden>
+            <p id="results-rate-q" class="results-rate-q">How hard was this one?</p>
+            <div class="results-rate-btns" role="group" aria-labelledby="results-rate-q">
+              <button type="button" class="rate-btn" data-rate="1" aria-pressed="false">Easy</button>
+              <button type="button" class="rate-btn" data-rate="2" aria-pressed="false">Fair</button>
+              <button type="button" class="rate-btn" data-rate="3" aria-pressed="false">Tricky</button>
+              <button type="button" class="rate-btn" data-rate="4" aria-pressed="false">Hard</button>
+              <button type="button" class="rate-btn" data-rate="5" aria-pressed="false">Brutal</button>
+            </div>
+            <button id="btn-rate-skip" class="link-btn results-rate-skip" type="button">Skip</button>
+          </div>
+          <div id="results-rated" class="results-rated" aria-live="polite" hidden></div>
+        </section>
         <div class="results-section-head">
           <h3>The four groups</h3>
           <p>Tap a group to open its teaching notes</p>

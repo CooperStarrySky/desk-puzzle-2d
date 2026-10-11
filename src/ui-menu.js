@@ -28,6 +28,8 @@ import {
   renderScopeView, showResults, showClueGuide, announce, hideOverlay,
   dismissViewportTip, showErrorScreen, checkViewportHealth, closeSettingsPanel,
 } from './ui-play.js';
+import { isStatsEligible } from './stats-core.js';
+import { fillMenuClassLines } from './stats-class-ui.js';
 
 /* ── Shared in-flight guard ──────────────────────────────────────── */
 var puzzleLoadInFlight = false;
@@ -212,11 +214,19 @@ export function renderMenu(registry) {
     var prog = PROGRESS_BADGE[savedProgress(entry.id)];
     if (prog) meta.appendChild(badge(prog.text, prog.cls));
     text.appendChild(meta);
+    if (isStatsEligible(entry.id)) {
+      // Class totals line ("142 plays · 64% solved · Rated Hard"), filled in below.
+      var classLine = document.createElement('span');
+      classLine.className = 'pcard-class';
+      classLine.dataset.classFor = entry.id;
+      classLine.hidden = true;
+      text.appendChild(classLine);
+    }
 
     btn.appendChild(text);
     li.appendChild(btn);
     els.puzzleGrid.appendChild(li);
-  });
+  });  fillMenuClassLines(puzzles);
 }
 
 /* ── Save sanitizer ──────────────────────────────────────────────── */

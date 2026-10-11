@@ -19,6 +19,7 @@ import {
 import { playSound, pieceSound } from './audio.js';
 
 import { TEXTURE_VARS, TEXTURE_VARIANTS, pickSkinTexVar } from './textures.js';
+import { classShareLine, renderResultsClass, hideResultsClass } from './stats-class-ui.js';
 
 /* ── DOM-layer piece constants ───────────────────────────────────── */
 var PIECE_CLASS = {
@@ -2377,6 +2378,7 @@ export function showResultsForPuzzle(puzzle, opts) {
     els.resultsGroups.appendChild(buildResultPlacard(puzzle, g, solvedGroupIds, i));
   });
 
+  hideResultsClass(); // showResults fills it in for real games only
   els.shareFallback.hidden = true;
   if (els.btnCopyAnki) {
     var ankiResult = buildAnkiSearch(puzzle);
@@ -2402,7 +2404,7 @@ export function showResults() {
     legacyHintsUsed: state.desk.hintsUsed,
     solvedGroupIds: solvedGroupIds,
     attempts: game.attempts,
-  });
+  });  renderResultsClass(game.puzzle);
 }
 
 /** ?preview boot, in response to the editor's "Preview results" button:
@@ -2451,8 +2453,8 @@ export function bindResultsEdit() {
 
 /* ── Share + Anki ──────────────────────────────────────────────────── */
 
-// TODO(stats T6): add a "% of players solved" line once the server totals
-// exist (docs/08-stats-plan.md, owner said yes). Needs puzzle_stats numbers.
+// Stats T6 (docs/08-stats-plan.md): "Fewer mistakes than X% of players" when
+// the class totals are loaded and at least 10 standard finishes exist.
 export function buildShareText() {
   var game = state.game;
   var puzzle = game.puzzle;
@@ -2468,6 +2470,8 @@ export function buildShareText() {
   // Fallback: old saves without hints block but with hintsUsed > 0.
   if (!hintEmojis && state.desk.hintsUsed > 0) hintEmojis = String(state.desk.hintsUsed);
   if (hintEmojis) lines.push('Hints: ' + hintEmojis);
+  var classLine = state.previewMode ? '' : classShareLine(puzzle.id);
+  if (classLine) lines.push(classLine);
   lines.push('');
   game.attempts.forEach(function (attempt) {
     var row = attempt.itemIds.map(function (id) {
