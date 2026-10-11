@@ -2,21 +2,22 @@
  *
  * Everything in this file is PUBLIC. It ships with the website, so anyone can
  * read it. That is fine for the four values below: they are designed to be
- * public. NEVER paste the "service_role" / secret key, the Turnstile SECRET
+ * public. NEVER paste the secret key (sb_secret_...) or "service_role" key, the Turnstile SECRET
  * key, or the database password here. Those only ever go into Supabase itself
  * (see supabase/SETUP.md).
  *
- * While supabaseUrl or supabaseAnonKey is blank, the Studio works the old way:
+ * While supabaseUrl or supabasePublishableKey is blank, the Studio works the old way:
  * students download a file and send it to the puzzle group by hand.
  */
 window.DESK_PUZZLE_CONFIG = {
-  // Supabase dashboard → Project Settings → Data API (or "API") → Project URL.
-  // Looks like 'https://abcdefghijklmnop.supabase.co'
+  // Supabase dashboard → the "Connect" button at the top (or Project Settings →
+  // Data API) → Project URL. Looks like 'https://abcdefghijklmnop.supabase.co'
   supabaseUrl: '',
 
-  // Same page → the "anon public" key (a long code starting with eyJ...), or the
-  // newer "publishable" key (starts with sb_publishable_). Either one works.
-  supabaseAnonKey: '',
+  // Project Settings → API Keys → "API Keys" tab → Publishable key. Starts with
+  // sb_publishable_. (An older "anon" key starting with eyJ... also works.)
+  // NOT the secret key (sb_secret_...), which must never be in this file.
+  supabasePublishableKey: '',
 
   // Optional "are you human" check. Cloudflare dashboard → Turnstile → your
   // widget → Site Key (starts with 0x...). Leave blank to skip the check.

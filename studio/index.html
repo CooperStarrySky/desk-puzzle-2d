@@ -1079,10 +1079,15 @@ function bindPlay() {
 // Settings live in studio/config.js (window.DESK_PUZZLE_CONFIG). With a Supabase
 // URL and public key there, "Send to the puzzle group" posts straight to the
 // private inbox; without them the Studio only offers the download.
-const CFG = Object.assign({ supabaseUrl: '', supabaseAnonKey: '', turnstileSiteKey: '', submitTo: '' }, window.DESK_PUZZLE_CONFIG || {});
+const CFG = Object.assign({ supabaseUrl: '', supabasePublishableKey: '', turnstileSiteKey: '', submitTo: '' }, window.DESK_PUZZLE_CONFIG || {});
 // Where students send a downloaded file (email or link), shown after a download.
 const SUBMIT_TO = String(CFG.submitTo || '').trim() || 'the CMSRU Desk Puzzle group';
-const SEND_KEY = String(CFG.supabaseAnonKey || '').trim();
+// Publishable key (sb_publishable_...); an older anon JWT under supabaseAnonKey still works.
+const SEND_KEY = String(CFG.supabasePublishableKey || CFG.supabaseAnonKey || '').trim();
+// Only a JWT (three dot-separated parts, i.e. a legacy anon key) goes in Authorization;
+// publishable keys are not JWTs and travel only in the apikey header.
+const SEND_HEADERS = Object.assign({ 'Content-Type': 'application/json', apikey: SEND_KEY },
+  /^[\w-]+\.[\w-]+\.[\w-]+$/.test(SEND_KEY) ? { Authorization: 'Bearer ' + SEND_KEY } : {});
 const SEND_URL = String(CFG.supabaseUrl || '').trim() && SEND_KEY ? String(CFG.supabaseUrl).trim().replace(/\/+$/, '') + '/functions/v1/submit' : '';
 const SEND_ON = !!SEND_URL;
 const TURNSTILE_KEY = SEND_ON ? String(CFG.turnstileSiteKey || '').trim() : '';
@@ -1290,7 +1295,7 @@ async function catSend() {
   try {
     res = await fetch(SEND_URL, {
       method: 'POST', signal: ctl ? ctl.signal : undefined,
-      headers: { 'Content-Type': 'application/json', apikey: SEND_KEY, Authorization: 'Bearer ' + SEND_KEY },
+      headers: SEND_HEADERS,
       body: JSON.stringify({ submission: sub, turnstileToken, website: $('#s-website').value }),
     });
     try { body = await res.json(); } catch (e) { body = null; }

@@ -216,7 +216,7 @@ textarea.input { resize: vertical; min-height: 70px; }
     <section id="v-setup" class="gate panel stack" hidden>
       <span class="eyebrow">Not set up yet</span>
       <h1>The inbox isn’t connected</h1>
-      <p class="muted">Fill in the Supabase address and public key in <code>studio/config.js</code>. The steps are in <code>supabase/SETUP.md</code>. Until then, students download their category as a file and send it in.</p>
+      <p class="muted">Fill in the Supabase Project URL and publishable key in <code>studio/config.js</code>. The steps are in <code>supabase/SETUP.md</code>. Until then, students download their category as a file and send it in.</p>
     </section>
 
     <!-- Could not load the sign-in library -->
@@ -269,7 +269,9 @@ textarea.input { resize: vertical; min-height: 70px; }
 <script>
 (function () {
 'use strict';
-const CFG = Object.assign({ supabaseUrl: '', supabaseAnonKey: '' }, window.DESK_PUZZLE_CONFIG || {});
+const CFG = Object.assign({ supabaseUrl: '', supabasePublishableKey: '' }, window.DESK_PUZZLE_CONFIG || {});
+// Publishable key (sb_publishable_...); a legacy anon JWT under supabaseAnonKey also works.
+const KEY = String(CFG.supabasePublishableKey || CFG.supabaseAnonKey || '').trim();
 const STATUSES = [['new', 'New'], ['shortlisted', 'Shortlisted'], ['used', 'Used'], ['declined', 'Declined']];
 const ZONE_NAMES = { corkboard: 'Sticky note', folder: 'Paper sheet', rack: 'Microscope slide', tubes: 'X-ray film', photo: 'Photograph', rx: 'Prescription' };
 const TIER_WORDS = { 1: 'Easy', 2: 'Medium', 3: 'Hard', 4: 'Hardest' };
@@ -314,9 +316,9 @@ function plainError(e) {
 function makeClient() {
   const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   if (local && new URLSearchParams(location.search).has('mock') && window.__inboxMockClient) return window.__inboxMockClient;
-  if (!String(CFG.supabaseUrl).trim() || !String(CFG.supabaseAnonKey).trim()) return 'setup';
+  if (!String(CFG.supabaseUrl).trim() || !KEY) return 'setup';
   if (!window.supabase || typeof window.supabase.createClient !== 'function') return 'noscript';
-  return window.supabase.createClient(String(CFG.supabaseUrl).trim().replace(/\/+$/, ''), String(CFG.supabaseAnonKey).trim(), {
+  return window.supabase.createClient(String(CFG.supabaseUrl).trim().replace(/\/+$/, ''), KEY, {
     // "implicit" so the emailed link also works when it opens in a different browser app
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' },
   });

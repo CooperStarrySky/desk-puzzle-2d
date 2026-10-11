@@ -163,3 +163,27 @@ export async function sha256Hex(s) {
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return Array.from(new Uint8Array(d), (b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+/**
+ * The privileged key for the function's own client. Newest first:
+ *   DP_SECRET_KEY            a secret key (sb_secret_...) Thirth stores with
+ *                            `supabase secrets set DP_SECRET_KEY=...` (names
+ *                            starting with SUPABASE_ are reserved by Supabase)
+ *   SUPABASE_SECRET_KEY      in case Supabase injects one under this name
+ *   SUPABASE_SECRET_KEYS     JSON map of secret keys some projects get injected
+ *   SUPABASE_SERVICE_ROLE_KEY the legacy service_role JWT, auto-injected today
+ */
+export function pickServerKey(env) {
+  const get = (k) => String(env(k) || '').trim();
+  if (get('DP_SECRET_KEY')) return get('DP_SECRET_KEY');
+  if (get('SUPABASE_SECRET_KEY')) return get('SUPABASE_SECRET_KEY');
+  const many = get('SUPABASE_SECRET_KEYS');
+  if (many) {
+    try {
+      const m = JSON.parse(many);
+      const v = m && (m.default || Object.values(m)[0]);
+      if (typeof v === 'string' && v) return v;
+    } catch (e) { /* not JSON; ignore */ }
+  }
+  return get('SUPABASE_SERVICE_ROLE_KEY');
+}

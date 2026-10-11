@@ -3,7 +3,10 @@
 // node by supabase/tests/handler.test.mjs); this file only wires it up.
 //
 // Settings it reads (Supabase provides the first two automatically):
-//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   secret service key; never in the website
+//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   (legacy service key; never in the website)
+//   DP_SECRET_KEY     the new secret key (sb_secret_...), set once by
+//                     `supabase secrets set DP_SECRET_KEY=...`; used instead of the
+//                     legacy key when present (see pickServerKey in handler.js)
 //   ALLOWED_ORIGINS   optional, comma list; default: the GitHub Pages site + localhost:4607
 //   TURNSTILE_SECRET  optional; when set, the "are you human" check is required
 //   RATE_SALT         optional; mixes into the IP hash used for the hourly limit
@@ -11,11 +14,11 @@
 // Deploy: supabase functions deploy submit --no-verify-jwt   (see supabase/SETUP.md)
 
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
-import { createHandler } from './handler.js';
+import { createHandler, pickServerKey } from './handler.js';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  pickServerKey((name: string) => Deno.env.get(name)),
   { auth: { persistSession: false, autoRefreshToken: false } },
 );
 

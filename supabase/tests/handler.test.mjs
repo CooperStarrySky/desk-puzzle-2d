@@ -1,7 +1,7 @@
 // node supabase/tests/handler.test.mjs
 // Drives supabase/functions/submit/handler.js with a fake Supabase client and a
 // fake fetch (for Turnstile). No network. Exit 1 on any failure.
-import { createHandler, RATE_PER_HOUR } from '../functions/submit/handler.js';
+import { createHandler, RATE_PER_HOUR, pickServerKey } from '../functions/submit/handler.js';
 import { goodSample } from './samples.mjs';
 
 let fails = 0;
@@ -179,6 +179,14 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   const s3 = setup({}, { clashOnce: true });
   const r3 = await json(await s3.handle(post({ submission: goodSample() })));
   ok(r3.status === 200 && s3.db.st.rows.length === 1 && s3.db.st.rows[0].receipt_code === r3.body.receipt, 'receipt code clash -> retried with a new code');
+}
+// Server key choice (new secret keys first, legacy service_role last)
+{
+  const k = (o) => pickServerKey((n) => o[n]);
+  ok(k({ DP_SECRET_KEY: 'sb_secret_a', SUPABASE_SERVICE_ROLE_KEY: 'eyJ.x.y' }) === 'sb_secret_a', 'pickServerKey prefers DP_SECRET_KEY');
+  ok(k({ SUPABASE_SECRET_KEY: 'sb_secret_b', SUPABASE_SERVICE_ROLE_KEY: 'eyJ.x.y' }) === 'sb_secret_b', 'pickServerKey then SUPABASE_SECRET_KEY');
+  ok(k({ SUPABASE_SECRET_KEYS: '{"default":"sb_secret_c"}', SUPABASE_SERVICE_ROLE_KEY: 'eyJ.x.y' }) === 'sb_secret_c', 'pickServerKey then SUPABASE_SECRET_KEYS JSON');
+  ok(k({ SUPABASE_SECRET_KEYS: 'garbage', SUPABASE_SERVICE_ROLE_KEY: 'eyJ.x.y' }) === 'eyJ.x.y', 'pickServerKey falls back to the legacy service_role key');
 }
 console.log(fails ? `${fails} FAIL` : 'ALL PASS');
 process.exit(fails ? 1 : 0);
