@@ -1,4 +1,4 @@
-// Supabase Edge Function "submit": receives one category from the Studio and
+// Supabase Edge Function "submit": receives a category or a full puzzle from the Studio and
 // files it in the private inbox. All the logic is in handler.js (tested in
 // node by supabase/tests/handler.test.mjs); this file only wires it up.
 //
@@ -11,7 +11,8 @@
 //   TURNSTILE_SECRET  optional; when set, the "are you human" check is required
 //   RATE_SALT         optional; mixes into the IP hash used for the hourly limit
 //
-// Deploy: supabase functions deploy submit --no-verify-jwt   (see supabase/SETUP.md)
+// Deploy: npx supabase functions deploy submit --no-verify-jwt --use-api   (see supabase/SETUP.md)
+// File format: supabase/SUBMISSION_FORMAT.md
 
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 import { createHandler, pickServerKey } from './handler.js';

@@ -262,14 +262,14 @@ Editor-first alternative: export JSON from `?editor`, run
 
 ## Category submissions
 
-Anyone at CMSRU can send the puzzle group one category. The menu links to
+Anyone at CMSRU can send the puzzle group one category, or a whole puzzle. The menu links to
 `studio/?submit`, where they write a hidden answer, a one-line explanation,
 four clues (with images if they like), a suggested difficulty, and choose to
 be credited or stay anonymous.
 
 Once the Supabase inbox is set up (step-by-step in `supabase/SETUP.md`), they
-press **Send to the puzzle group** and get a receipt code. Categories land in a
-private inbox at `studio/inbox.html`, where the puzzle group signs in with an
+press **Send to the puzzle group** and get a receipt code. Submissions land in a
+private, unlisted inbox at `studio/review-k7q3m9.html` (nothing links to it), where the puzzle group signs in with an
 emailed link to shortlist, decline, or mark them used, and downloads them for
 import. Run `node tools/leak_test.mjs` after setup and after any database
 change; every line must say PASS. Node tests for the server side live in
@@ -288,7 +288,10 @@ of git. The email only ever lands in `submissions/<slug>/contact.txt`.
    `python3 tools/import_submission.py ~/Downloads/desk-puzzle-submission-*.json --apply`.
    Each one becomes `submissions/<slug>/<slug>.yaml` (a one-group spec with a
    `# suggested tier` comment and the submitter's credit, if they asked for
-   it) plus an `images/` folder.
+   it) plus an `images/` folder. A full-puzzle file becomes a complete 4-group
+   spec instead (credit on every group, `date: ""` to fill in); skip step 2 and
+   go straight to `tools/build_puzzle.py` once the date is set. File format:
+   `supabase/SUBMISSION_FORMAT.md`.
 2. Pick four and combine them:
    `python3 tools/assemble_puzzle.py --title "…" --date YYYY-MM-DD a.yaml b.yaml c.yaml d.yaml --apply`.
    Tiers come from `--tiers 2,1,4,3` (same order as the files) or from the

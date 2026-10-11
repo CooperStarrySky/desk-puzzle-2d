@@ -144,7 +144,7 @@ delete from admins where email = 'friend@rowan.edu';
 ## 9. Try the inbox, then publish
 
 1. Commit the filled-in `studio/config.js` and publish the site as usual.
-2. Open `https://cooperstarrysky.github.io/desk-puzzle-2d/studio/inbox.html`, type your
+2. Open `https://cooperstarrysky.github.io/desk-puzzle-2d/studio/review-k7q3m9.html`, type your
    email, and open the link it sends you on the same device.
 3. You should see the test category. Open it, click **Decline**, and add the note "test".
 4. Send a real one from `studio/?submit` on your phone and check that it shows up.
@@ -175,11 +175,25 @@ expected and correct. Test by sending from the Studio instead.
 - **Sign-in emails are rate-limited.** Supabase's built-in email sender only sends a few
   emails an hour, which is fine for a handful of admins. If someone can't get a link,
   wait a bit and try again.
-- **Hourly limit:** each internet connection can send 5 categories an hour.
-- **Size limits:** up to 8 images, 700 KB each, about 7 MB in total. The Studio warns
-  before sending if something's too big.
+- **The inbox address is unlisted:** `studio/review-k7q3m9.html`. Nothing on the site
+  links to it, and search engines are told not to index it. Bookmark it. (Only people
+  on the admins list can read anything there anyway.)
+- **Hourly limits:** 5 sends per browser and 40 per internet connection (a whole class
+  on campus wifi shares one connection).
+- **Size limits:** a category can have up to 8 images (about 7 MB in total); a full
+  puzzle up to 16 images (about 9 MB). Each image is at most 700 KB. The Studio warns
+  before sending if something's too big. The exact file format is in
+  `supabase/SUBMISSION_FORMAT.md`.
+- **Full puzzles:** students can send a whole puzzle (4 categories with tiers, no date).
+  It shows in the inbox tagged "Full puzzle". **Download for import**, then
+  `tools/import_submission.py` turns it into a complete spec; set the date in it and
+  run `tools/build_puzzle.py`.
 - **Getting categories into a puzzle:** in the inbox, open a category and click
   **Download for import**, or click **Download all shortlisted**. Then carry on with
   `tools/import_submission.py` as described in the README ("Category submissions").
+- **After changing the server function** (for example, this update that added full
+  puzzles), send the new version to Supabase from the site folder:
+  `npx supabase functions deploy submit --no-verify-jwt --use-api`. Then run
+  `node tools/leak_test.mjs --send-sample=puzzle` and decline the two test entries.
 - **Deleting a submission:** the inbox can't delete, on purpose (declined ones stay as
   a record). To really delete one, use the dashboard's **Table Editor**.
