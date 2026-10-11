@@ -10,7 +10,7 @@
 <!--
   Submissions inbox for the CMSRU puzzle group. Unlisted on purpose: nothing on
   the site links here (the address is in supabase/SETUP.md for the group). Sign in with email +
-  password; new accounts and password resets are confirmed with a 6-digit emailed code (never a
+  password; new accounts and password resets are confirmed with a 8-digit emailed code (never a
   link). Only emails on the admins list (Supabase table "admins") can make an account or read anything.
   Settings come from config.js (same file as the Studio). See supabase/SETUP.md.
 -->
@@ -240,7 +240,7 @@ textarea.input { resize: vertical; min-height: 70px; }
     </section>
 
     <!-- Sign in / create account / forgot password. Emails only ever carry a
-         6-digit code, never a link: Rowan's email scanner opens links and uses them up. -->
+         8-digit code, never a link: Rowan's email scanner opens links and uses them up. -->
     <section id="v-signin" class="gate panel stack" hidden>
       <span class="eyebrow">For the CMSRU puzzle group</span>
       <h1 id="auth-title">Sign in to the inbox</h1>
@@ -268,22 +268,22 @@ textarea.input { resize: vertical; min-height: 70px; }
       </form>
 
       <form id="f-signup-code" class="stack auth-form" style="--gap:10px" novalidate hidden>
-        <p class="note-box" id="signup-code-note">We emailed you a 6-digit code.</p>
-        <label class="field"><span>6-digit code from the email</span><input class="input code-box" id="signup-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required placeholder="123456"></label>
+        <p class="note-box" id="signup-code-note">We emailed you a 8-digit code.</p>
+        <label class="field"><span>8-digit code from the email</span><input class="input code-box" id="signup-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required placeholder="12345678"></label>
         <div class="row"><button class="btn primary" type="submit" id="signup-code-btn">Confirm and sign in</button>
           <button class="btn" type="button" id="signup-resend" data-resend="signup">Resend code</button></div>
         <button class="linkish" type="button" data-auth="signup">Use a different email</button>
       </form>
 
       <form id="f-forgot" class="stack auth-form" style="--gap:10px" role="tabpanel" aria-labelledby="tab-forgot" novalidate hidden>
-        <p class="muted">We’ll email you a 6-digit code. Type it here and you can choose a new password.</p>
+        <p class="muted">We’ll email you a 8-digit code. Type it here and you can choose a new password.</p>
         <label class="field"><span>Email</span><input class="input" id="forgot-email" name="email" type="email" autocomplete="username" required placeholder="you@rowan.edu"></label>
         <div class="row"><button class="btn primary" type="submit" id="forgot-btn">Email me a reset code</button></div>
       </form>
 
       <form id="f-forgot-code" class="stack auth-form" style="--gap:10px" novalidate hidden>
-        <p class="note-box" id="forgot-code-note">We emailed you a 6-digit code.</p>
-        <label class="field"><span>6-digit code from the email</span><input class="input code-box" id="forgot-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required placeholder="123456"></label>
+        <p class="note-box" id="forgot-code-note">We emailed you a 8-digit code.</p>
+        <label class="field"><span>8-digit code from the email</span><input class="input code-box" id="forgot-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required placeholder="12345678"></label>
         <div class="row"><button class="btn primary" type="submit" id="forgot-code-btn">Check code</button>
           <button class="btn" type="button" id="forgot-resend" data-resend="recovery">Resend code</button></div>
         <button class="linkish" type="button" data-auth="forgot">Use a different email</button>
@@ -431,7 +431,7 @@ async function route() {
 }
 
 /* ===== Accounts: email + password. New accounts and password resets are
-   confirmed with a 6-digit code typed on this page. Emails never carry a link,
+   confirmed with a 8-digit code typed on this page. Emails never carry a link,
    because Rowan's email scanner opens links and uses them up. ===== */
 const GATE_MSG = 'This inbox is only for the CMSRU puzzle group.';
 const RESEND_SECONDS = 60;
@@ -565,7 +565,7 @@ function showCodeStep(kind, email) {
   authEmail = email;
   const view = kind === 'signup' ? 'signup-code' : 'forgot-code';
   setAuthView(view);
-  $('#' + (kind === 'signup' ? 'signup' : 'forgot') + '-code-note').textContent = 'We emailed you a 6-digit code at ' + email +
+  $('#' + (kind === 'signup' ? 'signup' : 'forgot') + '-code-note').textContent = 'We emailed you a 8-digit code at ' + email +
     '. Type it below. School email can take a few minutes and may land in Junk. Only the newest code works.';
   startCooldown(kind);
 }
@@ -583,7 +583,7 @@ async function resendCode(kind, email, btn) {
 async function confirmSignup(ev) {
   ev.preventDefault();
   const token = codeFrom('signup-code');
-  if (!/^[0-9]{6,10}$/.test(token)) { say('The code is the 6 digits in the email.'); return; }
+  if (!/^[0-9]{6,10}$/.test(token)) { say('The code is the 8 digits in the email.'); return; }
   rememberChoice(authEmail);
   await busy($('#signup-code-btn'), 'Checking…', async () => {
     const { error } = await sb.auth.verifyOtp({ email: authEmail, token, type: 'signup' });
@@ -607,7 +607,7 @@ async function forgot(ev) {
 async function checkResetCode(ev) {
   ev.preventDefault();
   const token = codeFrom('forgot-code');
-  if (!/^[0-9]{6,10}$/.test(token)) { say('The code is the 6 digits in the email.'); return; }
+  if (!/^[0-9]{6,10}$/.test(token)) { say('The code is the 8 digits in the email.'); return; }
   rememberChoice(authEmail);
   await busy($('#forgot-code-btn'), 'Checking…', async () => {
     holdAuth = true; // the code signs you in; stay here until the new password is saved
