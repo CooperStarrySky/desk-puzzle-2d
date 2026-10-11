@@ -276,6 +276,10 @@ def build_puzzle_data(spec, spec_dir, puzzle_id, quality, max_side, out_puzzle_d
             }
             if scope:
                 item_obj['scope'] = scope
+            # Optional results-screen note for this clue (spec `note:`).
+            note = si.get('note')
+            if isinstance(note, str) and note.strip():
+                item_obj['note'] = note.strip()
 
             items_out.append(item_obj)
             item_ids_for_group.append(item_id)

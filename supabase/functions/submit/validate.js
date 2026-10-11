@@ -24,6 +24,7 @@ export const LIMITS = Object.freeze({
   label: 80,
   title: 120,
   text: 1500,                    // clue text when opened
+  note: 280,                     // clue note on the results screen (contract v2, optional)
   source: 300,                   // image source note
   article: 6000,                 // whole teaching note
   creditName: 60,
@@ -241,6 +242,8 @@ function checkGroup(g, pre, gi, v2, p, images) {
     tooLong(p, `${c} label`, it.label, LIMITS.label);
     if (!v2) tooLong(p, `${c} title`, info.title, LIMITS.title);
     tooLong(p, `${c} text`, info.text, LIMITS.text);
+    if (it.note !== undefined && it.note !== null && typeof it.note !== 'string') p.push(`${c} results note should be text`);
+    else tooLong(p, `${c} results note`, it.note, LIMITS.note);
     tooLong(p, `${c} image source`, it.source, LIMITS.source);
     let has = false;
     for (const [field, val] of [['info', info.image], ['scope', scope.image]]) {

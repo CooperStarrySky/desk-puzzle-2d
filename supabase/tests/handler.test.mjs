@@ -189,6 +189,10 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   const row2 = v2.db.st.rows[0];
   ok(r2.status === 200 && row2.kind === 'category' && row2.suggested_tier === 2 && row2.payload.submissionVersion === 2 && row2.payload.items[3].scope.image === '11111111-2222-3333-4444-555555555550/clubbing-slide-scope.webp',
     'v2 category -> stored like v1 (no group prefix in paths)');
+  const vn = setup();
+  const noted = goodSampleV2(); noted.group.items[0].note = 'Chronic airway dilation.';
+  const rn = await json(await vn.handle(post({ submission: noted })));
+  ok(rn.status === 200 && vn.db.st.rows[0].payload.items[0].note === 'Chronic airway dilation.' && !('note' in vn.db.st.rows[0].payload.items[1]), 'v2 clue results note stored in the payload as sent');
   const v1 = setup();
   await v1.handle(post({ submission: goodSample() }));
   ok(v1.db.st.rows[0].payload.submissionVersion === 1 && v1.db.st.rows[0].payload.items[2].info.title === 'Fingertips', 'v1 category still OK, its titles kept');

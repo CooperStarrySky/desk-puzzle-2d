@@ -2126,16 +2126,51 @@ function buildResultThumb(item, i) {
   return t;
 }
 
-/** Pairs each clue with its "<b>Head</b>: body" teaching line from the
-    group's article (same order as itemIds). */
+/** A clue's own results-screen note (item.note, plain text), or ''. */
+export function itemResultNote(item) {
+  return item && typeof item.note === 'string' ? item.note.trim() : '';
+}
+
+/** Pairs each clue with its teaching line. A clue's own note (item.note)
+    wins; otherwise the line comes from the group's article, text block i
+    for clue i ("<b>Head</b>: body"), which is how puzzles without notes
+    have always rendered. `note` rows are plain text, not HTML. */
 function resultTeachingRows(puzzle, g) {
   var texts = (g.article || []).filter(function (a) { return a && a.type === 'text'; }).map(function (a) { return a.text || ''; });
   return g.itemIds.map(function (id, i) {
     var item = puzzle.items.find(function (it) { return it.id === id; }) || { id: id, label: id, info: {} };
     var raw = texts[i] || '';
     var m = raw.match(/^<b>([\s\S]*?)<\/b>:\s*([\s\S]*)$/);
-    return { item: item, head: m ? m[1] : ((item.info && item.info.title) || item.label), body: m ? m[2] : raw };
+    var row = { item: item, head: m ? m[1] : ((item.info && item.info.title) || item.label), body: m ? m[2] : raw };
+    var note = itemResultNote(item);
+    if (note) row.note = note;
+    return row;
   });
+}
+
+/** One clue row of a placard's teaching notes: thumb, head, then the note
+    or article line. */
+function buildTeachRow(row, i) {
+  var r = document.createElement('div');
+  r.className = 'result-teach-row';
+  r.appendChild(buildResultThumb(row.item, i));
+  var copy = document.createElement('div');
+  var h4 = document.createElement('h4');
+  h4.innerHTML = sanitizeRichHtml(row.head);
+  var kind = document.createElement('small');
+  kind.textContent = RESULT_ZONE_NAMES[row.item.zone] || '';
+  h4.appendChild(kind);
+  var p = document.createElement('p');
+  if (row.note) {
+    p.className = 'result-clue-note';
+    p.textContent = row.note;
+  } else {
+    p.innerHTML = sanitizeRichHtml(row.body);
+  }
+  copy.appendChild(h4);
+  copy.appendChild(p);
+  r.appendChild(copy);
+  return r;
 }
 
 /** "Priya N. · MS2" from a group's optional submitter credit, or '' when
@@ -2249,6 +2284,14 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
 
   // Body: teaching rows (play) or the editable article (editor preview).
   if (isPreview) {
+    // Clue notes are edited in the editor, so they show here read-only.
+    var noted = resultTeachingRows(puzzle, g).filter(function (row) { return row.note; });
+    if (noted.length) {
+      var notes = document.createElement('div');
+      notes.className = 'result-teach result-clue-notes';
+      noted.forEach(function (row, i) { notes.appendChild(buildTeachRow(row, i)); });
+      card.appendChild(notes);
+    }
     if (Array.isArray(g.article) && g.article.length) {
       var article = document.createElement('div');
       article.className = 'result-article';
@@ -2262,21 +2305,7 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
     var teach = document.createElement('div');
     teach.className = 'result-teach';
     resultTeachingRows(puzzle, g).forEach(function (row, i) {
-      var r = document.createElement('div');
-      r.className = 'result-teach-row';
-      r.appendChild(buildResultThumb(row.item, i));
-      var copy = document.createElement('div');
-      var h4 = document.createElement('h4');
-      h4.innerHTML = sanitizeRichHtml(row.head);
-      var kind = document.createElement('small');
-      kind.textContent = RESULT_ZONE_NAMES[row.item.zone] || '';
-      h4.appendChild(kind);
-      var p = document.createElement('p');
-      p.innerHTML = sanitizeRichHtml(row.body);
-      copy.appendChild(h4);
-      copy.appendChild(p);
-      r.appendChild(copy);
-      teach.appendChild(r);
+      teach.appendChild(buildTeachRow(row, i));
     });
     var n = (g.anki && g.anki.nids || []).length;
     if (n) {

@@ -48,11 +48,17 @@ For a full puzzle the credit applies to the whole puzzle.
 { "label": "Mesothelioma", "zone": "rack",
   "info": { "title": "Mesothelioma", "text": "Extra detail shown when a player taps the clue" },
   "scope": { "image": "data:image/webp;base64,..." },
-  "source": "Wikimedia Commons, CC BY-SA 4.0" }
+  "source": "Wikimedia Commons, CC BY-SA 4.0",
+  "note": "Asbestos exposure, decades before the tumor" }
 ```
 
 - `info.title` is simply the label (the server sets it to the label anyway).
-- `info.text` is optional extra detail.
+- `info.text` is optional extra detail. The game does not show it on screen
+  (only screen readers hear it); the Studio no longer writes it.
+- `note` (added 2026-10-11, optional) is a short plain-text line about this
+  clue, shown under the clue on the results screen. 280 characters max; it
+  must be text if present. It replaces the group's teaching-note line for that
+  clue. Published puzzles carry it as `item.note`; specs as `note:`.
 - Images are data URIs, WebP, JPEG, or PNG, at most 700 KB each once decoded.
 - Which image goes where depends on the piece (`zone`), matching what the game draws:
 
@@ -64,7 +70,7 @@ For a full puzzle the credit applies to the whole puzzle.
 | `corkboard`, `folder`, `rx` | sticky note, paper sheet, prescription | none (text only) |
 
 - Any clue with an image needs a non-empty `source`.
-- Text caps: label 80, text 1500, source 300.
+- Text caps: label 80, text 1500, source 300, note 280.
 
 ## kind "category"
 

@@ -69,6 +69,9 @@ def _credit_problems(credit, owner):
     return out
 
 
+NOTE_MAX = 280  # item.note, the clue's results-screen note (same cap as the submit server)
+
+
 def validate_puzzle(puzzle, filename):
     """Mirror caseProblems() from game.js and add the extra audit checks.
     Returns (errors, warnings) as lists of strings."""
@@ -184,6 +187,14 @@ def validate_puzzle(puzzle, filename):
         # label non-empty
         if not item.get("label"):
             errors.append(f'item "{iid}" has an empty label')
+
+        # optional results-screen note: plain text, 280 characters max
+        note = item.get("note")
+        if note is not None:
+            if not isinstance(note, str):
+                errors.append(f'item "{iid}" note must be text')
+            elif len(note.strip()) > NOTE_MAX:
+                errors.append(f'item "{iid}" note is {len(note.strip())} characters (max {NOTE_MAX})')
 
         # info.title required for photo/rack/tubes
         if zone in ("photo", "rack", "tubes"):

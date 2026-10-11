@@ -114,6 +114,8 @@ def group_yaml(g, tier, tier_note, image_names, sources):
         src_note = f'   # source: {sources[i]}' if sources[i] else ''
         out += [f'      - id: {it["id"]}', f'        label: {q(it["label"])}', f'        zone: {it["zone"]}',
                 f'        title: {q(it["title"])}', f'        text: {q(it["text"])}']
+        if it.get('note'):
+            out.append(f'        note: {q(it["note"])}')
         if info_file:
             out.append(f'        image: {info_file}{src_note}')
         if scope_file:
@@ -145,6 +147,10 @@ def decode_image(uri):
     return raw, IMAGE_EXT[mime]
 
 # ── Checking one submission ─────────────────────────────────────────────────
+
+# A clue's optional results-screen note (item.note): same cap as the server.
+NOTE_MAX = 280
+
 
 def _text(v):
     return v.strip() if isinstance(v, str) else ''
@@ -327,10 +333,16 @@ def _check_group(g, pre, v2, p):
                 p.append(f'{c} {"microscope image" if field == "scope" else "image"} {e}')
         if imgs and not _text(it.get('source')):
             p.append(f'{c} has an image but no source note')
+        note = it.get('note')
+        if note is not None and not isinstance(note, str):
+            p.append(f'{c} results note should be text')
+            note = ''
+        elif note is not None and len(note.strip()) > NOTE_MAX:
+            p.append(f'{c} results note is {len(note.strip())} characters (max {NOTE_MAX})')
         title = label if v2 else (_text(info.get('title')) or label)
         out_items.append({'label': label, 'zone': zone, 'title': title,
                           'text': info.get('text') if isinstance(info.get('text'), str) else '',
-                          'images': imgs, 'source': _text(it.get('source'))})
+                          'images': imgs, 'source': _text(it.get('source')), 'note': _text(note)})
     return {'name': name, 'explanation': expl, 'article': article or [], 'anki': nids, 'items': out_items}
 
 

@@ -908,6 +908,20 @@ export function renderItemEditor(g, m) {
   }
   box.appendChild(files);
 
+  // Optional per-clue note shown under this clue on the results screen
+  // (item.note, plain text). Empty = the group's article line, as before.
+  var noteInp = document.createElement('input');
+  noteInp.type = 'text';
+  noteInp.className = 'item-note';
+  noteInp.maxLength = 280;
+  noteInp.placeholder = 'Note shown on the results screen (optional)';
+  noteInp.setAttribute('aria-label', 'Note shown on the results screen');
+  noteInp.dataset.g = String(g);
+  noteInp.dataset.m = String(m);
+  noteInp.dataset.ifield = 'note';
+  noteInp.value = typeof item.note === 'string' ? item.note : '';
+  box.appendChild(noteInp);
+
   var adv = document.createElement('details');
   var sum = document.createElement('summary');
   sum.textContent = 'Advanced';
@@ -1471,6 +1485,8 @@ export function onEditorInput(ev) {
     } else if (t.dataset.ifield === 'infoText') {
       item.info = item.info || {};
       if (t.value) item.info.text = t.value; else delete item.info.text;
+    } else if (t.dataset.ifield === 'note') {
+      if (t.value.trim()) item.note = t.value; else delete item.note;
     } else if (t.dataset.ifield === 'labelScale') {
       var scaleV = parseFloat(t.value);
       // Centered (1x) reads as "no override" so puzzles an author never

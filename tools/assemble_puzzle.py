@@ -179,7 +179,8 @@ def main():
             names.append(tuple(pair))
             sources.append(src_note)
             items.append({'id': iid, 'label': label, 'zone': it.get('zone', ''),
-                          'title': str(it.get('title') or label), 'text': str(it.get('text') or '')})
+                          'title': str(it.get('title') or label), 'text': str(it.get('text') or ''),
+                          'note': str(it.get('note') or '').strip()})
         groups.append(({'id': gid, 'name': name, 'explanation': str(g.get('explanation') or '').strip(),
                         'credit': credit, 'anki': anki, 'article': g.get('article') or [], 'items': items},
                        tier, e['tier_note'], names, sources, e['path']))

@@ -439,6 +439,7 @@ function clueHtml(it, i) {
     '<div class="row" style="--gap:8px"><span class="clue-num">Clue ' + (i + 1) + '</span><span class="badge">' + esc(ZONE_NAMES[it.zone] || it.zone) + '</span></div>' +
     '<b>' + esc(it.label) + '</b>' + (info.title && info.title !== it.label ? '<span class="muted">Title: ' + esc(info.title) + '</span>' : '') +
     (info.text ? '<p style="font-size:.92rem">' + esc(info.text) + '</p>' : '') +
+    (typeof it.note === 'string' && it.note.trim() ? '<p class="clue-note" style="font-size:.92rem"><span class="eyebrow">Results note</span> ' + esc(it.note) + '</p>' : '') +
     (it.source ? '<p class="hint">Image source: ' + esc(it.source) + '</p>' : '') + '</div></div>';
 }
 function articleHtml(blocks) {

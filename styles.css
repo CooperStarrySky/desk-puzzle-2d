@@ -2156,6 +2156,7 @@ body.layout-mode .machine { cursor: move; outline: 2px dashed rgba(75, 63, 176, 
 }
 .item-editor .item-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .item-editor input[data-ifield="label"] { flex: 1; min-width: 110px; }
+.item-editor .item-note { display: block; width: 100%; box-sizing: border-box; margin-top: 6px; }
 .kind-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
 .kind-chip {
   border: 1px solid var(--panel-edge);

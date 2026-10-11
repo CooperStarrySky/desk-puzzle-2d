@@ -37,6 +37,8 @@ const cases = [
   ['GIF image', (s) => { s.group.items[2].info.image = 'data:image/gif;base64,R0lGODlhAQABAAAAACw='; }, 'only WebP, PNG, and JPEG are accepted', true],
   ['oversize image', (s) => { s.group.items[2].info.image = bigWebp; }, 'clue 3 image is too big', true],
   ['explanation too long', (s) => { s.group.explanation = 'x'.repeat(LIMITS.explanation + 1); }, 'the explanation is 401 characters (max 400)', true],
+  ['results note too long', (s) => { s.group.items[1].note = 'x'.repeat(LIMITS.note + 1); }, 'clue 2 results note is 281 characters (max 280)'],
+  ['results note not text', (s) => { s.group.items[0].note = 42; }, 'clue 1 results note should be text'],
 ];
 
 // ── JS validator ──
@@ -97,6 +99,13 @@ ok(r16.problems.length === 0 && r16.images.length === 16, '16 images allowed in 
 const many = goodSample();
 many.group.items.forEach((it) => { it.zone = 'photo'; it.info.image = PNG_1x1; it.scope = { image: PNG_1x1 }; it.source = 'own'; });
 ok(validateSubmission(many).problems.length === 0, 'v1 category keeps its old rules (photo with both images still accepted)');
+
+const noted = goodSampleV2();
+noted.group.items.forEach((it, i) => { it.note = i ? 'Chronic airway dilation.' : 'x'.repeat(LIMITS.note); });
+ok(validateSubmission(noted).problems.length === 0, 'clue results notes up to 280 characters accepted (contract v2)');
+const notedPz = goodPuzzleSample();
+notedPz.puzzle.groups[3].items[2].note = 'y'.repeat(LIMITS.note + 1);
+ok(validateSubmission(notedPz).problems.join(' | ').includes('category 4: clue 3 results note is 281 characters (max 280)'), 'over-long note inside a full puzzle names its category and clue');
 
 const nine = goodSample();
 nine.group.items.forEach((it) => { it.zone = 'rack'; it.info.title = 'T'; it.info.image = WEBP_1x1; it.scope = { image: WEBP_1x1 }; it.source = 'own'; });

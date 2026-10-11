@@ -130,6 +130,7 @@ textarea.input { resize: vertical; min-height: 70px; }
 @media (min-width: 1061px) { .sidecard { position: sticky; top: 72px; max-height: calc(100vh - 84px); overflow-y: auto; } }
 .clue { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); }
 @media (max-width: 560px) { .clue { grid-template-columns: minmax(0, 1fr); } }
+.field .opt { font-style: normal; font-weight: 500; color: var(--ink-faint); }
 .clue-num { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
 .drops { display: flex; flex-direction: column; gap: 6px; }
 @media (max-width: 560px) { .drops { flex-direction: row; } .drops .drop { flex: 1; } }
@@ -358,7 +359,7 @@ function textToBlocks(text) {
   });
 }
 function blankItem() {
-  return { label: '', zone: 'corkboard', title: '', text: '', image: '', scopeImage: '', credit: '',
+  return { label: '', zone: 'corkboard', title: '', text: '', image: '', scopeImage: '', credit: '', note: '',
     srcId: '', srcLabel: '', keys: [], infoKeys: [], scopeKeys: [], extra: {}, infoExtra: {}, scopeExtra: {} };
 }
 function blankGroup(i) {
@@ -384,9 +385,10 @@ function draftFromPuzzle(p) {
     return Object.assign(blankItem(), {
       label: it.label || '', zone: ZONES.indexOf(it.zone) !== -1 ? it.zone : 'corkboard',
       title: info.title || '', text: info.text || '', image: info.image || '', scopeImage: scope.image || '',
+      note: typeof it.note === 'string' ? it.note : '',
       srcId: it.id || '', srcLabel: it.label || '',
       keys: Object.keys(it), infoKeys: Object.keys(info), scopeKeys: it.scope ? Object.keys(scope) : [],
-      extra: pick(it, ['id', 'label', 'zone', 'info', 'scope']), infoExtra: pick(info, ['title', 'text', 'image']),
+      extra: pick(it, ['id', 'label', 'zone', 'info', 'scope', 'note']), infoExtra: pick(info, ['title', 'text', 'image']),
       scopeExtra: pick(scope, ['image']),
     });
   };
@@ -471,6 +473,9 @@ function puzzleFromDraft(d) {
       const info = Object.assign({ title: plain(I.label).trim() }, I.infoExtra);
       if (picField(I.zone) === 'image' && I.image) info.image = I.image;
       const it = Object.assign({ id: ids[gi][ii], label: I.label.trim(), zone: I.zone, info: orderLike(info, I.infoKeys) }, I.extra);
+      // Optional per-clue note for the results screen (plain text).
+      const note = String(I.note || '').trim();
+      if (note) it.note = note;
       if (I.zone === 'rack') {
         const scope = Object.assign({}, I.scopeExtra);
         if (I.scopeImage) scope.image = I.scopeImage;
@@ -492,7 +497,7 @@ const CREDIT_NAME_MAX = 60, CREDIT_LINE_MAX = 40;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Size limits the inbox enforces. Keep in step with LIMITS in
 // supabase/functions/submit/validate.js (supabase/tests/studio_limits.test.mjs checks).
-const SEND_LIMITS = { maxImageBytes: 700 * 1024, maxImages: 8, maxBodyBytes: 7 * 1024 * 1024, maxPuzzleImages: 16, maxPuzzleBodyBytes: 9 * 1024 * 1024, puzzleTitle: 120, name: 120, explanation: 400, label: 80, source: 300, article: 6000 };
+const SEND_LIMITS = { maxImageBytes: 700 * 1024, maxImages: 8, maxBodyBytes: 7 * 1024 * 1024, maxPuzzleImages: 16, maxPuzzleBodyBytes: 9 * 1024 * 1024, puzzleTitle: 120, name: 120, explanation: 400, label: 80, source: 300, article: 6000, note: 280 };
 /** Decoded size of a data: URI image, in bytes (0 if not a data URI). */
 function dataUriBytes(src) {
   const i = String(src || '').indexOf(';base64,');
@@ -531,6 +536,7 @@ function groupProblems(G, noPatient, pre, problems, notes) {
       if (kb > SEND_LIMITS.maxImageBytes / 1024) problems.push(n + ': the image is too big (' + kb + ' KB; ' + (SEND_LIMITS.maxImageBytes / 1024) + ' KB max). Crop it or try a simpler image');
     }
     cap(n + ': the ' + (img ? 'description' : 'clue'), I.label, SEND_LIMITS.label);
+    cap(n + ': the results-screen note', I.note, SEND_LIMITS.note);
   });
   const badNid = String(G.nids || '').split(/[\s,;]+/).filter(Boolean).find((x) => !/^[1-9]\d*$/.test(x));
   if (badNid) problems.push(pre + 'AnKing card IDs are numbers only (check “' + badNid + '”)');
@@ -585,6 +591,7 @@ function submitGroup(G) {
     if (it.zone === 'rack' && it.scope && it.scope.image) o.scope = { image: it.scope.image };
     if ((it.zone === 'photo' || it.zone === 'tubes') && it.info.image) o.info.image = it.info.image;
     if (itemHasImage(I) && t(I.credit)) o.source = t(I.credit);
+    if (t(I.note)) o.note = t(I.note);
     return o;
   });
   return group;
@@ -1013,6 +1020,7 @@ function clueHtml(I, ii, noPatient) {
       '<input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="Image source (e.g. my own photo, or Wikimedia Commons, CC BY-SA 4.0, author)" aria-label="' + n + ': image source">' +
       '<label class="check"><input type="checkbox" data-np="' + ii + '"' + (noPatient[ii] ? ' checked' : '') + '><span>No patient can be identified in this image (no faces, names, dates, or record numbers)</span></label>' : '') +
     (I.zone === 'rack' ? '<p class="hint">A slide takes one image: the microscope view players study.</p>' : '') +
+    '<label class="field"><span>Note shown on the results screen <em class="opt">(optional)</em></span><input class="input" data-f="note" data-i="' + ii + '" value="' + esc(I.note) + '" placeholder="e.g. Chronic, permanent dilation of the airways" maxlength="' + SEND_LIMITS.note + '"></label>' +
     '</div></div>';
 }
 function field(k, label, val, ph, extra, max) {
