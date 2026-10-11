@@ -11,3 +11,8 @@ puzzles/.local-puzzle-fallback.js
 
 # Python bytecode from tools/
 __pycache__/
+
+# Category submissions and assembled drafts (tools/import_submission.py,
+# tools/assemble_puzzle.py). They hold puzzle answers and private contact
+# emails, and this repo is public, so they never go into git.
+submissions/

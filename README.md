@@ -260,6 +260,34 @@ to write images, the puzzle JSON, and update `index.json`. Optionally open
 Editor-first alternative: export JSON from `?editor`, run
 `tools/externalize_images.py --apply`, then `publish.py`.
 
+## Category submissions
+
+Anyone at CMSRU can send the puzzle group one category. The menu links to
+`studio/?submit`, where they write a hidden answer, a one-line explanation,
+four clues (with images if they like), a suggested difficulty, and choose to
+be credited or stay anonymous. They download one file,
+`desk-puzzle-submission-<name>-<date>.json`, and send it to the puzzle group.
+The "send it to" text is `SUBMIT_TO` near the top of the submit section in
+`studio/index.html`; put the group's email or GroupMe link there.
+
+Submission files can hold a private contact email, and this repo is public.
+Both tools below write only into `submissions/`, which `.gitignore` keeps out
+of git. The email only ever lands in `submissions/<slug>/contact.txt`.
+
+1. Import each file (dry run first, then `--apply`):
+   `python3 tools/import_submission.py ~/Downloads/desk-puzzle-submission-*.json --apply`.
+   Each one becomes `submissions/<slug>/<slug>.yaml` (a one-group spec with a
+   `# suggested tier` comment and the submitter's credit, if they asked for
+   it) plus an `images/` folder.
+2. Pick four and combine them:
+   `python3 tools/assemble_puzzle.py --title "…" --date YYYY-MM-DD a.yaml b.yaml c.yaml d.yaml --apply`.
+   Tiers come from `--tiers 2,1,4,3` (same order as the files) or from the
+   suggestions. It reports every tier clash it settles, every clue id it
+   renames, and any two pieces that share a label. The result goes to
+   `submissions/assembled/_spec/<id>.yaml` and `submissions/assembled/<id>-src/`.
+3. Review it, then move the spec into `puzzles/_spec/` and the `-src` folder
+   into `puzzles/`, and carry on with `tools/build_puzzle.py` as above.
+
 ## Persistence
 
 Progress saves to `localStorage` under `dp2d:save3:<puzzle-id>` after every
