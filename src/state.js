@@ -276,11 +276,16 @@ export function getFirstResult(puzzleId) {
     return rec && typeof rec === 'object' ? rec : null;
   } catch (e) { return null; }
 }
+/* Called once with (puzzleId, record) right after a first finish is stored;
+   stats-remote.js uses it to send class stats. Set by setFirstFinishHook. */
+var firstFinishHook = null;
+export function setFirstFinishHook(fn) { firstFinishHook = typeof fn === 'function' ? fn : null; }
 function recordFirstResult(puzzleId, snap) {
   if (getFirstResult(puzzleId)) return; // already recorded: never overwrite
   var rec = firstResultFromSave(snap, new Date().toISOString());
   if (!rec) return;
-  try { localStorage.setItem(FIRST_NS + puzzleId, JSON.stringify(rec)); } catch (e) { /* storage full/unavailable */ }
+  try { localStorage.setItem(FIRST_NS + puzzleId, JSON.stringify(rec)); } catch (e) { return; /* storage full/unavailable */ }
+  if (firstFinishHook) { try { firstFinishHook(puzzleId, rec); } catch (e) { /* never break the game */ } }
 }
 
 export function persistGame() {

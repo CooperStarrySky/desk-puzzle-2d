@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════
  * stats.js — "My stats" panel (this browser only), the menu-level
- * Settings dialog for the share-stats switch, and two small helpers for
- * the upcoming server step (nothing is sent anywhere yet).
+ * Settings dialog for the share-stats switch. Sending and the random
+ * browser id live in stats-remote.js (re-exported here).
  *
  * Imports: state.js, stats-core.js, ui-menu.js (loadRegistry).
  * Exports: statsSharingEnabled, getAnonId, readAllSaves, readAllFirstResults,
@@ -9,29 +9,15 @@
  *   closeStats, openMenuSettings, closeMenuSettings, bindStatsUi.
  * ════════════════════════════════════════════════════════════════════ */
 
-import { state, els, SAVE_NS, SAVE_PREFIX, FIRST_NS, getFirstResult, saveSettings, syncSettingsUi } from './state.js';
+import { state, els, SAVE_NS, FIRST_NS, getFirstResult, saveSettings, syncSettingsUi } from './state.js';
 import { computeStats, classifySave, classifyFirst } from './stats-core.js';
 import { loadRegistry } from './ui-menu.js';
+import { statsSharingEnabled, getAnonId, onShareSettingChanged } from './stats-remote.js';
 
-var ANON_KEY = SAVE_PREFIX + 'anon';
 var lastFocus = null;
 
-/** True unless the player switched off "Share my anonymous play stats". */
-export function statsSharingEnabled() {
-  return state.settings.shareStats !== false;
-}
-
-/** Random per-browser id, created on first use. Not used yet (step T3). */
-export function getAnonId() {
-  try {
-    var id = localStorage.getItem(ANON_KEY);
-    if (id) return id;
-    id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
-      : 'a-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
-    localStorage.setItem(ANON_KEY, id);
-    return id;
-  } catch (e) { return null; }
-}
+// The share switch and the random browser id live with the sending code.
+export { statsSharingEnabled, getAnonId };
 
 /** Every localStorage value under one key prefix, parsed, keyed by puzzle id. */
 function readAllUnder(ns) {
@@ -157,6 +143,7 @@ export function bindStatsUi() {
       state.settings.shareStats = c.checked;
       saveSettings();
       syncSettingsUi();
+      onShareSettingChanged();
     });
   });
   [els.overlayStats, els.overlayMenuSettings].forEach(function (ov) {

@@ -144,3 +144,113 @@ export function computeStats(entries, saves, firsts) {
   for (var k = end; k >= 0 && seq[k] === 'win'; k--) out.currentStreak++;
   return out;
 }
+
+/* ── Class-wide stats (server totals) ─────────────────────────────────
+ * Only puzzles released AFTER STATS_SINCE send or show class stats; the
+ * server's record function checks the same rule. The privacy wording in
+ * Settings (docs/08-stats-plan.md §8) promises exactly the fields that
+ * finishPayload builds, nothing more.
+ *
+ * puzzle_stats row (supabase/migrations/20261011120000_play_stats.sql):
+ *   plays (all finishes, casual too), std_finishes, std_wins,
+ *   mistakes_hist [won0, won1, won2, won3, lost] over standard finishes,
+ *   hint_any/hint_labels/hint_seeds/hint_category over standard finishes,
+ *   rating_n, rating_hist [1..5].
+ * Definitions used on screen:
+ *   % solved      std_wins / std_finishes
+ *   avg mistakes  over standard finishes; a loss counts as 4 (it ends on
+ *                 the 4th mistake), a win as its mistakes (0-3)
+ *   % used a hint hint_any / std_finishes
+ *   "Rated X"     the mean rating, rounded to the nearest label
+ *   "Fewer mistakes than X% of players"  standard finishes in a strictly
+ *                 worse slot than yours (more mistakes; losses are worst)
+ * ──────────────────────────────────────────────────────────────────── */
+
+export var STATS_SINCE = '2026-10-11';
+export var CLASS_MIN = 10; // show nothing below 10 standard finishes / 10 ratings
+export var RATING_LABELS = ['Easy', 'Fair', 'Tricky', 'Hard', 'Brutal'];
+var STATS_ID_RE = /^[a-z0-9-]+-(\d{4}-\d{2}-\d{2})$/;
+
+/** Does this puzzle id take part in class stats (released after STATS_SINCE)? */
+export function isStatsEligible(puzzleId) {
+  var m = typeof puzzleId === 'string' ? STATS_ID_RE.exec(puzzleId) : null;
+  return !!m && m[1] > STATS_SINCE;
+}
+
+/** The exact body sent to the record function for a first finish. Only the
+    approved fields; casual games can run past the server caps, so mistakes
+    and guesses are capped at 20 / 40 (casual games never reach the charts). */
+export function finishPayload(puzzleId, anonId, rec) {
+  if (!rec || (rec.outcome !== 'won' && rec.outcome !== 'lost')) return null;
+  var h = rec.hints || {};
+  var mistakes = Math.min(20, Math.max(0, Math.floor(rec.mistakes) || 0));
+  var guesses = Math.min(40, Math.max(mistakes, Math.floor(rec.guesses) || 0));
+  return {
+    event: 'finish', puzzleId: puzzleId, anonId: anonId,
+    outcome: rec.outcome, mistakes: mistakes, guesses: guesses,
+    hints: { labels: h.labels === true, seeds: h.seeds === true, category: h.category === true },
+    casual: rec.everCasual === true,
+  };
+}
+
+/** Which class-chart slot a first-result record falls in: 0-3 (solved with
+    that many mistakes), 4 (not solved), or null (casual or missing). */
+export function classSlot(rec) {
+  var c = classifyFirst(rec);
+  if (!c || c.casual) return null;
+  return c.won ? Math.min(c.mistakes, CHART_MAX_MISTAKES) : 4;
+}
+
+function hist5(a) {
+  var out = [0, 0, 0, 0, 0];
+  if (Array.isArray(a)) for (var i = 0; i < 5; i++) out[i] = Math.max(0, Math.floor(Number(a[i]) || 0));
+  return out;
+}
+
+/** Display numbers from a puzzle_stats row (null if the row is unusable). */
+export function classSummary(row) {
+  if (!row || typeof row !== 'object') return null;
+  var n = Math.max(0, Math.floor(Number(row.std_finishes) || 0));
+  var hist = hist5(row.mistakes_hist);
+  var rh = hist5(row.rating_hist);
+  var rn = rh.reduce(function (a, b) { return a + b; }, 0);
+  var hints = [['labels', 'Label Images', row.hint_labels], ['seeds', 'Seed the Trays', row.hint_seeds], ['category', 'Reveal a Category', row.hint_category]]
+    .map(function (h) { return { key: h[0], name: h[1], n: Math.max(0, Math.floor(Number(h[2]) || 0)) }; })
+    .sort(function (a, b) { return b.n - a.n; });
+  var mean = rn ? (rh[0] + 2 * rh[1] + 3 * rh[2] + 4 * rh[3] + 5 * rh[4]) / rn : 0;
+  return {
+    plays: Math.max(n, Math.floor(Number(row.plays) || 0)),
+    stdFinishes: n,
+    enough: n >= CLASS_MIN,
+    solvedPct: n ? Math.round((Math.floor(Number(row.std_wins) || 0) / n) * 100) : 0,
+    avgMistakes: n ? (hist[1] + 2 * hist[2] + 3 * hist[3] + 4 * hist[4]) / n : 0,
+    hist: hist,
+    hintPct: n ? Math.round(((Math.floor(Number(row.hint_any) || 0)) / n) * 100) : 0,
+    topHint: hints[0].n > 0 ? hints[0].name : '',
+    ratingN: rn,
+    ratingHist: rh,
+    ratingEnough: rn >= CLASS_MIN,
+    ratingLabel: rn ? RATING_LABELS[Math.min(4, Math.max(0, Math.round(mean) - 1))] : '',
+  };
+}
+
+/** Share of standard finishes strictly worse than slot (0-100), or null. */
+export function fewerMistakesPct(summary, slot) {
+  if (!summary || !summary.enough || slot === null || slot === undefined || slot >= 4) return null;
+  var worse = 0;
+  for (var i = slot + 1; i < 5; i++) worse += summary.hist[i];
+  var pct = Math.round((worse / summary.stdFinishes) * 100);
+  return pct > 0 ? pct : null;
+}
+
+/** Menu card line, e.g. "142 plays · 64% solved · Rated Hard" ('' if nothing to show). */
+export function menuStatsLine(summary) {
+  if (!summary) return '';
+  var parts = [];
+  if (summary.enough) {
+    parts.push(summary.plays + ' plays');
+    parts.push(summary.solvedPct + '% solved');
+  }
+  if (summary.ratingEnough) parts.push('Rated ' + summary.ratingLabel);
+  return parts.join(' · ');
+}

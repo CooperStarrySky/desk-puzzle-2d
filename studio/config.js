@@ -1,4 +1,5 @@
-/* Desk Puzzle settings for the Studio (studio/) and the private review inbox (address in supabase/SETUP.md).
+/* Desk Puzzle settings for the Studio (studio/), the private review inbox (address in supabase/SETUP.md),
+ * and the game's anonymous play stats (index.html loads this file too; src/stats-remote.js reads it).
  *
  * Everything in this file is PUBLIC. It ships with the website, so anyone can
  * read it. That is fine for the four values below: they are designed to be

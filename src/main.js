@@ -17,6 +17,7 @@ import { applySoundLayer, loadSoundOverrides } from './audio.js';
 import { loadTextures } from './textures.js';
 
 import { bindStatsUi } from './stats.js';
+import { initRemoteStats } from './stats-remote.js';
 
 import {
   syncHeader, syncMachines,
@@ -152,6 +153,8 @@ async function init() {
 
   // My stats panel, share-stats switches, menu Settings dialog.
   bindStatsUi();
+  // Class stats: send first finishes of new puzzles, retry the outbox.
+  initRemoteStats();
 
   // Results.
   els.btnShare.addEventListener('click', onShare);

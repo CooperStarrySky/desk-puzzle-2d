@@ -101,4 +101,52 @@ t('older games without a first record fall back to the save; bad records too', (
   const s = computeStats(entries, { p5: win(0), p6: lost() }, { p5: { junk: 1 }, p4: null });
   assert.equal(s.played, 2); assert.equal(s.solved, 1); assert.equal(s.notSolved, 1);
 });
+
+// ── Class stats helpers ──
+const { isStatsEligible, finishPayload, classSlot, classSummary, fewerMistakesPct, menuStatsLine } = core;
+t('eligibility: strictly after 2026-10-11', () => {
+  assert.equal(isStatsEligible('cases-2026-10-12'), true);
+  assert.equal(isStatsEligible('cases-2026-10-11'), false);
+  assert.equal(isStatsEligible('holes-haze-and-old-paint-2026-10-08'), false);
+  assert.equal(isStatsEligible('Cases-2026-10-12'), false);
+  assert.equal(isStatsEligible('preview'), false);
+  assert.equal(isStatsEligible(null), false);
+});
+t('finishPayload: only approved fields, capped', () => {
+  const rec = { v: 1, outcome: 'won', mistakes: 2, guesses: 6, hints: { labels: true, seeds: false, category: true, extra: 1 }, hintUsed: true, everCasual: false, finishedAt: '2026-10-20T00:00:00Z' };
+  const b = finishPayload('cases-2026-10-12', 'u', rec);
+  assert.deepEqual(Object.keys(b).sort(), ['anonId', 'casual', 'event', 'guesses', 'hints', 'mistakes', 'outcome', 'puzzleId']);
+  assert.deepEqual(b.hints, { labels: true, seeds: false, category: true });
+  assert.equal(b.casual, false); assert.equal(b.mistakes, 2); assert.equal(b.guesses, 6);
+  const c = finishPayload('x-2026-10-12', 'u', { outcome: 'won', mistakes: 33, guesses: 60, hints: {}, everCasual: true });
+  assert.equal(c.mistakes, 20); assert.equal(c.guesses, 40); assert.equal(c.casual, true);
+  assert.equal(finishPayload('x', 'u', { outcome: 'playing' }), null);
+});
+const ROW = { puzzle_id: 'x-2026-10-12', plays: 14, std_finishes: 12, std_wins: 9, mistakes_hist: [3, 3, 2, 1, 3], hint_any: 5, hint_labels: 4, hint_seeds: 1, hint_category: 2, rating_n: 10, rating_hist: [0, 1, 2, 5, 2] };
+t('classSummary numbers', () => {
+  const s = classSummary(ROW);
+  assert.equal(s.enough, true); assert.equal(s.plays, 14); assert.equal(s.solvedPct, 75);
+  assert.equal(s.avgMistakes, (3 + 4 + 3 + 12) / 12); assert.equal(s.hintPct, 42); assert.equal(s.topHint, 'Label Images');
+  assert.equal(s.ratingEnough, true); assert.equal(s.ratingLabel, 'Hard'); // mean 3.8
+  assert.equal(classSummary({ ...ROW, std_finishes: 9 }).enough, false);
+  assert.equal(classSummary(null), null);
+});
+t('classSlot + fewerMistakesPct (losses worst, strictly more)', () => {
+  assert.equal(classSlot({ outcome: 'won', mistakes: 0, everCasual: false }), 0);
+  assert.equal(classSlot({ outcome: 'lost', mistakes: 4 }), 4);
+  assert.equal(classSlot({ outcome: 'won', mistakes: 1, everCasual: true }), null);
+  const s = classSummary(ROW);
+  assert.equal(fewerMistakesPct(s, 0), Math.round(9 / 12 * 100));
+  assert.equal(fewerMistakesPct(s, 3), 25);
+  assert.equal(fewerMistakesPct(s, 4), null);
+  assert.equal(fewerMistakesPct(s, null), null);
+  assert.equal(fewerMistakesPct(classSummary({ ...ROW, mistakes_hist: [12, 0, 0, 0, 0] }), 0), null); // nobody worse -> omit
+  assert.equal(fewerMistakesPct(classSummary({ ...ROW, std_finishes: 5 }), 0), null);
+});
+t('menuStatsLine thresholds', () => {
+  assert.equal(menuStatsLine(classSummary(ROW)), '14 plays · 75% solved · Rated Hard');
+  assert.equal(menuStatsLine(classSummary({ ...ROW, rating_hist: [0, 1, 2, 3, 2] })), '14 plays · 75% solved');
+  assert.equal(menuStatsLine(classSummary({ ...ROW, std_finishes: 9 })), 'Rated Hard');
+  assert.equal(menuStatsLine(null), '');
+});
 console.log(n, 'tests passed');
