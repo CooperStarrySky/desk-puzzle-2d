@@ -237,6 +237,8 @@ textarea.input { resize: vertical; min-height: 70px; }
       <p class="muted">Type your email and we’ll send you a sign-in link. No password needed. Open the link on this device.</p>
       <form id="signin-form" class="stack" style="--gap:10px">
         <label class="field"><span>Your email</span><input class="input" id="signin-email" type="email" autocomplete="email" required placeholder="you@rowan.edu"></label>
+        <label class="check"><input type="checkbox" id="signin-keep" checked> <span>Keep me signed in on this device</span></label>
+        <p class="hint" style="margin:0">Untick on a shared or library computer: you'll be signed out when the tab closes.</p>
         <div class="row"><button class="btn primary" type="submit" id="signin-btn">Email me a sign-in link</button></div>
       </form>
       <p id="signin-msg" hidden></p>
@@ -317,6 +319,19 @@ function plainError(e) {
   return m || 'Something went wrong. Please try again.';
 }
 
+/* "Keep me signed in": the session lives in localStorage (survives closing the
+   browser) or, when unticked, in sessionStorage (gone when the tab closes).
+   The choice and the last email are remembered on this device. */
+const KEEP_KEY = 'dp2d:inbox-keep', EMAIL_KEY = 'dp2d:inbox-email';
+function prefGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function prefSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* storage off */ } }
+function keepSignedIn() { return prefGet(KEEP_KEY) !== '0'; }
+const inboxStorage = {
+  getItem(k) { try { return (keepSignedIn() ? localStorage : sessionStorage).getItem(k); } catch (e) { return null; } },
+  setItem(k, v) { try { (keepSignedIn() ? localStorage : sessionStorage).setItem(k, v); } catch (e) { /* storage off */ } },
+  removeItem(k) { try { localStorage.removeItem(k); } catch (e) { /* */ } try { sessionStorage.removeItem(k); } catch (e) { /* */ } },
+};
+
 /* Test hook: ONLY on localhost with ?mock in the address, a test can supply a
    fake client as window.__inboxMockClient. On the real site this never runs. */
 function makeClient() {
@@ -326,7 +341,7 @@ function makeClient() {
   if (!window.supabase || typeof window.supabase.createClient !== 'function') return 'noscript';
   return window.supabase.createClient(String(CFG.supabaseUrl).trim().replace(/\/+$/, ''), KEY, {
     // "implicit" so the emailed link also works when it opens in a different browser app
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' },
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit', storage: inboxStorage },
   });
 }
 
@@ -361,6 +376,9 @@ async function signIn(ev) {
   const email = $('#signin-email').value.trim();
   const msg = $('#signin-msg'); const btn = $('#signin-btn');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.hidden = false; msg.className = 'err-box'; msg.textContent = 'That doesn’t look like an email address.'; return; }
+  const keep = $('#signin-keep').checked;
+  prefSet(KEEP_KEY, keep ? '1' : '0');
+  prefSet(EMAIL_KEY, keep ? email : null);
   btn.disabled = true; btn.textContent = 'Sending…';
   const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
   btn.disabled = false; btn.textContent = 'Email me a sign-in link';
@@ -635,6 +653,8 @@ function boot() {
   if (sb === 'setup') { show('v-setup'); return; }
   if (sb === 'noscript') { show('v-noscript'); return; }
   $('#signin-form').addEventListener('submit', signIn);
+  $('#signin-keep').checked = keepSignedIn();
+  if (prefGet(EMAIL_KEY)) $('#signin-email').value = prefGet(EMAIL_KEY);
   $('#btn-signout').addEventListener('click', signOut);
   $('#notadmin-signout').addEventListener('click', signOut);
   $('#btn-refresh').addEventListener('click', async () => {
