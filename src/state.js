@@ -50,7 +50,7 @@ export var lockBtnEls = [];
 /* ── Master state object ─────────────────────────────────────────── */
 
 export var state = {
-  settings: { casual: false, sound: true, theme: 'system' },
+  settings: { casual: false, sound: true, theme: 'system', shareStats: true },
   game: null,
   pieceEls: {},
   desk: null,
@@ -147,7 +147,8 @@ export function cacheEls() {
     'overlay-help', 'btn-close-help',
     'overlay-results', 'results-title', 'results-sub', 'results-hints', 'results-groups',
     'results-eyebrow', 'results-stamp', 'results-found', 'results-hints-k', 'results-path', 'results-path-block',
-    'btn-share', 'btn-copy-anki', 'btn-play-again', 'btn-back-menu', 'share-fallback',
+    'btn-share', 'btn-copy-anki', 'btn-results-stats', 'btn-menu-stats', 'overlay-stats', 'stats-body',
+    'btn-close-stats', 'overlay-menu-settings', 'btn-close-menu-settings', 'btn-notice-settings', 'btn-play-again', 'btn-back-menu', 'share-fallback',
     'error-message', 'btn-error-menu', 'layout-panel', 'reveal-note',
   ].forEach(function (id) {
     els[toCamel(id)] = document.getElementById(id);
@@ -173,6 +174,7 @@ export function loadSettings() {
       var parsed = JSON.parse(raw);
       state.settings.casual = !!parsed.casual;
       state.settings.sound = parsed.sound !== false;
+      state.settings.shareStats = parsed.shareStats !== false;
       if (parsed.theme === 'light' || parsed.theme === 'dark' || parsed.theme === 'system') state.settings.theme = parsed.theme;
     }
   } catch (e) { /* corrupt settings — use defaults */ }
@@ -203,6 +205,9 @@ export function setTheme(mode) {
 export function syncSettingsUi() {
   if (els.toggleCasual) els.toggleCasual.checked = state.settings.casual;
   if (els.toggleSound) els.toggleSound.checked = state.settings.sound;
+  document.querySelectorAll('input[data-setting="shareStats"]').forEach(function (c) {
+    c.checked = state.settings.shareStats !== false;
+  });
   document.querySelectorAll('input[name="theme"]').forEach(function (r) {
     r.checked = r.value === state.settings.theme;
   });
@@ -262,6 +267,9 @@ export function saveKey(puzzleId) { return SAVE_NS + puzzleId; }
 export function persistGame() {
   if (!state.game || !state.desk || state.previewMode) return;
   var snap = state.game.snapshot();
+  // Sticky casual: once casual is on during a live game, the game stays
+  // casual for stats even if it is switched off again before the end.
+  state.desk.everCasual = !!state.desk.everCasual || (!!state.settings.casual && snap.phase === 'playing');
   snap.desk = state.desk;
   snap.casual = !!state.settings.casual;
   try {

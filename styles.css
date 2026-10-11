@@ -2850,3 +2850,67 @@ body.preview-mode .play-header-title p { display: none; }
   margin: 0 0 6px;
   font-style: italic;
 }
+
+/* ── My stats (this browser only) + share-stats notice ───────────── */
+.stats-card { max-width: 440px; }
+.stats-card h2, .stats-settings-card h2 { margin: 0 0 14px; }
+.stats-settings-card { max-width: 420px; }
+.stats-nums {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 10px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.stats-num-v { font: 700 1.9rem/1.1 var(--serif); color: var(--ink); font-variant-numeric: tabular-nums; }
+.stats-num-k { margin-top: 3px; font-size: 0.78rem; color: var(--ink-soft); line-height: 1.25; }
+.stats-chart-title {
+  margin: 0 0 10px;
+  font: 800 0.7rem/1 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.stats-chart { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.stats-row { display: grid; grid-template-columns: 5.6em minmax(0, 1fr); align-items: center; gap: 8px; }
+.stats-row-k { font-size: 0.85rem; color: var(--ink-soft); text-align: right; font-variant-numeric: tabular-nums; }
+.stats-row-track { display: block; min-width: 0; }
+.stats-bar {
+  display: block;
+  min-width: 1.9em;
+  padding: 3px 8px;
+  border-radius: var(--r-s);
+  background: var(--tier-3);
+  color: var(--tier-3-ink);
+  font: 700 0.85rem/1.3 var(--sans);
+  text-align: right;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+}
+.stats-row.is-lost .stats-bar { background: var(--control-bg); color: var(--ink-soft); }
+.stats-row.is-you .stats-bar { background: var(--eosin); color: var(--eosin-ink); }
+.stats-row.is-you .stats-row-k { color: var(--ink); font-weight: 700; }
+.stats-note { margin: 16px 0 0; font-size: 0.82rem; color: var(--ink-soft); line-height: 1.45; }
+.stats-settings-card .toggle-row { margin-top: 4px; }
+
+.site-foot .stats-notice { margin: 12px 0 0; font-size: 0.8rem; color: var(--ink-soft); }
+.btn-stats { display: inline-flex; align-items: center; gap: 6px; }
+.btn-stats svg { flex: none; }
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--accent); }
+@media (max-width: 560px) {
+  /* Phones: icon-only My stats so the brand keeps its line. */
+  .btn-stats { padding: 0.45em 0.55em; }
+  .btn-stats-label { display: none; }
+}
+@media (max-width: 420px) {
+  .stats-num-v { font-size: 1.6rem; }
+}

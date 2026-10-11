@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort 16 pathology clues into 4 hidden groups." />
   <meta name="twitter:image" content="https://cooperstarrysky.github.io/desk-puzzle-2d/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=38" />
+  <link rel="stylesheet" href="styles.css?v=39" />
 </head>
 <body>
   <div id="app">
@@ -35,6 +35,7 @@
           <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="brand-name">Desk Puzzle<small>Pathology puzzles &middot; CMSRU</small></span></div>
           <nav class="site-head-actions" aria-label="Menu">
             <button id="btn-menu-help" class="btn btn-ghost btn-small" type="button">How to play</button>
+            <button id="btn-menu-stats" class="btn btn-ghost btn-small btn-stats" type="button" aria-label="My stats" title="My stats"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="btn-stats-label">My stats</span></button>
             <a class="btn btn-ghost btn-small head-submit" href="studio/?submit">Submit a category</a>
             <button id="btn-menu-theme" class="btn btn-ghost btn-small btn-icon" type="button" aria-label="Switch to dark theme" title="Switch to dark theme"><svg class="ico-moon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="ico-sun" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
           </nav>
@@ -79,6 +80,7 @@
           <p>Made by CMSRU students as a study tool. Not official course material and not medical advice.</p>
           <a href="studio/?submit">Submit a category</a>
         </div>
+        <div class="menu-wrap"><p class="stats-notice">Anonymous play stats help everyone see how the class did. You can turn this off in <button id="btn-notice-settings" class="link-btn" type="button">Settings</button>.</p></div>
       </footer>
     </section>
 
@@ -116,6 +118,10 @@
                 <label class="toggle-row">
                   <input type="checkbox" id="toggle-casual" />
                   <span>Casual mode: unlimited mistakes, still counted</span>
+                </label>
+                <label class="toggle-row">
+                  <input type="checkbox" id="toggle-share-stats" data-setting="shareStats" checked />
+                  <span>Share my anonymous play stats</span>
                 </label>
               </div>
               <div class="overlay-actions">
@@ -268,6 +274,7 @@
             <div class="results-actions">
               <button id="btn-share" class="btn btn-primary" type="button">Share result</button>
               <button id="btn-copy-anki" class="btn btn-ghost" type="button">Study these in Anki</button>
+              <button id="btn-results-stats" class="btn btn-ghost" type="button">My stats</button>
               <button id="btn-play-again" class="btn btn-ghost" type="button">Play again</button>
               <button id="btn-back-menu" class="btn btn-ghost" type="button">Back to menu</button>
             </div>
@@ -279,6 +286,33 @@
         </div>
         <div id="results-groups" class="results-groups"></div>
         <textarea id="share-fallback" class="share-fallback" readonly hidden aria-label="Share text, copy manually"></textarea>
+      </div>
+    </div>
+
+    <!-- ═══════════════════ MY STATS ═══════════════════ -->
+    <div id="overlay-stats" class="overlay" hidden>
+      <div class="overlay-card stats-card" role="dialog" aria-modal="true" aria-labelledby="stats-title">
+        <p class="clue-guide-kicker">On this browser</p>
+        <h2 id="stats-title">My stats</h2>
+        <div id="stats-body" class="stats-body"></div>
+        <div class="overlay-actions">
+          <button id="btn-close-stats" class="btn btn-primary" type="button">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════ MENU SETTINGS ═══════════════════ -->
+    <div id="overlay-menu-settings" class="overlay" hidden>
+      <div class="overlay-card stats-settings-card" role="dialog" aria-modal="true" aria-labelledby="menu-settings-title">
+        <h2 id="menu-settings-title">Settings</h2>
+        <label class="toggle-row">
+          <input type="checkbox" id="toggle-share-stats-menu" data-setting="shareStats" checked />
+          <span>Share my anonymous play stats</span>
+        </label>
+        <p class="stats-note">Shared stats are counts only, like how many players solved a puzzle. No names or accounts. Your own My stats panel works either way.</p>
+        <div class="overlay-actions">
+          <button id="btn-close-menu-settings" class="btn btn-primary" type="button">Done</button>
+        </div>
       </div>
     </div>
 
@@ -310,6 +344,6 @@
       document.write('<script src="puzzles/.local-puzzle-fallback.js"><\\/script>');
     }
   </script>
-  <script type="module" src="src/main.js?v=38"></script>
+  <script type="module" src="src/main.js?v=39"></script>
 </body>
 </html>

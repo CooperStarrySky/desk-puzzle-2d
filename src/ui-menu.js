@@ -290,7 +290,7 @@ export function sanitizeEngineSave(saved, puzzle) {
     phase = 'playing';
   }
 
-  return { caseId: puzzle.id, phase: phase, staging: staging, mistakes: mistakes, solved: solved, attempts: attempts, desk: saved.desk };
+  return { caseId: puzzle.id, phase: phase, staging: staging, mistakes: mistakes, solved: solved, attempts: attempts, desk: saved.desk, casual: saved.casual === true };
 }
 
 /* ── Desk state restore ──────────────────────────────────────────── */
@@ -342,6 +342,9 @@ export function restoreDeskState(saved, puzzle, game) {
     }
   }
   desk.hints = hints;
+  // Sticky casual flag (new 2026-10-11). Older saves only kept the last
+  // casual value, so fall back to that.
+  desk.everCasual = d.everCasual === true || !!(saved && saved.casual === true);
   return desk;
 }
 

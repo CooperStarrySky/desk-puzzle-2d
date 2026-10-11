@@ -9,12 +9,14 @@
 import {
   state, els,
   cacheEls, loadSettings, applyTheme, darkQuery,
-  loadLayout, applyLayout, syncSettingsUi, saveSettings, setTheme,
+  loadLayout, applyLayout, syncSettingsUi, saveSettings, setTheme, persistGame,
 } from './state.js';
 
 import { applySoundLayer, loadSoundOverrides } from './audio.js';
 
 import { loadTextures } from './textures.js';
+
+import { bindStatsUi } from './stats.js';
 
 import {
   syncHeader, syncMachines,
@@ -89,6 +91,7 @@ async function init() {
     saveSettings();
     if (state.game) {
       state.game.casual = state.settings.casual;
+      if (state.game.phase === 'playing') persistGame(); // records the sticky casual flag right away
       syncHeader();
       syncMachines();
     }
@@ -146,6 +149,9 @@ async function init() {
 
   // Trays (lock buttons via delegation).
   els.trays.addEventListener('click', onTraysClick);
+
+  // My stats panel, share-stats switches, menu Settings dialog.
+  bindStatsUi();
 
   // Results.
   els.btnShare.addEventListener('click', onShare);
@@ -309,6 +315,7 @@ async function init() {
   if (params.has('preview')) {
     state.previewMode = true;
     document.body.classList.add('preview-mode');
+    if (els.btnResultsStats) els.btnResultsStats.hidden = true; // stats never apply to drafts
     window.addEventListener('message', function (ev) {
       if (!ev.data) return;
       if (ev.data.type === 'dp2d-preview') bootPreviewDraft();

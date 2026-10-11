@@ -2434,6 +2434,8 @@ export function bindResultsEdit() {
 
 /* ── Share + Anki ──────────────────────────────────────────────────── */
 
+// TODO(stats T6): add a "% of players solved" line once the server totals
+// exist (docs/08-stats-plan.md, owner said yes). Needs puzzle_stats numbers.
 export function buildShareText() {
   var game = state.game;
   var puzzle = game.puzzle;
