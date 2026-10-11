@@ -4,6 +4,7 @@
 // Run it after setting up Supabase, and again after ANY database change:
 //     node tools/leak_test.mjs                 # read/write checks with the public key
 //     node tools/leak_test.mjs --send-sample   # also sends one test category
+//     node tools/leak_test.mjs --send-sample=puzzle  # ...and one tiny test full puzzle
 //
 // It acts like a stranger who copied the public key out of studio/config.js
 // (anyone can) and tries to read, change, or add submissions, admins, the rate
@@ -16,7 +17,8 @@
 //
 // --send-sample posts a tiny valid category ("TEST: things that cause
 // clubbing") through the real submit function and expects a receipt code.
-// Decline it in the inbox afterwards. Run it before turning on Turnstile, or
+// --send-sample=puzzle also sends a tiny full puzzle ("TEST: automated full
+// puzzle", 4 categories, 4 tiny images). Decline them in the inbox afterwards. Run it before turning on Turnstile, or
 // it is refused (correctly) for missing the "are you human" check.
 
 import fs from 'node:fs';
@@ -26,7 +28,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
-const SEND = args.includes('--send-sample');
+const SEND_PUZZLE = args.includes('--send-sample=puzzle');
+const SEND = SEND_PUZZLE || args.includes('--send-sample');
 const ORIGIN = process.env.LEAK_TEST_ORIGIN || 'https://cooperstarrysky.github.io';
 
 function readConfig() {
@@ -107,16 +110,24 @@ result(refused(r), `can't upload into the bucket (${how(r)})`);
 
 // ── Optional: send one sample through the real function ──
 if (SEND) {
-  const { goodSample } = await import(pathToFileURL(path.join(ROOT, 'supabase', 'tests', 'samples.mjs')).href);
+  const { goodSample, goodPuzzleSample } = await import(pathToFileURL(path.join(ROOT, 'supabase', 'tests', 'samples.mjs')).href);
   const res = await call('POST', '/functions/v1/submit', { submission: goodSample(), turnstileToken: '', website: '' }, { Origin: ORIGIN });
   const okReceipt = res.status === 200 && res.json && res.json.ok === true && /^DP-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(res.json.receipt || '');
   result(okReceipt, `sample category accepted by the submit function (${res.status}${res.json ? ': ' + (res.json.receipt || res.json.error || '') : ', ' + res.text.slice(0, 120)})`);
-  if (res.status === 404) console.log('     The function is not deployed yet: supabase functions deploy submit --no-verify-jwt');
+  if (res.status === 404) console.log('     The function is not deployed yet: npx supabase functions deploy submit --no-verify-jwt --use-api');
+  let pzRes = null;
+  if (SEND_PUZZLE) {
+    pzRes = await call('POST', '/functions/v1/submit', { submission: goodPuzzleSample(), turnstileToken: '', website: '' }, { Origin: ORIGIN });
+    const okPz = pzRes.status === 200 && pzRes.json && pzRes.json.ok === true && /^DP-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(pzRes.json.receipt || '');
+    result(okPz, `sample full puzzle accepted by the submit function (${pzRes.status}${pzRes.json ? ': ' + (pzRes.json.receipt || pzRes.json.error || '') : ', ' + pzRes.text.slice(0, 120)})`);
+    if (!okPz) pzRes = null;
+  }
   const after = await call('GET', '/rest/v1/submissions?select=*&limit=5');
   result(nothing(after), `the sample is still invisible to the public key (${how(after)})`);
   const bad = await call('POST', '/functions/v1/submit', { submission: goodSample() }, { Origin: 'https://not-our-site.example' });
   result(bad.status === 403, `function refuses other websites (${bad.status})`);
   if (okReceipt) console.log(`     Receipt ${res.json.receipt}: find "TEST: things that cause clubbing" in the inbox and Decline it.`);
+  if (pzRes) console.log(`     Receipt ${pzRes.json.receipt}: find "TEST: automated full puzzle" in the inbox and Decline it.`);
 }
 
 console.log(fails ? `\n${fails} FAIL. Do not open the inbox to students until every line passes.` : '\nAll PASS. The public key can submit but cannot read a single row or image.');
