@@ -80,7 +80,7 @@
           <p>Made by CMSRU students as a study tool. Not official course material and not medical advice.</p>
           <a href="studio/?submit">Submit a category</a>
         </div>
-        <div class="menu-wrap"><p class="stats-notice">Anonymous play stats help everyone see how the class did. You can turn this off in <button id="btn-notice-settings" class="link-btn" type="button">Settings</button>.</p></div>
+        <div class="menu-wrap"><p class="stats-notice">Finished games send anonymous results (no names) to show class totals. Turn this off in <button id="btn-notice-settings" class="link-btn" type="button">Settings</button>.</p></div>
       </footer>
     </section>
 
@@ -123,6 +123,7 @@
                   <input type="checkbox" id="toggle-share-stats" data-setting="shareStats" checked />
                   <span>Share my anonymous play stats</span>
                 </label>
+                <p class="settings-share-note">Finished games send anonymous results (no names) to show class totals. <button id="btn-whats-sent" class="link-btn" type="button">What's sent?</button></p>
               </div>
               <div class="overlay-actions">
                 <button id="btn-close-settings" class="btn btn-primary" type="button">Done</button>
@@ -326,12 +327,26 @@
     <!-- ═══════════════════ MENU SETTINGS ═══════════════════ -->
     <div id="overlay-menu-settings" class="overlay" hidden>
       <div class="overlay-card stats-settings-card" role="dialog" aria-modal="true" aria-labelledby="menu-settings-title">
-        <h2 id="menu-settings-title">Settings</h2>
+        <h2 id="menu-settings-title">Share my anonymous play stats</h2>
+        <div class="privacy-text">
+          <p>When you finish a puzzle released after Oct 11, 2026, this browser sends:</p>
+          <ul>
+            <li>which puzzle it was</li>
+            <li>whether you solved it</li>
+            <li>how many mistakes and guesses you made</li>
+            <li>which hints you used</li>
+            <li>whether casual mode was on</li>
+            <li>your difficulty rating, if you give one</li>
+          </ul>
+          <p>Each browser gets a random ID so a puzzle is only counted once. It isn't linked to your name, email, or school account.</p>
+          <p><strong>Never sent:</strong> your name, email, or school login. To limit spam, a scrambled version of your network address is kept for 24 hours, then deleted.</p>
+          <p>The CMSRU Desk Puzzle group stores this in a private database. It's only used to show totals after you finish, like "64% solved." Nobody can see an individual player's results.</p>
+          <p><strong>Turn this off</strong> and nothing is sent. Your My stats panel still works, because it lives only in this browser.</p>
+        </div>
         <label class="toggle-row">
           <input type="checkbox" id="toggle-share-stats-menu" data-setting="shareStats" checked />
           <span>Share my anonymous play stats</span>
         </label>
-        <p class="stats-note">Shared stats are counts only, like how many players solved a puzzle. No names or accounts. Your own My stats panel works either way.</p>
         <div class="overlay-actions">
           <button id="btn-close-menu-settings" class="btn btn-primary" type="button">Done</button>
         </div>
