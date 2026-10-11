@@ -610,6 +610,18 @@ export function scopeSource(item) {
   return spec.el;
 }
 
+/** Scope-screen canvas colors, read from the theme tokens at draw time. */
+function scopeTone() {
+  var cs = getComputedStyle(document.documentElement);
+  function v(name, fallback) { return cs.getPropertyValue(name).trim() || fallback; }
+  return {
+    bedA: v('--scope-bed-a', '#f4f5fa'),
+    bedB: v('--scope-bed-b', '#d6d9e4'),
+    ring: v('--scope-ring', 'rgba(58, 63, 76, 0.25)'),
+    busy: v('--scope-busy', 'rgba(75, 63, 176, 0.35)'),
+  };
+}
+
 export function renderScopeView() {
   var canvas = els.scopeCanvas;
   if (!canvas) return;
@@ -625,8 +637,9 @@ export function renderScopeView() {
 
   // idle bed
   var bed = ctx.createRadialGradient(cw / 2, ch / 2, 10, cw / 2, ch / 2, Math.max(cw, ch) * 0.7);
-  bed.addColorStop(0, '#f4f5fa');
-  bed.addColorStop(1, '#d6d9e4');
+  var tone = scopeTone();
+  bed.addColorStop(0, tone.bedA);
+  bed.addColorStop(1, tone.bedB);
   ctx.fillStyle = bed;
   ctx.fillRect(0, 0, cw, ch);
 
@@ -637,7 +650,7 @@ export function renderScopeView() {
     // empty stage: a faint objective circle, no text
     ctx.beginPath();
     ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) * 0.3, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(58, 63, 76, 0.25)';
+    ctx.strokeStyle = tone.ring;
     ctx.lineWidth = 3;
     ctx.stroke();
     return;
@@ -649,7 +662,7 @@ export function renderScopeView() {
     // image still loading: soft shimmer ring
     ctx.beginPath();
     ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) * 0.3, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(75, 63, 176, 0.35)';
+    ctx.strokeStyle = tone.busy;
     ctx.lineWidth = 4;
     ctx.stroke();
     return;
@@ -1841,8 +1854,9 @@ export function renderPeekScopeCanvas(item, canvas, scopeWrap) {
 
   // Idle bed background (matches renderScopeView).
   var bed = ctx.createRadialGradient(cw / 2, ch / 2, 10, cw / 2, ch / 2, Math.max(cw, ch) * 0.7);
-  bed.addColorStop(0, '#f4f5fa');
-  bed.addColorStop(1, '#d6d9e4');
+  var tone = scopeTone();
+  bed.addColorStop(0, tone.bedA);
+  bed.addColorStop(1, tone.bedB);
   ctx.fillStyle = bed;
   ctx.fillRect(0, 0, cw, ch);
 
@@ -1851,7 +1865,7 @@ export function renderPeekScopeCanvas(item, canvas, scopeWrap) {
     // Image still loading — draw a shimmer ring and poll.
     ctx.beginPath();
     ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) * 0.3, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(75, 63, 176, 0.35)';
+    ctx.strokeStyle = tone.busy;
     ctx.lineWidth = 4;
     ctx.stroke();
     setTimeout(function () { renderPeekScopeCanvas(item, canvas, scopeWrap); }, 150);
@@ -2495,4 +2509,10 @@ export function onCopyAnki() {
   } else {
     showShareFallback(text);
   }
+}
+
+// Repaint the scope screen when the theme flips (its idle colors come from tokens).
+if (window.MutationObserver) {
+  new MutationObserver(function () { renderScopeView(); })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }

@@ -86,7 +86,18 @@
   --machine-dark-a: #4a4f5c;   /* metal: scope stage, bezels, rails */
   --machine-dark-b: #33363f;
   --control-bg: #eef0f5;
+  /* microscope screen; ui-play.js reads the --scope-* values at draw time */
+  --scope-screen: #eef0f6;
+  --scope-bed-a: #f4f5fa;
+  --scope-bed-b: #d6d9e4;
+  --scope-ring: rgba(58, 63, 76, 0.25);
+  --scope-busy: rgba(75, 63, 176, 0.35);
+  --stage-glass-a: rgba(252, 252, 255, 0.95);
+  --stage-glass-b: rgba(232, 234, 246, 0.75);
+  --stage-glass-c: rgba(170, 176, 200, 0.5);
+  --stage-glass-glow: rgba(236, 240, 255, 0.5);
   --slot-bg: rgba(255, 255, 255, 0.45);
+  --slot-well: none;
   --slot-bg-locked: rgba(255, 255, 255, 0.5);
 
   color-scheme: light;
@@ -134,16 +145,26 @@
   --wall-a: #262835;
   --wall-b: #1e202b;
   --wall-ink: rgba(222, 226, 238, 0.55);
-  --lightbox-a: #d6dae6;
-  --lightbox-b: #b4bacb;
-  --lightbox-c: #8f96aa;
-  --lightbox-glow: rgba(200, 208, 230, 0.28);
+  --lightbox-a: #a7adbf;   /* softly lit, not white */
+  --lightbox-b: #868c9f;
+  --lightbox-c: #646a7c;
+  --lightbox-glow: rgba(160, 170, 200, 0.14);
   --machine-shell-a: #2e303c;
   --machine-shell-b: #23252f;
   --machine-dark-a: #3a3e4a;
   --machine-dark-b: #262932;
   --control-bg: #2a2c38;
-  --slot-bg: rgba(255, 255, 255, 0.06);
+  --scope-screen: #15171e;
+  --scope-bed-a: #1d2029;
+  --scope-bed-b: #111319;
+  --scope-ring: rgba(200, 206, 224, 0.16);
+  --scope-busy: rgba(157, 147, 240, 0.4);
+  --stage-glass-a: rgba(176, 182, 200, 0.7);
+  --stage-glass-b: rgba(120, 126, 146, 0.55);
+  --stage-glass-c: rgba(70, 76, 94, 0.5);
+  --stage-glass-glow: rgba(160, 170, 200, 0.18);
+  --slot-bg: rgba(0, 0, 0, 0.22);
+  --slot-well: inset 0 1px 3px rgba(0, 0, 0, 0.35);
   --slot-bg-locked: rgba(0, 0, 0, 0.18);
   color-scheme: dark;
 }
@@ -526,7 +547,7 @@ img { max-width: 100%; display: block; }
   border-radius: var(--r-s);
   overflow: hidden;
   border: 3px solid var(--machine-dark-a);
-  background: #eef0f6; /* a lit screen stays lit in dark mode too */
+  background: var(--scope-screen);
   box-shadow: inset 0 0 14px rgba(28, 30, 50, 0.25);
 }
 .scope-canvas {
@@ -696,8 +717,8 @@ img { max-width: 100%; display: block; }
   width: 78px; height: 78px;
   transform: translate(-50%, -54%);
   border-radius: 50%;
-  background: radial-gradient(circle at 45% 40%, rgba(252, 252, 255, 0.95), rgba(232, 234, 246, 0.75) 55%, rgba(170, 176, 200, 0.5));
-  box-shadow: 0 0 14px rgba(236, 240, 255, 0.5), inset 0 0 8px rgba(60, 66, 96, 0.3);
+  background: radial-gradient(circle at 45% 40%, var(--stage-glass-a), var(--stage-glass-b) 55%, var(--stage-glass-c));
+  box-shadow: 0 0 14px var(--stage-glass-glow), inset 0 0 8px rgba(60, 66, 96, 0.3);
 }
 .scope-stage.drop-hot { outline: 3px dashed var(--accent-soft); outline-offset: 3px; }
 
@@ -798,6 +819,7 @@ img { max-width: 100%; display: block; }
   border: 1.5px dashed var(--panel-edge);
   border-radius: 8px;
   background: var(--slot-bg);
+  box-shadow: var(--slot-well);
   transition: border-color var(--dur-fast);
 }
 .tray.is-locked .tray-slot {
@@ -1260,15 +1282,15 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   position: absolute;
   top: 8px; left: 10px;
   z-index: 2;
-  background: rgba(251, 251, 253, 0.92);
-  border: 1px solid rgba(28, 26, 46, 0.13);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid var(--panel-edge);
   border-radius: 999px;
   padding: 2px 10px;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #524f6b; /* sits on the always-lit screen, so fixed light-theme ink */
+  color: var(--ink-soft);
 }
 .scope-slide-title:empty { display: none; }
 
@@ -2486,7 +2508,7 @@ body.preview-mode .play-header-title p { display: none; }
   border-radius: var(--r-s);
   overflow: hidden;
   border: 3px solid var(--machine-dark-a);
-  background: #eef0f6;
+  background: var(--scope-screen);
   box-shadow: inset 0 0 14px rgba(28, 30, 50, 0.25);
 }
 .peek-scope-wrap .peek-canvas {
