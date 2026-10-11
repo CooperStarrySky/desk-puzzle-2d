@@ -35,7 +35,7 @@ import {
 
 import {
   playToday, onPuzzleCardClick, toggleMenuTheme, syncMenuThemeToggle,
-  backToMenu, onPlayAgain, onResetPuzzle, refreshMenu, tryDeepLink, openPuzzle,
+  goHome, onPlayAgain, onResetPuzzle, refreshMenu, initHistory, openPuzzle,
 } from './ui-menu.js';
 
 import {
@@ -111,7 +111,7 @@ async function init() {
   if (els.btnHints) {
     els.btnHints.addEventListener('click', function () { toggleHintsPanel(); });
   }
-  els.btnMenu.addEventListener('click', backToMenu);
+  els.btnMenu.addEventListener('click', goHome);
 
   // Viewport health tip: dismiss button.
   var viewportTipDismissBtn = document.querySelector('.viewport-tip-dismiss');
@@ -160,13 +160,10 @@ async function init() {
   els.btnShare.addEventListener('click', onShare);
   els.btnCopyAnki.addEventListener('click', onCopyAnki);
   els.btnPlayAgain.addEventListener('click', onPlayAgain);
-  els.btnBackMenu.addEventListener('click', function () {
-    hideOverlay(els.overlayResults);
-    backToMenu();
-  });
+  els.btnBackMenu.addEventListener('click', goHome);
 
   // Error screen.
-  els.btnErrorMenu.addEventListener('click', backToMenu);
+  els.btnErrorMenu.addEventListener('click', goHome);
 
   // Editor (delegated; the form is rebuilt but these binds never are).
   els.screenEditor.addEventListener('input', onEditorInput);
@@ -348,7 +345,7 @@ async function init() {
   }
 
   refreshMenu();
-  if (!tryDeepLink()) showScreen('screenMenu');
+  if (!initHistory()) showScreen('screenMenu');
 }
 
 // Defer normally means we run before DOMContentLoaded, but guard against

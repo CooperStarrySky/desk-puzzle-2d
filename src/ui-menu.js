@@ -4,7 +4,7 @@
  * Imports: engine.js, state.js, audio.js, ui-play.js.
  * Exports: fetchJson, loadRegistry, loadPuzzleByEntry, openPuzzle,
  *   renderMenu, applyRegistryTitles, sanitizeEngineSave, restoreDeskState,
- *   playToday, tryDeepLink, backToMenu, refreshMenu, onPlayAgain,
+ *   playToday, initHistory, goHome, backToMenu, refreshMenu, onPlayAgain,
  *   onResetPuzzle, onPuzzleCardClick, formatPuzzleDate, fillMiniDesk,
  *   savedProgress, syncMenuThemeToggle, toggleMenuTheme.
  * ════════════════════════════════════════════════════════════════════ */
@@ -469,7 +469,7 @@ export function onPuzzleCardClick(ev) {
   if (puzzleLoadInFlight) return; // ignore second tap while load is in flight
   puzzleLoadInFlight = true;
   var entry = { id: btn.dataset.puzzleId, file: btn.dataset.puzzleFile };
-  loadPuzzleByEntry(entry).then(openPuzzle).catch(function (err) {
+  loadPuzzleByEntry(entry).then(openPuzzleFromMenu).catch(function (err) {
     showErrorScreen(err.message);
   }).finally(function () {
     puzzleLoadInFlight = false;
@@ -478,11 +478,102 @@ export function onPuzzleCardClick(ev) {
 
 /* ── Navigation ──────────────────────────────────────────────────── */
 
+/** Show the menu screen (no history change; see goHome for buttons). */
 export function backToMenu() {
   closeHintsPanel();
   closeSettingsPanel();
+  if (els.overlayResults) hideOverlay(els.overlayResults);
+  if (els.overlayHelp) hideOverlay(els.overlayHelp);
   showScreen('screenMenu');
   refreshMenu();
+}
+
+/* ── Browser history ─────────────────────────────────────────────────
+ * Two kinds of entries: the menu ({ dp2d: 'menu' }, plain URL) and a
+ * puzzle ({ dp2d: 'puzzle', id }, ?puzzle=<id>). A puzzle entry always
+ * sits on top of a menu entry (a deep link gets one slipped in under it
+ * on load), so Back from a puzzle returns to the menu instead of leaving
+ * the site. The results screen belongs to its puzzle's entry: Back from
+ * results goes to the menu, exactly like the Home and "Back to menu"
+ * buttons, which simply call history.back() when they can. Other query
+ * parameters (e.g. ?layout) are kept on both kinds of URL. */
+
+var historyOn = false;
+
+function urlFor(puzzleId) {
+  var u = new URL(window.location.href);
+  u.searchParams.delete('puzzle');
+  if (puzzleId) u.searchParams.set('puzzle', puzzleId);
+  return u.pathname + u.search + u.hash;
+}
+
+function onMenuEntry() {
+  var s = window.history.state;
+  return !s || s.dp2d !== 'puzzle';
+}
+
+/** Called once by main.js for the normal game page (not ?editor/?preview).
+    Returns true when a ?puzzle= deep link is being opened. */
+export function initHistory() {
+  historyOn = !!(window.history && window.history.pushState);
+  var params = new URLSearchParams(window.location.search);
+  var deepId = params.get('puzzle');
+  var cur = window.history && window.history.state;
+  var reloaded = !!(deepId && cur && cur.dp2d === 'puzzle' && cur.id === deepId);
+  if (historyOn) {
+    if (reloaded) {
+      // A reload of an entry we made earlier: its menu entry is still below it.
+    } else if (deepId) {
+      window.history.replaceState({ dp2d: 'menu' }, '', urlFor(null));
+      window.history.pushState({ dp2d: 'puzzle', id: deepId }, '', urlFor(deepId));
+    } else {
+      window.history.replaceState({ dp2d: 'menu' }, '', window.location.href);
+    }
+    window.addEventListener('popstate', onPopState);
+  }
+  return deepId ? openPuzzleById(deepId) : false;
+}
+
+function onPopState(ev) {
+  var s = ev.state;
+  if (s && s.dp2d === 'puzzle' && s.id) {
+    var g = state.game;
+    if (g && g.puzzle && g.puzzle.id === s.id && els.screenPlay && !els.screenPlay.hidden) return;
+    openPuzzleById(s.id);
+  } else {
+    backToMenu();
+  }
+}
+
+/** Load a registry puzzle by id and open it (no history change). */
+function openPuzzleById(puzzleId) {
+  if (puzzleLoadInFlight) return true;
+  puzzleLoadInFlight = true;
+  loadRegistry().then(function (registry) {
+    var entry = (registry.puzzles || []).find(function (p) { return p.id === puzzleId; });
+    if (!entry) {
+      showErrorScreen('No puzzle found for id "' + puzzleId + '". Check the URL and try reloading.');
+      return;
+    }
+    return loadPuzzleByEntry(entry).then(openPuzzle);
+  }).catch(function (err) { showErrorScreen(err.message); })
+    .finally(function () { puzzleLoadInFlight = false; });
+  return true;
+}
+
+/** Opening from the menu: show the puzzle and give it a history entry. */
+function openPuzzleFromMenu(puzzleData) {
+  openPuzzle(puzzleData);
+  if (!historyOn || !puzzleData || !els.screenPlay || els.screenPlay.hidden) return;
+  if (onMenuEntry()) window.history.pushState({ dp2d: 'puzzle', id: puzzleData.id }, '', urlFor(puzzleData.id));
+  else window.history.replaceState({ dp2d: 'puzzle', id: puzzleData.id }, '', urlFor(puzzleData.id));
+}
+
+/** Home / "Back to menu" buttons: step back to the menu entry so the
+    browser's Forward button can return to the puzzle. */
+export function goHome() {
+  if (historyOn && !onMenuEntry()) { window.history.back(); return; }
+  backToMenu();
 }
 
 export function refreshMenu() {
@@ -515,24 +606,6 @@ export function onResetPuzzle() {
   openPuzzle(JSON.parse(JSON.stringify(puzzle)));
 }
 
-/* ── Deep link ──────────────────────────────────────────────────── */
-
-export function tryDeepLink() {
-  var params = new URLSearchParams(window.location.search);
-  var puzzleId = params.get('puzzle');
-  if (!puzzleId) return false;
-
-  loadRegistry().then(function (registry) {
-    var entry = (registry.puzzles || []).find(function (p) { return p.id === puzzleId; });
-    if (!entry) {
-      showErrorScreen('No puzzle found for id "' + puzzleId + '". Check the URL and try reloading.');
-      return;
-    }
-    return loadPuzzleByEntry(entry).then(openPuzzle);
-  }).catch(function (err) { showErrorScreen(err.message); });
-  return true;
-}
-
 /* ── playToday ──────────────────────────────────────────────────── */
 
 export function playToday() {
@@ -544,7 +617,7 @@ export function playToday() {
     var entry = (registry.puzzles || []).find(function (p) { return p.id === registry.current; })
       || { id: registry.current, file: registry.current + '.json' };
     return loadPuzzleByEntry(entry);
-  }).then(openPuzzle).catch(function (err) {
+  }).then(openPuzzleFromMenu).catch(function (err) {
     showErrorScreen(err.message);
   }).finally(function () {
     puzzleLoadInFlight = false;
