@@ -144,7 +144,7 @@ delete from admins where email = 'friend@rowan.edu';
 ## 9. Try the inbox, then publish
 
 1. Commit the filled-in `studio/config.js` and publish the site as usual.
-2. Open `https://pathologyconnections.org/studio/review-k7q3m9.html`, type your
+2. Open `https://pathologyconnections.org/inbox`, type your
    email, and open the link it sends you on the same device.
 3. You should see the test category. Open it, click **Decline**, and add the note "test".
 4. Send a real one from `studio/?submit` on your phone and check that it shows up.
@@ -175,7 +175,7 @@ expected and correct. Test by sending from the Studio instead.
 - **Sign-in emails are rate-limited.** Supabase's built-in email sender only sends a few
   emails an hour, which is fine for a handful of admins. If someone can't get a link,
   wait a bit and try again.
-- **The inbox address is unlisted:** `studio/review-k7q3m9.html`. Nothing on the site
+- **The inbox address is unlisted:** `inbox/` (pathologyconnections.org/inbox). Nothing on the site
   links to it, and search engines are told not to index it. Bookmark it. (Only people
   on the admins list can read anything there anyway.)
 - **Hourly limits:** 5 sends per browser and 40 per internet connection (a whole class
