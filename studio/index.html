@@ -89,7 +89,7 @@ button { cursor: pointer; }
 .brand-name { font-family: var(--serif); font-size: 1.2rem; font-weight: 600; line-height: 1; }
 .brand-name small { display: block; font-family: var(--sans); font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; margin-top: 3px; }
 .tabs.head-tabs { flex: 1; border-bottom: 0; }
-@media (max-width: 560px) { .tabs.head-tabs { order: 3; flex-basis: 100%; } #theme-btn { margin-left: auto; } }
+@media (max-width: 560px) { .tabs.head-tabs { order: 3; flex-basis: 100%; } }
 /* buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--panel-edge); background: var(--card); color: var(--ink); border-radius: var(--r-s); padding: 8px 14px; font-weight: 600; text-decoration: none; font-size: 0.9rem; line-height: 1.2; transition: transform 0.12s var(--ease), background 0.15s; }
 .btn:hover { background: var(--paper-2); }
@@ -149,6 +149,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .ic.ok { background: var(--ok-soft); color: var(--ok); }
 .ic.no { background: var(--warn-soft); color: var(--warn); }
 .ic.bad { background: var(--danger-soft); color: var(--danger); }
+.ic.info { background: var(--accent-soft); color: var(--accent); }
 .savestate { font-size: 0.8rem; color: var(--ok); display: inline-flex; gap: 6px; align-items: center; }
 .savestate::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .savestate.err { color: var(--danger); }
@@ -180,6 +181,28 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 @media (max-width: 700px) { .frame-wrap { aspect-ratio: auto; min-height: 0; height: 78vh; } }
 .frame-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
 .frame-empty { height: 100%; display: grid; place-items: center; color: #e9ecf4; text-align: center; padding: 20px; }
+/* start screen + submit-a-category mode */
+.choice { max-width: 760px; margin: 18px auto 0; }
+.choice-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 700px) { .choice-grid { grid-template-columns: minmax(0, 1fr); } }
+.choice-card { display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: var(--ink); background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); padding: 20px; transition: border-color 0.15s, transform 0.12s var(--ease); }
+.choice-card:hover { border-color: var(--accent); }
+.choice-card:active { transform: translateY(1px); }
+.choice-card.primary { border: 2px solid var(--accent); box-shadow: 0 6px 18px var(--shadow); }
+.choice-card h2 { font-size: 1.3rem; }
+.choice-card .go { margin-top: auto; color: var(--accent); font-weight: 700; }
+.mode-link { font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+.tier-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .tier-pick { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tier-pick label { display: flex; align-items: center; gap: 8px; border: 1px solid var(--panel-edge); border-radius: var(--r-s); padding: 8px 10px; background: var(--card); cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.tier-pick label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.tier-pick input { accent-color: var(--accent); margin: 0; }
+.check { display: flex; gap: 9px; align-items: flex-start; font-size: 0.9rem; cursor: pointer; }
+.check input { accent-color: var(--accent); margin-top: 3px; flex: none; width: 16px; height: 16px; }
+.consent { border: 1px solid var(--panel-edge); border-left: 3px solid var(--eosin); border-radius: var(--r-s); padding: 10px 12px; background: var(--card); }
+.private-note { font-size: 0.8rem; color: var(--ink-soft); }
+.private-note b { color: var(--ink); }
+.done-file { font-family: var(--mono); font-size: 0.82rem; word-break: break-all; background: var(--paper-2); border-radius: var(--r-s); padding: 6px 9px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 </style>
 </head>
@@ -188,16 +211,58 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
   <div class="wrap">
     <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       <span class="brand-name">Puzzle Studio<small>Desk Puzzle · CMSRU</small></span></div>
-    <nav class="tabs head-tabs" role="tablist" aria-label="Studio views">
+    <nav class="tabs head-tabs" id="head-tabs" role="tablist" aria-label="Studio views" hidden>
       <button role="tab" id="tab-edit" aria-selected="true" aria-controls="view-edit">Edit</button>
       <button role="tab" id="tab-play" aria-selected="false" aria-controls="view-play">Test play</button>
     </nav>
-    <button class="btn small ghost" id="theme-btn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
+    <div class="row" style="--gap:14px; margin-left:auto">
+      <a class="mode-link" id="mode-link" href="./" hidden>All options</a>
+      <button class="btn small ghost" id="theme-btn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
+    </div>
   </div>
 </header>
 
 <main class="wrap section">
-  <section id="view-edit" role="tabpanel" aria-labelledby="tab-edit">
+  <section id="view-choice" hidden>
+    <div class="choice stack" style="--gap:18px">
+      <div class="stack" style="--gap:6px"><span class="eyebrow">CMSRU Desk Puzzle</span>
+        <h1>What would you like to make?</h1>
+        <p class="muted">Each weekly puzzle has four hidden groups of four clues. Most people send in one group, and the puzzle group puts four of them together.</p></div>
+      <div class="choice-grid">
+        <a class="choice-card primary" href="?submit"><span class="eyebrow">For everyone</span><h2>Submit a category to the puzzle group</h2>
+          <p class="muted">Write one group: a hidden answer, four clues, and an optional teaching note. You download one file and send it in.</p><span class="go">Start a category →</span></a>
+        <a class="choice-card" href="?build"><span class="eyebrow">For the puzzle group</span><h2>Build a full puzzle</h2>
+          <p class="muted">All four groups, release date, and test play in the real game.</p><span class="go">Open the full editor →</span></a>
+      </div>
+      <p class="hint" id="choice-drafts"></p>
+    </div>
+  </section>
+
+  <section id="view-submit" hidden>
+    <div class="row spread" style="margin-bottom:16px">
+      <div class="stack" style="--gap:2px">
+        <span class="eyebrow">Submit a category</span>
+        <span class="savestate" id="s-saved">Saved in this browser</span>
+      </div>
+      <div class="row" style="--gap:8px">
+        <button class="btn" type="button" id="s-new">Start over</button>
+        <button class="btn primary" type="button" id="s-download">Download submission</button>
+      </div>
+    </div>
+    <div class="editor">
+      <div class="stack" style="--gap:16px" id="sbody"></div>
+      <aside class="sidecard">
+        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Live preview</span>
+          <div class="desk"><div class="pieces" id="s-prev"></div></div>
+          <p class="hint">How your four pieces look on the bench. In the puzzle they get mixed in with 12 others.</p></div>
+        <div class="placard stack" style="--gap:10px"><span class="eyebrow">Ready to send?</span><ul class="checklist" id="s-checks"></ul></div>
+        <div class="placard stack" style="--gap:8px"><span class="eyebrow">Images</span>
+          <p style="font-size:.86rem" class="muted">Use your own photos or open-license images (for example Wikimedia Commons, or Radiopaedia cases that allow reuse). Every image needs a source, and nobody in it can be identifiable.</p></div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="view-edit" role="tabpanel" aria-labelledby="tab-edit" hidden>
     <div class="row spread" style="margin-bottom:16px">
       <div class="stack" style="--gap:2px">
         <span class="eyebrow">Draft</span>
@@ -435,6 +500,79 @@ function puzzleFromDraft(d) {
   const out = Object.assign({ id: pid, title, date, machines, groups, items }, d.extra);
   return orderLike(out, d.keys);
 }
+/* ----- Submit-a-category model (one group, sent in by a student) ----- */
+const SUGGESTED_TIERS = ['Easy', 'Medium', 'Hard', 'Hardest'];
+const CREDIT_NAME_MAX = 60, CREDIT_LINE_MAX = 40;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function blankCategory() {
+  return { v: 1, group: blankGroup(0), suggestedTier: 0, creditMode: '', name: '', line: '', email: '',
+    consent: false, noPatient: [false, false, false, false] };
+}
+function itemHasImage(I) { return IMAGE_ZONES.indexOf(I.zone) !== -1 && !!(I.image || I.scopeImage); }
+/**
+ * Plain-English checks for one category. `problems` block the download; `notes` do not.
+ * Mirrors the per-group and per-item rules of tools/publish.py validate_puzzle
+ * (name, explanation, zone, label, title for photo/slide/film, Anki IDs, credit
+ * lengths) but not the whole-puzzle counts (16 clues, 4 groups, unique tiers).
+ */
+function categoryChecks(c) {
+  const problems = [], notes = [];
+  const t = (s) => String(s || '').trim();
+  const G = c.group;
+  if (!t(G.name)) problems.push('Name the category (the hidden answer)');
+  if (!t(G.explanation)) problems.push('Add a one-line explanation');
+  if ([1, 2, 3, 4].indexOf(Number(c.suggestedTier)) === -1) problems.push('Pick a suggested difficulty');
+  G.items.forEach((I, ii) => {
+    const n = 'Clue ' + (ii + 1);
+    if (ZONES.indexOf(I.zone) === -1) { problems.push(n + ': pick what kind of piece it is'); return; }
+    if (!t(I.label)) { problems.push(n + ': write the label on the piece'); return; }
+    if (IMAGE_ZONES.indexOf(I.zone) !== -1 && !t(I.title)) problems.push(n + ': a ' + ZONE_NAMES[I.zone].toLowerCase() + ' needs a title');
+    if ((I.zone === 'photo' || I.zone === 'tubes') && !I.image) notes.push(n + ': no image yet, so the puzzle group will look for one');
+    if (I.zone === 'rack' && !I.scopeImage) notes.push(n + ': no microscope image yet, so the puzzle group will look for one');
+    if (itemHasImage(I)) {
+      if (!t(I.credit)) problems.push(n + ': say where the image came from');
+      if (!c.noPatient[ii]) problems.push(n + ': confirm no patient can be identified in the image');
+    }
+  });
+  const badNid = String(G.nids || '').split(/[\s,;]+/).filter(Boolean).find((x) => !/^[1-9]\d*$/.test(x));
+  if (badNid) problems.push('Anki note IDs are numbers only (check “' + badNid + '”)');
+  if (c.creditMode === 'named') {
+    if (!t(c.name)) problems.push('Add your name for the credit, or choose to stay anonymous');
+    else if (t(c.name).length > CREDIT_NAME_MAX) problems.push('Your name is too long (' + CREDIT_NAME_MAX + ' characters max)');
+    if (t(c.line).length > CREDIT_LINE_MAX) problems.push('Year or role is too long (' + CREDIT_LINE_MAX + ' characters max)');
+  } else if (c.creditMode !== 'anonymous') problems.push('Choose “Credit me” or “Stay anonymous”');
+  if (t(c.email) && !EMAIL_RE.test(t(c.email))) problems.push('Check the contact email, or leave it blank');
+  if (!c.consent) problems.push('Tick the box that says the puzzle group can use it');
+  return { problems, notes };
+}
+/** Category draft -> the submission file (format "desk-puzzle-submission", version 1). */
+function submissionFromCategory(c, nowIso) {
+  const t = (s) => String(s || '').trim();
+  const d = blankDraft();
+  d.groups[0] = Object.assign({}, c.group, { byName: '', byLine: '', byExtra: null, tier: 1 });
+  const p = puzzleFromDraft(d);
+  const g = p.groups[0];
+  const byId = new Map(p.items.map((it) => [it.id, it]));
+  const group = { name: g.name, explanation: g.explanation };
+  if (g.article && g.article.length) group.article = g.article;
+  if (g.anki) group.anki = g.anki;
+  group.items = g.itemIds.map((id, ii) => {
+    const it = byId.get(id), I = c.group.items[ii];
+    const o = { label: it.label, zone: it.zone, info: it.info };
+    if (it.scope) o.scope = it.scope;
+    if (itemHasImage(I) && t(I.credit)) o.source = t(I.credit);
+    return o;
+  });
+  const credit = c.creditMode === 'named'
+    ? Object.assign({ mode: 'named', name: t(c.name) }, t(c.line) ? { line: t(c.line) } : {})
+    : { mode: 'anonymous' };
+  return { format: 'desk-puzzle-submission', version: 1, kind: 'category', submittedAt: nowIso,
+    credit, contact: t(c.email) ? { email: t(c.email) } : null, consent: c.consent === true,
+    suggestedTier: Number(c.suggestedTier), group };
+}
+function submissionFileName(sub, ymd) {
+  return 'desk-puzzle-submission-' + (slug(sub.group && sub.group.name) || 'category') + '-' + ymd + '.json';
+}
 /* ===== PURE-END ===== */
 
 /* ===== DOM helpers, state, storage ===== */
@@ -617,16 +755,16 @@ function drawGroup() {
 }
 
 /* ===== Sidebar: live mini desk + checklist ===== */
+function pieceHtml(I, rot) {
+  const pic = I.zone === 'rack' ? (I.scopeImage || I.image) : (I.zone === 'photo' || I.zone === 'tubes') ? I.image : '';
+  return '<div class="mp mp-' + esc(I.zone) + (I.label.trim() ? '' : ' empty') + '" style="--rot:' + rot + 'deg" title="' + esc(ZONE_NAMES[I.zone] + (I.label ? ': ' + plain(I.label) : '')) + '">' +
+    (pic ? '<span class="pic" style="background-image:' + esc(cssUrl(pic)) + '"></span>' : '') +
+    '<b>' + (I.label.trim() ? esc(plain(I.label)) : 'empty') + '</b></div>';
+}
 function drawSide() {
   $('#prev').innerHTML = draft.groups.map((G, gi) =>
     (gi ? '<span class="mp-sep" style="background:var(--tier-' + esc(G.tier) + ')" aria-hidden="true"></span>' : '') +
-    G.items.map((I, ii) => {
-      const pic = I.zone === 'rack' ? (I.scopeImage || I.image) : (I.zone === 'photo' || I.zone === 'tubes') ? I.image : '';
-      const rot = (((gi * 4 + ii) * 37) % 5) - 2;
-      return '<div class="mp mp-' + esc(I.zone) + (I.label.trim() ? '' : ' empty') + '" style="--rot:' + rot + 'deg" title="' + esc(ZONE_NAMES[I.zone] + (I.label ? ': ' + plain(I.label) : '')) + '">' +
-        (pic ? '<span class="pic" style="background-image:' + esc(cssUrl(pic)) + '"></span>' : '') +
-        '<b>' + (I.label.trim() ? esc(plain(I.label)) : 'empty') + '</b></div>';
-    }).join('')).join('');
+    G.items.map((I, ii) => pieceHtml(I, (((gi * 4 + ii) * 37) % 5) - 2)).join('')).join('');
   const game = gameProblems(puzzleFromDraft(draft));
   const author = authorChecks(draft);
   const li = (cls, mark, t) => '<li><span class="ic ' + cls + '" aria-hidden="true">' + mark + '</span><span>' + esc(t) + '</span></li>';
@@ -646,10 +784,11 @@ function itemAt(i) { return draft.groups[tab].items[Number(i)]; }
 async function setImage(target, file) {
   try {
     const r = await fileToWebp(file);
-    draft.groups[target.g].items[target.i][target.field] = r.src;
-    if (target.g === tab) drawGroup();
-    bump();
-    const zone = draft.groups[target.g].items[target.i].zone;
+    const I = target.cat ? cat.group.items[target.i] : draft.groups[target.g].items[target.i];
+    I[target.field] = r.src;
+    if (target.cat) { cat.noPatient[target.i] = false; drawCat(); catBump(); }
+    else { if (target.g === tab) drawGroup(); bump(); }
+    const zone = I.zone;
     toast(zone === 'photo' && r.w > r.h * 1.05 ? 'Image added. It is wide, so the portrait photo frame will crop its sides.' : 'Image added (' + r.w + '×' + r.h + ', WebP)');
   } catch (e) { toast(e.message || 'Could not add that image.'); }
 }
@@ -899,6 +1038,237 @@ function bindPlay() {
   });
 }
 
+/* ===== Submit a category (what students use) ===== */
+// Where students send the downloaded file, shown after they download it.
+// Thirth: put the group's email address or GroupMe link here, for example
+// 'deskpuzzle@example.com' or 'https://groupme.com/join_group/...'. Emails and
+// https links are turned into clickable links automatically.
+const SUBMIT_TO = 'the CMSRU Desk Puzzle group';
+const CATEGORY_KEY = 'dp2d:studio-category';
+let cat = blankCategory();
+let catTimer = 0;
+let catSaveFailed = false;
+let lastCatClue = null;
+
+function loadCategory() {
+  try {
+    const raw = localStorage.getItem(CATEGORY_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    if (!c || c.v !== 1 || !c.group || !Array.isArray(c.group.items)) return null;
+    const out = Object.assign(blankCategory(), c);
+    out.group = Object.assign(blankGroup(0), c.group, {
+      items: c.group.items.slice(0, 4).concat([0, 1, 2, 3].map(blankItem)).slice(0, 4).map((I) => Object.assign(blankItem(), I)),
+    });
+    out.noPatient = [0, 1, 2, 3].map((i) => !!(c.noPatient && c.noPatient[i]));
+    return out;
+  } catch (e) { return null; }
+}
+function catSaveNow() {
+  const s = $('#s-saved');
+  try {
+    localStorage.setItem(CATEGORY_KEY, JSON.stringify(cat));
+    s.textContent = 'Saved in this browser'; s.classList.remove('err');
+    catSaveFailed = false;
+  } catch (e) {
+    const quota = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+    s.textContent = quota ? 'Not saved: browser storage is full' : 'Not saved: browser storage unavailable';
+    s.classList.add('err');
+    if (!catSaveFailed) toast(quota ? 'Your images are too big to keep in this browser. Download the submission now so you don’t lose your work.' : 'Could not save your draft in this browser. Download the submission to keep it.', 7000);
+    catSaveFailed = true;
+  }
+}
+function catBump() {
+  if (!catSaveFailed) { $('#s-saved').textContent = 'Saving…'; $('#s-saved').classList.remove('err'); }
+  clearTimeout(catTimer);
+  catTimer = setTimeout(catSaveNow, 400);
+  drawCatSide();
+}
+function catClueHtml(I, ii) {
+  const hasSlot = IMAGE_ZONES.indexOf(I.zone) !== -1;
+  let drops;
+  if (I.zone === 'rack') drops = dropHtml(I, ii, 'scopeImage', 'Microscope view', 'scope') + dropHtml(I, ii, 'image', 'Optional card image', 'small');
+  else if (I.zone === 'photo' || I.zone === 'tubes') drops = dropHtml(I, ii, 'image', I.zone === 'photo' ? 'Photo' : 'X-ray image', '');
+  else drops = '<div class="drop text-only">Text clue<br>(no image)</div>';
+  const opts = ZONES.map((z) => '<option value="' + z + '"' + (z === I.zone ? ' selected' : '') + '>' + ZONE_NAMES[z] + '</option>').join('');
+  const n = 'Clue ' + (ii + 1);
+  return '<div class="clue" data-clue="' + ii + '"><div class="drops">' + drops + '</div>' +
+    '<div class="stack" style="--gap:8px">' +
+    '<div class="row" style="--gap:8px"><span class="clue-num">' + n + '</span>' +
+    '<select class="input" data-f="zone" data-i="' + ii + '" style="width:190px; flex:none" aria-label="' + n + ': kind of piece">' + opts + '</select></div>' +
+    '<div class="two-col"><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="Label on the piece" aria-label="' + n + ': label on the piece">' +
+    '<input class="input" data-f="title" data-i="' + ii + '" value="' + esc(I.title) + '" placeholder="' + (hasSlot ? 'Title (needed for this piece)' : 'Title when opened (optional)') + '" aria-label="' + n + ': title"></div>' +
+    '<textarea class="input" data-f="text" data-i="' + ii + '" rows="2" style="min-height:56px" placeholder="Short text shown when it’s opened" aria-label="' + n + ': short text">' + esc(I.text) + '</textarea>' +
+    (hasSlot ? '<input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="Image source (e.g. my own photo, or Wikimedia Commons, CC BY-SA 4.0, author)" aria-label="' + n + ': image source">' +
+      '<label class="check"><input type="checkbox" data-np="' + ii + '"' + (cat.noPatient[ii] ? ' checked' : '') + '><span>No patient can be identified in this image (no faces, names, dates, or record numbers)</span></label>' : '') +
+    (I.zone === 'photo' ? '<p class="hint">Photos sit in a portrait frame and get cropped to fill it, so crop wide photos first.</p>' : '') +
+    (I.zone === 'rack' ? '<p class="hint">The round microscope view is what players study. The card image is optional.</p>' : '') +
+    '</div></div>';
+}
+function drawCat() {
+  const G = cat.group;
+  const field = (k, label, val, ph, extra) => '<label class="field"' + (extra || '') + '><span>' + label + '</span><input class="input" data-k="' + k + '" value="' + esc(val) + '" placeholder="' + esc(ph) + '"></label>';
+  const tiers = SUGGESTED_TIERS.map((w, i) => '<label><input type="radio" name="s-tier" value="' + (i + 1) + '"' + (Number(cat.suggestedTier) === i + 1 ? ' checked' : '') + '>' +
+    '<span class="tierdot" style="background:var(--tier-' + (i + 1) + ')" aria-hidden="true"></span>' + w + '</label>').join('');
+  const named = cat.creditMode === 'named';
+  $('#sbody').innerHTML =
+    '<div class="panel stack" style="--gap:12px"><h2>Your category</h2>' +
+    field('g.name', 'Category name (the hidden answer players figure out)', G.name, 'e.g. Things that set off an asthma attack') +
+    field('g.explanation', 'One-line explanation (shown after it’s solved)', G.explanation, 'Why these four belong together') +
+    '<div class="field"><span>Suggested difficulty</span><div class="tier-pick" role="radiogroup" aria-label="Suggested difficulty">' + tiers + '</div>' +
+    '<p class="hint">Just a suggestion. The puzzle group makes the final call when it puts the week’s puzzle together.</p></div></div>' +
+    '<div class="panel stack" style="--gap:12px"><h2>The four clues</h2>' +
+    '<p class="hint">The label is what players see on the piece. The title and short text show when they open it. Pick photo, microscope slide, or X-ray if the clue is an image.</p>' +
+    G.items.map(catClueHtml).join('') +
+    '<details' + (G.articleText || G.nids ? ' open' : '') + '><summary>Teaching note and Anki cards (optional)</summary><div class="stack" style="--gap:10px; margin-top:10px">' +
+    '<label class="field"><span>Teaching note (shown on the results screen)</span><textarea class="input" data-k="g.articleText" style="min-height:110px" placeholder="A few lines on why each clue fits. Leave a blank line between paragraphs.">' + esc(G.articleText) + '</textarea></label>' +
+    field('g.nids', 'Anki note IDs', G.nids, 'e.g. 1473628085810, 1496178435881') + '</div></details></div>' +
+    '<div class="panel stack" style="--gap:12px"><h2>Credit</h2>' +
+    '<div class="row" style="--gap:18px" role="radiogroup" aria-label="Credit">' +
+    '<label class="radio"><input type="radio" name="s-credit" value="named"' + (named ? ' checked' : '') + '> Credit me</label>' +
+    '<label class="radio"><input type="radio" name="s-credit" value="anonymous"' + (cat.creditMode === 'anonymous' ? ' checked' : '') + '> Stay anonymous</label></div>' +
+    (named ? '<div class="row" style="--gap:12px; align-items:flex-end">' +
+      field('c.name', 'Name to show', cat.name, 'e.g. Priya N.', ' style="flex:1; min-width:200px"') +
+      field('c.line', 'Year or role (optional)', cat.line, 'e.g. MS2', ' style="width:180px"') + '</div>' +
+      '<p class="hint">Shown on the results screen as “Category by …”.</p>' : '') +
+    field('c.email', 'Contact email (optional, private)', cat.email, 'you@example.com') +
+    '<p class="private-note"><b>Never shown on the puzzle.</b> Only the puzzle group sees it, in case they have a question about your category.</p>' +
+    '<label class="check consent"><input type="checkbox" id="s-consent"' + (cat.consent ? ' checked' : '') + '><span>I made this or can share it, no patient can be identified, and the puzzle group may edit it.</span></label></div>';
+  $$('#sbody [data-k="c.email"]').forEach((el) => { el.type = 'email'; el.autocomplete = 'email'; });
+  $$('#sbody [data-k="c.name"], #sbody [data-k="c.line"]').forEach((el) => { el.maxLength = el.dataset.k === 'c.name' ? CREDIT_NAME_MAX : CREDIT_LINE_MAX; });
+  drawCatSide();
+}
+function drawCatSide() {
+  $('#s-prev').innerHTML = cat.group.items.map((I, ii) => pieceHtml(I, ((ii * 37) % 5) - 2)).join('');
+  const r = categoryChecks(cat);
+  const li = (cls, mark, t) => '<li><span class="ic ' + cls + '" aria-hidden="true">' + mark + '</span><span>' + esc(t) + '</span></li>';
+  let html = r.problems.slice(0, 8).map((t) => li('no', '!', t)).join('');
+  if (r.problems.length > 8) html += '<li class="hint">…and ' + (r.problems.length - 8) + ' more</li>';
+  if (!r.problems.length) html += li('ok', '✓', 'Ready to download');
+  html += r.notes.map((t) => li('info', 'i', t)).join('');
+  $('#s-checks').innerHTML = html;
+}
+function linkFor(dest) {
+  const d = String(dest).trim();
+  if (/^https?:\/\/\S+$/.test(d)) return '<a href="' + esc(d) + '" target="_blank" rel="noopener">' + esc(d) + '</a>';
+  if (EMAIL_RE.test(d)) return '<a href="mailto:' + esc(d) + '">' + esc(d) + '</a>';
+  return esc(d);
+}
+function catDownload() {
+  const r = categoryChecks(cat);
+  if (r.problems.length) {
+    toast('Almost there: finish the ' + r.problems.length + ' item' + (r.problems.length > 1 ? 's' : '') + ' under “Ready to send?” first.', 4500);
+    $('#s-checks').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return;
+  }
+  const now = new Date();
+  const sub = submissionFromCategory(cat, now.toISOString());
+  const ymd = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const name = submissionFileName(sub, ymd);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(sub, null, 2) + '\n'], { type: 'application/json' }));
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  openModal('<div class="stack" style="--gap:14px"><h2>Submission downloaded</h2>' +
+    '<p class="done-file">' + esc(name) + '</p>' +
+    '<div class="stack" style="--gap:6px"><span class="eyebrow">What to do next</span>' +
+    '<p>Send this file to the puzzle group: <b>' + linkFor(SUBMIT_TO) + '</b>.</p>' +
+    '<p class="muted">It’s in your Downloads folder. The puzzle group may tweak the wording or an image, and picks the final difficulty. Your draft stays saved in this browser until you start over.</p></div>' +
+    '<div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="m-another">Start another category</button><button class="btn primary" type="button" data-dismiss>Done</button></div></div>',
+  (m, close) => { $('#m-another', m).addEventListener('click', () => { close(); catStartOver(); }); });
+}
+async function catStartOver() {
+  const empty = !cat.group.name.trim() && cat.group.items.every((I) => !I.label.trim() && !I.image && !I.scopeImage);
+  if (!empty && !(await confirmModal('Start over?', 'This clears the form. Download your submission first if you haven’t yet.', 'Clear and start over'))) return;
+  // Keep who you are (credit choice and email) so a second category is quicker.
+  const keep = { creditMode: cat.creditMode, name: cat.name, line: cat.line, email: cat.email };
+  cat = Object.assign(blankCategory(), keep); catSaveFailed = false;
+  drawCat(); catSaveNow();
+  toast('Blank category ready');
+}
+function bindCat() {
+  const body = $('#sbody');
+  const setK = (k, v) => { if (k.startsWith('g.')) cat.group[k.slice(2)] = v; else cat[k.slice(2)] = v; };
+  body.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el.dataset.k) { setK(el.dataset.k, el.value); catBump(); }
+    else if (el.dataset.f && el.dataset.f !== 'zone') { cat.group.items[Number(el.dataset.i)][el.dataset.f] = el.value; catBump(); }
+  });
+  body.addEventListener('change', (e) => {
+    const el = e.target;
+    if (el.name === 's-tier') { cat.suggestedTier = Number(el.value); catBump(); }
+    else if (el.name === 's-credit') {
+      cat.creditMode = el.value; drawCat(); catBump();
+      const r = $('#sbody input[name="s-credit"][value="' + el.value + '"]'); if (r) r.focus();
+    } else if (el.id === 's-consent') { cat.consent = el.checked; catBump(); }
+    else if (el.dataset.np) { cat.noPatient[Number(el.dataset.np)] = el.checked; catBump(); }
+    else if (el.dataset.f === 'zone') {
+      cat.group.items[Number(el.dataset.i)].zone = el.value;
+      drawCat(); catBump();
+      const sel = $('#sbody [data-f="zone"][data-i="' + el.dataset.i + '"]'); if (sel) sel.focus();
+    }
+  });
+  body.addEventListener('click', (e) => {
+    const rm = e.target.closest('[data-rm]');
+    if (rm) {
+      const i = Number(rm.dataset.i);
+      cat.group.items[i][rm.dataset.rm] = ''; cat.noPatient[i] = false;
+      drawCat(); catBump(); toast('Image removed'); return;
+    }
+    const d = e.target.closest('[data-drop]');
+    if (d) { imgTarget = { cat: true, i: Number(d.dataset.i), field: d.dataset.drop }; $('#file-img').click(); }
+  });
+  body.addEventListener('keydown', (e) => {
+    const d = e.target.closest('[data-drop]');
+    if (d && e.target === d && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); d.click(); }
+  });
+  body.addEventListener('dragover', (e) => { const d = e.target.closest('[data-drop]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+  body.addEventListener('dragleave', (e) => { const d = e.target.closest('[data-drop]'); if (d) d.classList.remove('over'); });
+  body.addEventListener('drop', (e) => {
+    const d = e.target.closest('[data-drop]');
+    if (!d) return;
+    e.preventDefault(); d.classList.remove('over');
+    const f = e.dataTransfer && e.dataTransfer.files[0];
+    if (f) setImage({ cat: true, i: Number(d.dataset.i), field: d.dataset.drop }, f);
+  });
+  const track = (e) => { const c = e.target.closest && e.target.closest('[data-clue]'); if (c) lastCatClue = Number(c.dataset.clue); };
+  body.addEventListener('focusin', track);
+  body.addEventListener('pointerover', track);
+  document.addEventListener('paste', (e) => {
+    if ($('#view-submit').hidden || lastCatClue === null) return;
+    const file = Array.from((e.clipboardData && e.clipboardData.files) || []).find((f) => /^image\//.test(f.type));
+    if (!file) return;
+    const I = cat.group.items[lastCatClue];
+    if (IMAGE_ZONES.indexOf(I.zone) === -1) { toast('That clue is text only. Switch it to a photo, slide, or X-ray first.'); return; }
+    e.preventDefault();
+    setImage({ cat: true, i: lastCatClue, field: I.zone === 'rack' ? 'scopeImage' : 'image' }, file);
+  });
+  $('#s-download').addEventListener('click', catDownload);
+  $('#s-new').addEventListener('click', catStartOver);
+}
+
+/* ===== Modes: start screen (studio/), submit a category (?submit), full puzzle (?build) ===== */
+function studioMode() {
+  const q = new URLSearchParams(location.search);
+  return q.has('submit') ? 'submit' : q.has('build') ? 'build' : 'choice';
+}
+function showMode(mode) {
+  $('#view-choice').hidden = mode !== 'choice';
+  $('#view-submit').hidden = mode !== 'submit';
+  $('#head-tabs').hidden = mode !== 'build';
+  $('#mode-link').hidden = mode === 'choice';
+  if (mode === 'build') showView('edit');
+  else { $('#view-edit').hidden = true; $('#view-play').hidden = true; }
+  document.title = (mode === 'submit' ? 'Submit a category' : mode === 'build' ? 'Puzzle Studio' : 'Make a puzzle') + ' · Desk Puzzle';
+  if (mode === 'choice') {
+    const bits = [];
+    if (cat.group.name.trim()) bits.push('a category draft (“' + cat.group.name.trim() + '”)');
+    if (hasWork()) bits.push('a full-puzzle draft');
+    $('#choice-drafts').textContent = bits.length ? 'Saved in this browser: ' + bits.join(' and ') + '.' : '';
+  }
+}
+
 /* ===== Views + theme + boot ===== */
 function showView(which) {
   const play = which === 'play';
@@ -932,8 +1302,10 @@ function bindChrome() {
 }
 
 draft = loadSaved() || blankDraft();
-bindChrome(); bindEditor(); bindFiles(); bindPlay();
-drawTop(); drawGroup(); drawSide();
+cat = loadCategory() || blankCategory();
+bindChrome(); bindEditor(); bindFiles(); bindPlay(); bindCat();
+drawTop(); drawGroup(); drawSide(); drawCat();
+showMode(studioMode());
 if (!PIECE_KIND_NAMES.corkboard) toast('Warning: the game engine piece list changed; check the studio.');
 </script>
 </body>
