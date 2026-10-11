@@ -11,6 +11,18 @@ const m = /const SEND_LIMITS = (\{[^}]*\});/.exec(html);
 let fails = 0;
 if (!m) { console.log('FAIL SEND_LIMITS not found in studio/index.html'); process.exit(1); }
 const studio = Function('return ' + m[1])();
+// The Studio must know every cap it checks before sending, including the full-puzzle ones.
+for (const k of ['maxImageBytes', 'maxImages', 'maxBodyBytes', 'maxPuzzleImages', 'maxPuzzleBodyBytes', 'puzzleTitle', 'name', 'explanation', 'label', 'source', 'article']) {
+  const has = k in studio;
+  console.log((has ? 'PASS ' : 'FAIL ') + `studio SEND_LIMITS has ${k}`);
+  if (!has) fails++;
+}
+// Pinned values from supabase/SUBMISSION_FORMAT.md (a change here is a contract change).
+for (const [k, v] of Object.entries({ maxPuzzleImages: 16, maxPuzzleBodyBytes: 9437184, puzzleTitle: 120, maxImages: 8, maxBodyBytes: 7340032 })) {
+  const same = LIMITS[k] === v;
+  console.log((same ? 'PASS ' : 'FAIL ') + `contract ${k} = ${v} (server ${LIMITS[k]})`);
+  if (!same) fails++;
+}
 for (const [k, v] of Object.entries(studio)) {
   const same = LIMITS[k] === v;
   console.log((same ? 'PASS ' : 'FAIL ') + `${k}: studio ${v}, server ${LIMITS[k]}`);

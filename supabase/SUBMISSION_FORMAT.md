@@ -1,7 +1,7 @@
 # Submission file format (version 2)
 
-What the Studio sends to the `submit` function, and what it downloads when
-sending isn't possible. The server check is `supabase/functions/submit/validate.js`;
+What the Studio sends to the `submit` function (the Studio has no download;
+older downloaded files use the same format). The server check is `supabase/functions/submit/validate.js`;
 `tools/import_submission.py` applies the same rules with the same messages.
 Version 1 category files (the older format) are still accepted unchanged.
 
