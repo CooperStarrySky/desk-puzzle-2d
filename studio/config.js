@@ -1,4 +1,4 @@
-/* Desk Puzzle settings for the Studio (studio/?submit) and the inbox (studio/inbox.html).
+/* Desk Puzzle settings for the Studio (studio/?submit) and the private review inbox (address in supabase/SETUP.md).
  *
  * Everything in this file is PUBLIC. It ships with the website, so anyone can
  * read it. That is fine for the four values below: they are designed to be

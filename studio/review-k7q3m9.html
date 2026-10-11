@@ -8,7 +8,8 @@
 <title>Submissions inbox · Desk Puzzle</title>
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <!--
-  Submissions inbox for the CMSRU puzzle group. Sign in with an emailed link;
+  Submissions inbox for the CMSRU puzzle group. Unlisted on purpose: nothing on
+  the site links here (the address is in supabase/SETUP.md for the group). Sign in with an emailed link;
   only emails on the admins list (Supabase table "admins") can read anything.
   Settings come from config.js (same file as the Studio). See supabase/SETUP.md.
 -->
@@ -192,6 +193,9 @@ textarea.input { resize: vertical; min-height: 70px; }
 .article h3 { font-size: 1.05rem; margin-top: 4px; }
 .err-box { border-left: 3px solid var(--danger); background: var(--danger-soft); border-radius: var(--r-s); padding: 10px 12px; font-size: 0.9rem; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.kind-tag { font-size: 0.7rem; font-weight: 700; border-radius: 4px; padding: 1px 7px; text-transform: uppercase; letter-spacing: 0.06em; background: var(--paper-2); color: var(--ink-soft); }
+.kind-tag.puzzle { background: var(--eosin-soft); color: var(--eosin); }
+.pz-group { border-left: 4px solid var(--tier, var(--panel-edge)); }
 </style>
 </head>
 <body>
@@ -249,7 +253,7 @@ textarea.input { resize: vertical; min-height: 70px; }
     <!-- List -->
     <section id="v-list" class="stack" style="--gap:16px" hidden>
       <div class="row spread">
-        <div class="stack" style="--gap:2px"><span class="eyebrow">Category submissions</span><h1>Inbox</h1></div>
+        <div class="stack" style="--gap:2px"><span class="eyebrow">Categories and full puzzles</span><h1>Inbox</h1></div>
         <div class="row" style="--gap:8px">
           <button class="btn" type="button" id="btn-refresh">Refresh</button>
           <button class="btn" type="button" id="btn-dl-short">Download all shortlisted</button>
@@ -275,6 +279,8 @@ const KEY = String(CFG.supabasePublishableKey || CFG.supabaseAnonKey || '').trim
 const STATUSES = [['new', 'New'], ['shortlisted', 'Shortlisted'], ['used', 'Used'], ['declined', 'Declined']];
 const ZONE_NAMES = { corkboard: 'Sticky note', folder: 'Paper sheet', rack: 'Microscope slide', tubes: 'X-ray film', photo: 'Photograph', rx: 'Prescription' };
 const TIER_WORDS = { 1: 'Easy', 2: 'Medium', 3: 'Hard', 4: 'Hardest' };
+const isPuzzle = (r) => r.kind === 'puzzle';
+const kindTag = (r) => isPuzzle(r) ? '<span class="kind-tag puzzle">Full puzzle</span>' : '<span class="kind-tag">Category</span>';
 const MIME_BY_EXT = { webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
 const BUCKET = 'submissions';
 const $ = (s, root) => (root || document).querySelector(s);
@@ -384,13 +390,13 @@ function drawList() {
   const list = rows.filter((r) => r.status === filter);
   $('#btn-dl-short').disabled = !counts.shortlisted;
   if (!list.length) {
-    $('#cards').innerHTML = '<div class="empty-state panel">' + (filter === 'new' ? 'Nothing new right now. New categories show up here as students send them.' : 'No ' + filter + ' categories.') + '</div>';
+    $('#cards').innerHTML = '<div class="empty-state panel">' + (filter === 'new' ? 'Nothing new right now. New categories and puzzles show up here as students send them.' : 'No ' + filter + ' submissions.') + '</div>';
     return;
   }
   $('#cards').innerHTML = list.map((r) =>
-    '<button type="button" class="sub-card" data-id="' + esc(r.id) + '" style="--tier:var(--tier-' + (Number(r.suggested_tier) || 0) + ')">' +
-      '<div class="stack" style="--gap:5px"><h3>' + esc(r.group_name) + '</h3>' +
-      '<div class="meta"><span>Suggested: ' + esc(TIER_WORDS[r.suggested_tier] || '?') + '</span><span>' + esc(when(r.created_at)) + '</span>' +
+    '<button type="button" class="sub-card" data-id="' + esc(r.id) + '" style="--tier:' + (isPuzzle(r) ? 'var(--eosin)' : 'var(--tier-' + (Number(r.suggested_tier) || 0) + ')') + '">' +
+      '<div class="stack" style="--gap:5px"><div class="row" style="--gap:8px">' + kindTag(r) + '<h3>' + esc(r.group_name) + '</h3></div>' +
+      '<div class="meta"><span>' + (isPuzzle(r) ? '4 categories' : 'Suggested: ' + esc(TIER_WORDS[r.suggested_tier] || '?')) + '</span><span>' + esc(when(r.created_at)) + '</span>' +
       '<span>' + esc(creditText(r)) + '</span>' + (r.contact_email ? '<span>' + esc(r.contact_email) + '</span>' : '') + '</div>' +
       (r.admin_note ? '<div class="meta"><span>Note: ' + esc(r.admin_note) + '</span></div>' : '') + '</div>' +
       '<div class="stack" style="--gap:6px; align-items:flex-end"><span class="st st-' + esc(r.status) + '">' + esc(r.status) + '</span>' +
@@ -438,10 +444,25 @@ function clueHtml(it, i) {
 function articleHtml(blocks) {
   return (blocks || []).map((b) => (b.type === 'heading' ? '<h3>' + esc(b.text) + '</h3>' : b.type === 'text' ? '<p>' + esc(b.text) + '</p>' : '')).join('');
 }
+function itemsOf(g) { return g && Array.isArray(g.items) ? g.items : []; }
+function nidsOf(g) { return g && g.anki && Array.isArray(g.anki.nids) ? g.anki.nids : []; }
+/* One category of a full-puzzle submission: tier, name, desk, clues, note. */
+function puzzleGroupHtml(g, gi) {
+  const tier = Number(g.tier) || 0; const items = itemsOf(g); const nids = nidsOf(g);
+  return '<div class="panel stack pz-group" style="--gap:12px; --tier:var(--tier-' + tier + ')">' +
+    '<div class="stack" style="--gap:4px"><span class="eyebrow">Category ' + (gi + 1) + ' · Tier ' + tier + ' (' + esc(TIER_WORDS[tier] || '?') + ')</span>' +
+    '<h2>' + esc(g.name) + '</h2><p>' + esc(g.explanation) + '</p></div>' +
+    '<div class="desk"><div class="pieces">' + items.map(pieceHtml).join('') + '</div></div>' +
+    items.map(clueHtml).join('') +
+    (g.article && g.article.length ? '<div class="stack article" style="--gap:8px"><span class="eyebrow">Teaching note</span>' + articleHtml(g.article) + '</div>' : '') +
+    (nids.length ? '<p class="hint">Anki: <span class="code">' + nids.map(esc).join(', ') + '</span></p>' : '') + '</div>';
+}
 function openDetail(r) {
-  const g = r.payload || {}; const items = Array.isArray(g.items) ? g.items : [];
+  const g = r.payload || {}; const items = itemsOf(g);
+  const puzzle = isPuzzle(r);
+  const groups = puzzle && Array.isArray(g.groups) ? g.groups.map((x, i) => [x, i]).sort((a, b) => (Number(a[0].tier) || 9) - (Number(b[0].tier) || 9)) : [];
   history.replaceState(null, '', location.pathname + location.search + '#s=' + encodeURIComponent(r.id));
-  const nids = g.anki && Array.isArray(g.anki.nids) ? g.anki.nids : [];
+  const nids = puzzle ? [] : nidsOf(g);
   const btn = (act, label, cls) => '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '">' + label + '</button>';
   const acts = [];
   if (r.status !== 'shortlisted') acts.push(btn('shortlisted', 'Shortlist', 'primary'));
@@ -451,14 +472,15 @@ function openDetail(r) {
   $('#v-detail').innerHTML =
     '<div class="row spread"><button class="btn" type="button" id="d-back">← Back to the inbox</button>' +
       '<div class="row" style="--gap:8px"><button class="btn" type="button" id="d-dl">Download for import</button></div></div>' +
-    '<div class="panel stack" style="--gap:8px; border-left:4px solid var(--tier-' + (Number(r.suggested_tier) || 0) + ')">' +
-      '<div class="row spread"><span class="eyebrow">Category submission</span><span class="st st-' + esc(r.status) + '">' + esc(r.status) + '</span></div>' +
-      '<h1>' + esc(r.group_name) + '</h1><p>' + esc(g.explanation) + '</p>' +
-      '<div class="meta"><span>Suggested: ' + esc(TIER_WORDS[r.suggested_tier] || '?') + '</span><span>Received ' + esc(when(r.created_at)) + '</span><span class="code">' + esc(r.receipt_code) + '</span></div></div>' +
+    '<div class="panel stack" style="--gap:8px; border-left:4px solid ' + (puzzle ? 'var(--eosin)' : 'var(--tier-' + (Number(r.suggested_tier) || 0) + ')') + '">' +
+      '<div class="row spread">' + kindTag(r) + '<span class="st st-' + esc(r.status) + '">' + esc(r.status) + '</span></div>' +
+      '<h1>' + esc(r.group_name) + '</h1>' + (puzzle ? '' : '<p>' + esc(g.explanation) + '</p>') +
+      '<div class="meta"><span>' + (puzzle ? '4 categories, tiers set by the sender; no date (you pick it when publishing)' : 'Suggested: ' + esc(TIER_WORDS[r.suggested_tier] || '?')) + '</span><span>Received ' + esc(when(r.created_at)) + '</span><span class="code">' + esc(r.receipt_code) + '</span></div></div>' +
     '<div class="detail-grid"><div class="stack" style="--gap:12px">' +
+      (puzzle ? groups.map(([x, i]) => puzzleGroupHtml(x, i)).join('') :
       '<div class="desk"><div class="pieces">' + items.map(pieceHtml).join('') + '</div></div>' +
       items.map(clueHtml).join('') +
-      (g.article && g.article.length ? '<div class="panel stack article" style="--gap:8px"><span class="eyebrow">Teaching note</span>' + articleHtml(g.article) + '</div>' : '') +
+      (g.article && g.article.length ? '<div class="panel stack article" style="--gap:8px"><span class="eyebrow">Teaching note</span>' + articleHtml(g.article) + '</div>' : '')) +
     '</div><aside class="sidecard">' +
       '<div class="placard stack" style="--gap:10px"><span class="eyebrow">Review</span><div class="actions">' + acts.join('') + '</div>' +
         (r.admin_note ? '<div class="note-box">' + esc(r.admin_note) + '</div>' : '') +
@@ -510,7 +532,7 @@ async function setStatus(r, status, extra) {
 function act(r, status) {
   if (status === 'shortlisted' || status === 'new') { setStatus(r, status); return; }
   const used = status === 'used';
-  openModal('<form class="stack" style="--gap:12px" id="m-form"><h2>' + (used ? 'Mark as used' : 'Decline this category') + '</h2>' +
+  openModal('<form class="stack" style="--gap:12px" id="m-form"><h2>' + (used ? 'Mark as used' : 'Decline this ' + (isPuzzle(r) ? 'puzzle' : 'category')) + '</h2>' +
     (used ? '<label class="field"><span>Which puzzle is it in? (puzzle id, e.g. holes-haze-and-old-paint-2026-10-08)</span><input class="input" id="m-val" required value="' + esc(r.used_in || '') + '"></label>'
       : '<label class="field"><span>Note for the puzzle group (optional, never shown to the student)</span><textarea class="input" id="m-val" placeholder="e.g. Too close to last week’s category">' + esc(r.admin_note || '') + '</textarea></label>') +
     '<div class="row" style="justify-content:flex-end"><button class="btn ghost" type="button" data-dismiss>Cancel</button>' +
@@ -541,21 +563,29 @@ async function toDataUri(path) {
   return 'data:' + mime + ';base64,' + bytesToBase64(await data.arrayBuffer());
 }
 async function rebuildSubmission(r) {
-  const group = JSON.parse(JSON.stringify(r.payload || {}));
-  for (const it of group.items || []) {
-    for (const f of ['info', 'scope']) {
-      if (it[f] && isStoragePath(it[f].image)) it[f].image = await toDataUri(it[f].image);
+  // payload.submissionVersion says which version was sent (rows from before
+  // full puzzles have none: version 1). It is not part of the file itself.
+  const payload = JSON.parse(JSON.stringify(r.payload || {}));
+  const version = payload.submissionVersion === 2 ? 2 : 1;
+  delete payload.submissionVersion;
+  const groups = isPuzzle(r) ? (payload.groups || []) : [payload];
+  for (const g of groups) {
+    for (const it of g.items || []) {
+      for (const f of ['info', 'scope']) {
+        if (it[f] && isStoragePath(it[f].image)) it[f].image = await toDataUri(it[f].image);
+      }
     }
   }
   const credit = r.credit_mode === 'named'
     ? Object.assign({ mode: 'named', name: r.credit_name || '' }, r.credit_line ? { line: r.credit_line } : {})
     : { mode: 'anonymous' };
-  return { format: 'desk-puzzle-submission', version: 1, kind: r.kind || 'category', submittedAt: r.created_at,
-    credit, contact: r.contact_email ? { email: r.contact_email } : null, consent: r.consent === true,
-    suggestedTier: r.suggested_tier, group };
+  const head = { format: 'desk-puzzle-submission', version: isPuzzle(r) ? 2 : version, kind: isPuzzle(r) ? 'puzzle' : 'category',
+    submittedAt: r.created_at, credit, contact: r.contact_email ? { email: r.contact_email } : null, consent: r.consent === true };
+  return isPuzzle(r) ? Object.assign(head, { puzzle: { title: payload.title, groups: payload.groups } })
+    : Object.assign(head, { suggestedTier: r.suggested_tier, group: payload });
 }
 function fileNameFor(r) {
-  return 'desk-puzzle-submission-' + (slug(r.group_name) || 'category') + '-' + String(r.created_at || '').slice(0, 10) + '-' + slug(r.receipt_code) + '.json';
+  return 'desk-puzzle-submission-' + (isPuzzle(r) ? 'puzzle-' : '') + (slug(r.group_name) || 'category') + '-' + String(r.created_at || '').slice(0, 10) + '-' + slug(r.receipt_code) + '.json';
 }
 async function downloadOne(r, quiet) {
   try {
