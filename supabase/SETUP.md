@@ -100,17 +100,12 @@ supabase functions deploy submit --no-verify-jwt
 login tokens. The function checks the website, the hourly limit, and the content itself.
 If the command complains about Docker, run it again with `--use-api` on the end.
 
-Give the function your secret key. Supabase is retiring the older "service_role" key
-during 2026, so set the new one now. Easiest and safest is the dashboard:
-**Edge Functions → Secrets → Add new secret**, name `DP_SECRET_KEY`, value = your
-secret key from **Project Settings → API Keys** (starts with `sb_secret_`). Or in
-Terminal (this leaves the key in your Terminal history, so the dashboard is better):
-
-```bash
-supabase secrets set DP_SECRET_KEY=sb_secret_paste_yours_here
-```
-
-Until this is set, the function falls back to the older service_role key, which works for now.
+**You don't need to give the function a key.** Supabase hands every function your
+project's secret keys automatically (as `SUPABASE_SECRET_KEYS`), and the function picks
+one up on its own. Only if the safety check in step 7 says sending failed with a
+"server key" error: open **Edge Functions → Secrets → Add new secret** in the
+dashboard, name it `DP_SECRET_KEY`, and paste your secret key (starts with `sb_secret_`).
+Use the dashboard, not Terminal, so the key doesn't end up in your Terminal history.
 
 ## 7. Run the safety check (must be all PASS)
 
