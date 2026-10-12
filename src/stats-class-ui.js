@@ -40,7 +40,7 @@ function drawChart(list, s, mine) {
     bar.style.width = Math.max(14, Math.round((n / max) * 100)) + '%';
     track.appendChild(bar);
     li.appendChild(track);
-    li.setAttribute('aria-label', (r[0] === 4 ? 'Not solved' : 'Solved with ' + plural(r[0], 'mistake')) + ': ' + pct + '% of players' + (mine === r[0] ? ' (you)' : ''));
+    li.setAttribute('aria-label', (r[0] === 4 ? 'Not solved' : 'Solved with ' + (r[0] === 1 ? '1 wrong guess' : r[0] + ' wrong guesses')) + ': ' + pct + '% of players' + (mine === r[0] ? ' (you)' : ''));
     list.appendChild(li);
   });
 }
@@ -122,7 +122,7 @@ function drawEveryone(puzzleId, s) {
   wait.hidden = enough;
   line.hidden = chart.hidden = hints.hidden = !enough;
   if (!enough) return;
-  line.textContent = s.plays + ' plays · ' + s.solvedPct + '% solved · avg ' + s.avgMistakes.toFixed(1) + ' mistakes';
+  line.textContent = s.plays + ' plays · ' + s.solvedPct + '% solved · avg ' + s.avgMistakes.toFixed(1) + ' wrong guesses';
   drawChart(chart, s, classSlot(getFirstResult(puzzleId)));
   hints.textContent = s.hintPct + '% used a hint' + (s.hintPct && s.topHint ? ' · most used: ' + s.topHint : '');
 }
@@ -183,5 +183,5 @@ export function classShareLine(puzzleId) {
   if (!isStatsEligible(puzzleId)) return '';
   var row = cachedClassStats(puzzleId);
   var pct = fewerMistakesPct(classSummary(row), classSlot(getFirstResult(puzzleId)));
-  return pct === null ? '' : 'Fewer mistakes than ' + pct + '% of players';
+  return pct === null ? '' : 'Fewer wrong guesses than ' + pct + '% of players';
 }

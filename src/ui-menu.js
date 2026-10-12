@@ -397,11 +397,11 @@ export function onEngineChange() {
 export function onPhaseChange(p) {
   if (p === 'won') {
     playSound('win');
-    announce('You solved the puzzle with ' + state.game.mistakes + ' mistake' + (state.game.mistakes === 1 ? '' : 's') + '.');
+    announce('You solved the puzzle with ' + state.game.mistakes + ' wrong guess' + (state.game.mistakes === 1 ? '' : 'es') + '.');
     setTimeout(showResults, 450);
   } else if (p === 'lost') {
     playSound('lose');
-    announce('Out of mistakes. Here are the answers.');
+    announce('Out of guesses. Here are the answers.');
     setTimeout(showResults, 450);
   }
 }
@@ -624,7 +624,7 @@ export function onResetPuzzle() {
   var game = state.game;
   if (!game) return;
   if (game.phase === 'playing'
-    && !window.confirm('Reset this puzzle? Staged pieces and mistakes will be cleared.')) {
+    && !window.confirm('Reset this puzzle? Staged pieces and guesses will be cleared.')) {
     return;
   }
   var puzzle = game.puzzle;

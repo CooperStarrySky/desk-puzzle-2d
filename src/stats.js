@@ -75,11 +75,11 @@ function renderStats(s, hl) {
   });
   body.appendChild(nums);
 
-  body.appendChild(el('h3', 'stats-chart-title', 'Mistakes per game'));
+  body.appendChild(el('h3', 'stats-chart-title', 'Wrong guesses per game'));
   var rows = [[0, '0', s.chart[0]], [1, '1', s.chart[1]], [2, '2', s.chart[2]], [3, '3', s.chart[3]], ['lost', 'Not solved', s.notSolved]];
   var max = Math.max.apply(null, rows.map(function (r) { return r[2]; }).concat([1]));
   var chart = el('ol', 'stats-chart');
-  chart.setAttribute('aria-label', 'Standard games by mistakes');
+  chart.setAttribute('aria-label', 'Standard games by wrong guesses');
   rows.forEach(function (r) {
     var li = el('li', 'stats-row' + (r[0] === 'lost' ? ' is-lost' : '') + (hl !== null && hl === r[0] ? ' is-you' : ''));
     li.appendChild(el('span', 'stats-row-k', r[1]));
@@ -88,7 +88,7 @@ function renderStats(s, hl) {
     bar.style.width = Math.max(8, Math.round((r[2] / max) * 100)) + '%';
     track.appendChild(bar);
     li.appendChild(track);
-    li.setAttribute('aria-label', (r[0] === 'lost' ? 'Not solved' : 'Solved with ' + r[1] + ' mistake' + (r[1] === '1' ? '' : 's')) + ': ' + r[2]);
+    li.setAttribute('aria-label', (r[0] === 'lost' ? 'Not solved' : 'Solved with ' + r[1] + ' wrong guess' + (r[1] === '1' ? '' : 'es')) + ': ' + r[2]);
     chart.appendChild(li);
   });
   body.appendChild(chart);

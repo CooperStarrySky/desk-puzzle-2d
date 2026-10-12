@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort 16 pathology clues into 4 hidden groups." />
   <meta name="twitter:image" content="https://pathologyconnections.org/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=43" />
+  <link rel="stylesheet" href="styles.css?v=44" />
 </head>
 <body>
   <div id="app">
@@ -96,7 +96,7 @@
                   aria-haspopup="menu" aria-expanded="false">Hints</button>
           <div id="hints-panel" class="hints-panel" hidden role="menu" aria-label="Hints"></div>
         </div>
-        <div class="mistake-tracker" id="mistake-tracker" aria-label="Mistakes"></div>
+        <div class="mistake-tracker" id="mistake-tracker" aria-label="Wrong guesses"></div>
         <div class="play-actions">
           <button id="btn-shuffle" class="btn btn-ghost" type="button">Shuffle</button>
           <button id="btn-reset" class="btn btn-ghost" type="button" aria-label="Reset puzzle" title="Reset"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
@@ -117,7 +117,7 @@
                 </label>
                 <label class="toggle-row">
                   <input type="checkbox" id="toggle-casual" />
-                  <span>Casual mode: unlimited mistakes, still counted</span>
+                  <span>Casual mode: unlimited guesses, wrong ones still counted</span>
                 </label>
                 <label class="toggle-row">
                   <input type="checkbox" id="toggle-share-stats" data-setting="shareStats" checked />
@@ -287,7 +287,7 @@
             <h3 id="results-class-title" class="results-class-title">How everyone did</h3>
             <p id="results-class-line" class="results-class-line"></p>
             <p id="results-class-wait" class="results-class-wait" hidden>Not enough players yet — check back later.</p>
-            <ol id="results-class-chart" class="stats-chart results-class-chart" aria-label="Standard games by mistakes, all players"></ol>
+            <ol id="results-class-chart" class="stats-chart results-class-chart" aria-label="Standard games by wrong guesses, all players"></ol>
             <p id="results-class-hints" class="results-class-hints"></p>
           </div>
           <div id="results-rate" class="results-rate" hidden>
@@ -333,7 +333,7 @@
           <ul>
             <li>which puzzle it was</li>
             <li>whether you solved it</li>
-            <li>how many mistakes and guesses you made</li>
+            <li>how many guesses you made, and how many were wrong</li>
             <li>which hints you used</li>
             <li>whether casual mode was on</li>
             <li>your difficulty rating, if you give one</li>
@@ -382,7 +382,7 @@
     }
   </script>
   <!-- Public Supabase address + publishable key, shared with the Studio (anonymous play stats). -->
-  <script src="studio/config.js?v=43"></script>
-  <script type="module" src="src/main.js?v=43"></script>
+  <script src="studio/config.js?v=44"></script>
+  <script type="module" src="src/main.js?v=44"></script>
 </body>
 </html>

@@ -469,7 +469,7 @@ export function syncHeader() {
   box.id = 'guesses-box';
   var lab = document.createElement('span');
   lab.className = 'guesses-label';
-  lab.textContent = state.settings.casual ? 'Mistakes' : 'Guesses left';
+  lab.textContent = state.settings.casual ? 'Wrong guesses' : 'Guesses left';
   box.appendChild(lab);
   if (state.settings.casual) {
     var count = document.createElement('span');
@@ -492,7 +492,7 @@ export function syncHeader() {
   }
   els.mistakeTracker.appendChild(box);
   els.mistakeTracker.setAttribute('aria-label',
-    state.settings.casual ? game.mistakes + ' mistakes so far' : Math.max(0, MAX_MISTAKES - game.mistakes) + ' guesses left');
+    state.settings.casual ? game.mistakes + ' wrong guesses so far' : Math.max(0, MAX_MISTAKES - game.mistakes) + ' guesses left');
 }
 
 export function syncTrays() {
@@ -1962,8 +1962,8 @@ export function onTraysClick(ev) {
       setTimeout(function () { pieceEl.classList.remove('is-shake'); }, 400);
     });
     var msg = state.settings.casual
-      ? 'Not quite. Mistake ' + game.mistakes + '.'
-      : 'Not quite. ' + Math.max(game.mistakesLeft, 0) + ' mistake' + (game.mistakesLeft === 1 ? '' : 's') + ' left.';
+      ? 'Not quite. Wrong guess ' + game.mistakes + '.'
+      : 'Not quite. ' + Math.max(game.mistakesLeft, 0) + ' guess' + (game.mistakesLeft === 1 ? '' : 'es') + ' left.';
     if (result.oneAway) {
       msg += ' One away!';
       playSound('one-away');
@@ -2428,7 +2428,7 @@ export function showResults() {
     won: won,
     sub: won
       ? 'Solved in ' + guesses + ' guess' + (guesses === 1 ? '' : 'es') + '.' + casualSuffix
-      : 'Out of mistakes. Here is how the groups fit together.' + casualSuffix,
+      : 'Out of guesses. Here is how the groups fit together.' + casualSuffix,
     hints: state.desk.hints || {},
     legacyHintsUsed: state.desk.hintsUsed,
     solvedGroupIds: solvedGroupIds,
@@ -2490,7 +2490,7 @@ export function buildShareText() {
   var lines = [];
   lines.push('Starry Sky Society Puzzle');
   lines.push(puzzle.title + (puzzle.date ? ', ' + puzzle.date : ''));
-  lines.push('Mistakes: ' + game.mistakes + (state.settings.casual ? ' (casual)' : '/' + MAX_MISTAKES));
+  lines.push('Wrong guesses: ' + game.mistakes + (state.settings.casual ? ' (casual)' : '/' + MAX_MISTAKES));
   var hintEmojis = '';
   var hints = state.desk.hints || {};
   if (hints.labels) hintEmojis += '🏷️';
