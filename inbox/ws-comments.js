@@ -1,11 +1,11 @@
-/* Puzzle workspace: comments on a suggestion. Everyone in the group reads them;
+/* Puzzle workspace: comments on a suggestion or a draft. Everyone in the group reads them;
    you can edit or delete only your own (the database enforces it too). The
    author and time come from your sign-in, never from the page. */
 import { S, $, esc, lc, busy, toast, plainError, openModal, when, ago, av, person } from './ws-core.js';
 
-export async function fetchComments(id) {
+export async function fetchComments(id, type) {
   const { data, error } = await S.sb.from('comments').select('id, author_email, body, at, edited_at')
-    .eq('target_type', 'submission').eq('target_id', id).order('at', { ascending: true }).limit(500);
+    .eq('target_type', type || 'submission').eq('target_id', id).order('at', { ascending: true }).limit(500);
   if (error) throw error;
   return data || [];
 }
@@ -22,8 +22,8 @@ export function commentsHtml(r, list) {
     '<textarea class="input cm-in" id="cm-' + esc(r.id) + '" maxlength="2000" rows="2" placeholder="Comment as ' + esc(person(S.me).name) + '…"></textarea>' +
     '<div><button type="button" class="btn primary small" data-cact="post">Post comment</button></div></div></div></div></section>';
 }
-/* again(focusSelector) re-draws the open card after a change. */
-export function wireComments(root, r, list, again) {
+/* again(focusSelector) re-draws the open card after a change. type: 'submission' (default) or 'draft'. */
+export function wireComments(root, r, list, again, type) {
   root.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-cact]'); if (!b || !root.contains(b)) return;
     const c = list.find((x) => x.id === b.dataset.cid);
@@ -31,7 +31,7 @@ export function wireComments(root, r, list, again) {
       const t = $('.cm-in', root), body = t.value.trim();
       if (!body) { t.focus(); toast('Type a comment first.'); return; }
       await busy(b, 'Posting…', async () => {
-        const { error } = await S.sb.from('comments').insert({ target_type: 'submission', target_id: r.id, body });
+        const { error } = await S.sb.from('comments').insert({ target_type: type || 'submission', target_id: r.id, body });
         if (error) { toast('Could not post that: ' + plainError(error), 5000); return; }
         t.value = ''; toast('Comment posted as ' + person(S.me).name);
         await again('.cm-in');

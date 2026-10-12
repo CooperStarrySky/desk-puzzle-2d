@@ -30,7 +30,8 @@ const typeOf = (a) => (a.subject === 'draft' && !['schedule', 'unschedule', 'pub
 function lineHtml(a) {
   const mine = lc(a.notify_email) === S.me, name = esc(a.subject_name || 'a suggestion');
   const who = a.actor_email ? esc(person(a.actor_email).name) : a.subject === 'submission' ? 'A student' : 'The publishing robot';
-  const subj = a.subject === 'submission' && a.submission_id ? '<a href="#s=' + encodeURIComponent(a.submission_id) + '">' + name + '</a>' : '<b>' + name + '</b>';
+  const subj = a.subject === 'submission' && a.submission_id ? '<a href="#s=' + encodeURIComponent(a.submission_id) + '">' + name + '</a>'
+    : a.subject === 'draft' && a.draft_id && a.action !== 'deleted' ? '<a href="#/planner/' + encodeURIComponent(a.draft_id) + '">' + name + '</a>' : '<b>' + name + '</b>';
   const said = esc((a.subject === 'submission' ? SUB_SAID : DRAFT_SAID)[a.action] || a.action.replace(/_/g, ' '));
   const note = a.note && ['decline', 'comment', 'lost_slot', 'reverted', 'rename', 'status'].includes(a.action) ? ': <q>' + esc(a.note) + '</q>' : '';
   return '<li' + (mine ? ' class="notify"' : '') + '>' + av(a.actor_email, 1) + '<p class="what">' + (mine ? '<span class="for-you">For you</span>' : '') +

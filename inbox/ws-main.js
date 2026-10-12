@@ -1,16 +1,18 @@
 /* Puzzle workspace: start-up, who gets in, the tabs and the address bar.
-   Routes: #/suggestions, #/activity, #s=<id> (a suggestion opened in place).
-   Planner, Calendar and Archive come in a later step; WS_TABS keeps them hidden. */
+   Routes: #/suggestions, #s=<id> (a suggestion opened in place), #/planner,
+   #/planner/<draft id>, #/calendar, #/activity.
+   Archive comes in a later step; WS_TABS keeps it hidden. */
 import { S, $, lc, toast, plainError, makeClient, modalOpen } from './ws-core.js';
 import { initAuth, isHolding, changePassword, signOut } from './ws-auth.js';
 import { loadPeople, needsProfile, renderMe, openProfile, initMenu } from './ws-profile.js';
 import { initSuggest, showSuggestions, resetSuggest, newCount } from './ws-suggest.js';
 import { initActivity, showActivity, resetActivity, loadActivity, activityCount } from './ws-activity.js';
+import { showPlanner, resetPlanner } from './ws-plan-editor.js';
 
-export const WS_TABS = { suggestions: true, planner: false, calendar: false, archive: false, activity: true };
+export const WS_TABS = { suggestions: true, planner: true, calendar: false, archive: false, activity: true };
 const TAB_WORDS = { suggestions: 'Suggestions', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity' };
 const VIEWS = ['loading', 'v-setup', 'v-noscript', 'v-signin', 'v-notadmin', 'v-ws'];
-let routing = false, again = false, readyFor = null, prompted = false, tab = '';
+let routing = false, again = false, readyFor = null, prompted = false, tab = '', view = '';
 
 function show(id) {
   VIEWS.forEach((v) => { $('#' + v).hidden = v !== id; });
@@ -31,15 +33,18 @@ function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
   const id = new URLSearchParams(h).get('s');
   if (id) return { tab: 'suggestions', id };
-  const t = h.split(/[/?]/)[0];
+  const [t, sub] = h.split(/[/?]/);
+  if (t === 'planner' && WS_TABS.planner) return { tab: 'planner', id: null, draft: sub ? decodeURIComponent(sub) : null };
   return { tab: WS_TABS[t] ? t : 'suggestions', id: null };
 }
 async function go() {
   const p = parseHash();
-  const changedTab = p.tab !== tab;
-  tab = p.tab; renderTabs();
+  const changedTab = p.tab !== tab || (p.draft || '') !== view;
+  tab = p.tab; view = p.draft || ''; renderTabs();
   if (changedTab) document.title = TAB_WORDS[tab] + ' · Puzzle workspace · Desk Puzzle';
-  if (tab === 'activity') await showActivity(); else await showSuggestions(p.id);
+  if (tab === 'activity') await showActivity();
+  else if (tab === 'planner') await showPlanner(p.draft);
+  else await showSuggestions(p.id);
   if (changedTab && !p.id) {
     window.scrollTo(0, 0);
     if (document.activeElement === document.body) $('#ws-root').focus({ preventScroll: true });
@@ -73,7 +78,7 @@ async function route() {
     if (again) { again = false; setTimeout(route, 0); }
   }
 }
-function resetAll() { resetSuggest(); resetActivity(); readyFor = null; prompted = false; tab = ''; $('#ws-main').innerHTML = ''; }
+function resetAll() { resetSuggest(); resetActivity(); resetPlanner(); readyFor = null; prompted = false; tab = ''; view = ''; $('#ws-main').innerHTML = ''; }
 
 const darkMq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 function applyTheme(t) {

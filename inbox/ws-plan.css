@@ -1,0 +1,78 @@
+/* Puzzle workspace: Planner + Calendar (step B3). Uses the tokens in ws.css. */
+.st-planning { background: var(--paper-2); color: var(--ink-soft); }
+.st-ready { background: var(--ok-soft); color: var(--ok); }
+.st-scheduled { background: var(--accent-soft); color: var(--accent); }
+.st-published { background: var(--eosin-soft); color: var(--eosin-ink); }
+.back { margin: 0 0 6px; font-size: 0.9rem; }
+.flag { display: inline-flex; align-items: center; gap: 4px; background: var(--warn-soft); color: var(--ink); font-weight: 700; font-size: 0.72rem; border-radius: 999px; padding: 2px 8px; max-width: 100%; overflow-wrap: anywhere; align-self: start; }
+
+/* ── draft list ── */
+.drafts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.draft-card { display: flex; flex-direction: column; gap: 9px; background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); padding: 14px 16px; color: var(--ink); text-decoration: none; min-width: 0; }
+.draft-card:hover { border-color: var(--accent); }
+.draft-card h3 { font-size: 1.12rem; overflow-wrap: anywhere; }
+.draft-card .tagchip { align-self: start; }
+.dc-when, .dc-owner, .fill-n { font-size: 0.8rem; }
+.dc-names { font-size: 0.84rem; overflow-wrap: anywhere; }
+.minislots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.minislots span { height: 8px; border-radius: 3px; background: var(--tc); }
+.minislots span.off { background: var(--paper-2); }
+
+/* ── editor layout: library | slots | preview; notes under the slots ── */
+.view-head .ed-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.82rem; color: var(--ink-soft); margin: 0; }
+#ed-h { overflow-wrap: anywhere; }
+.ed-top { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.7fr); gap: 10px 12px; align-items: end; }
+.ed-top .ed-flow { grid-column: 1 / -1; }
+@media (max-width: 700px) { .ed-top { grid-template-columns: minmax(0, 1fr); } }
+.editor { display: grid; grid-template-columns: var(--libw, 280px) minmax(0, 1fr) minmax(320px, 400px); gap: 16px; align-items: start; margin-top: 14px; }
+.editor > * { min-width: 0; }
+.editor .lib { grid-column: 1; grid-row: 1 / span 2; }
+.editor .mid-a { grid-column: 2; grid-row: 1; }
+.editor .mid-b { grid-column: 2; grid-row: 2; }
+.editor .pv-col { grid-column: 3; grid-row: 1 / span 2; }
+@media (max-width: 1240px) {
+  .editor { grid-template-columns: var(--libw, 260px) minmax(0, 1fr); }
+  .editor .lib { grid-row: 1 / span 3; }
+  .editor .pv-col { grid-column: 2; grid-row: 2; }
+  .editor .mid-b { grid-row: 3; }
+}
+@media (max-width: 760px) {
+  .editor { grid-template-columns: minmax(0, 1fr); }
+  .editor .lib, .editor .mid-a, .editor .mid-b, .editor .pv-col { grid-column: 1; grid-row: auto; }
+}
+.mid-b h3, .lib h2, .pv-col h2 { font-size: 1.05rem; }
+#ed-notes { min-height: 90px; }
+
+/* ── library ── */
+.lib { display: flex; flex-direction: column; gap: 8px; position: relative; }
+.lib.drop-back { outline: 2px dashed var(--danger); outline-offset: 2px; }
+.lib-hint { font-size: 0.76rem; margin: 0; }
+.lib-list { display: flex; flex-direction: column; gap: 6px; max-height: 640px; overflow-y: auto; padding: 2px; container-type: inline-size; }
+@media (max-width: 760px) { .lib-list { max-height: 360px; } .wide-only { display: none; } }
+.lib-card { background: var(--card); border: 1px solid var(--panel-edge); border-left: 4px solid var(--tc, var(--panel-edge)); border-radius: var(--r-s); padding: 8px 10px; cursor: grab; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.lib-card.in-use { background: var(--paper); }
+.lib-card.dragging { opacity: 0.4; }
+.lib-card h4 { font: 600 0.9rem/1.25 var(--sans); display: flex; gap: 6px; align-items: baseline; overflow-wrap: anywhere; }
+.lib-card .row { --gap: 6px; }
+.lib-from, .lib-sum, .lib-meta .faint { font-size: 0.74rem; margin: 0; }
+.lib-meta { align-items: center; }
+.lib-ex { display: none; font-size: 0.8rem; color: var(--ink-soft); margin: 0; }
+.lib-clues { display: none; list-style: none; margin: 0; padding: 0; font-size: 0.8rem; color: var(--ink-soft); gap: 2px 12px; }
+.lib-clues li { display: flex; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+@container (min-width: 330px) { .lib-clues { display: grid; grid-template-columns: minmax(0, 1fr); } .lib-sum { display: none; } }
+@container (min-width: 470px) { .lib-clues { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lib-ex { display: block; } }
+.badge.in-draft { align-self: start; background: var(--accent-soft); color: var(--accent); }
+.lib-handle { position: absolute; top: 14px; bottom: 14px; right: -12px; width: 16px; cursor: col-resize; touch-action: none; z-index: 3; display: grid; place-items: center; border-radius: 8px; }
+.lib-handle::before { content: ""; width: 4px; height: 56px; border-radius: 4px; background: var(--panel-edge); box-shadow: 0 0 0 1px var(--panel); }
+.lib-handle:hover::before, .lib-handle.active::before, .lib-handle:focus-visible::before { background: var(--accent); }
+.lib-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+@media (max-width: 760px) { .lib-handle { display: none; } }
+body.resizing { cursor: col-resize; user-select: none; }
+.lf-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.lf-bar select.input { width: auto; flex: 1 1 140px; min-width: 0; padding: 4px 8px; }
+.lf-panel { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); padding: 10px; background: var(--card); max-height: 440px; overflow-y: auto; }
+.lf-selects { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.lf-selects select.input { padding: 4px 6px; font-size: 0.82rem; }
+.lf-panel .chips { gap: 5px; }
+.lf-panel .chip { padding: 3px 9px; font-size: 0.76rem; }
+#lib-n { margin: 0; }
