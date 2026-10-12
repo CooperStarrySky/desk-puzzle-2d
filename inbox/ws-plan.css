@@ -119,3 +119,12 @@ body.resizing { cursor: col-resize; user-select: none; }
 .modal.full { width: min(1100px, 100%); }
 .det-dlg .desk { margin: 6px 0; }
 .pick-list .btn:disabled { opacity: 0.6; }
+
+/* ── live preview (Studio's preview frame) + export ── */
+.pv-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.pv-frame { display: block; width: 100%; min-height: 140px; height: 360px; border: 0; border-radius: var(--r-m); background: transparent; }
+.pv-frame[hidden] { display: none; }
+.pv-hint { font-size: 0.76rem; margin: 0; }
+.pv-col .empty { margin: 0; }
+.modal.full .pv-frame.big { min-height: 320px; }
+.yaml { margin: 0; max-height: 52vh; overflow: auto; background: var(--paper); border: 1px solid var(--panel-edge); border-radius: var(--r-m); padding: 12px; font: 0.8rem/1.45 var(--mono); white-space: pre; color: var(--ink); }

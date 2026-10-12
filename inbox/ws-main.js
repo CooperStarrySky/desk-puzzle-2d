@@ -10,6 +10,7 @@ import { initActivity, showActivity, resetActivity, loadActivity, activityCount 
 import { showPlanner, resetPlanner } from './ws-plan-editor.js';
 import './ws-plan-slots.js';
 import './ws-plan-checks.js';
+import './ws-plan-preview.js';
 
 export const WS_TABS = { suggestions: true, planner: true, calendar: false, archive: false, activity: true };
 const TAB_WORDS = { suggestions: 'Suggestions', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity' };
