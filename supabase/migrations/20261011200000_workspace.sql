@@ -210,12 +210,14 @@ create unique index draft_slots_once_per_draft
 
 -- History of each draft, for the Activity feed. notify_email names the person
 -- who should hear about it (e.g. the owner of a draft that lost a category).
+-- draft_id is not linked to drafts on purpose and the title is copied in, so
+-- the lines survive when a draft is deleted ("Thirth P. deleted draft 'X'").
 create table public.draft_events (
   id           uuid primary key default gen_random_uuid(),
   draft_id     uuid not null,
   draft_title  text not null,
   actor_email  text,
-  action       text not null check (action in ('create', 'rename', 'status', 'schedule', 'unschedule', 'delete',
+  action       text not null check (action in ('create', 'rename', 'status', 'schedule', 'unschedule', 'deleted',
                  'comment', 'lost_slot', 'reverted', 'publish_requested', 'publish')),
   note         text check (note is null or char_length(note) <= 2000),
   notify_email text,
@@ -488,7 +490,7 @@ begin
     insert into public.draft_events (draft_id, draft_title, actor_email, action) values (new.id, new.title, who, 'create');
     return null;
   elsif tg_op = 'DELETE' then
-    insert into public.draft_events (draft_id, draft_title, actor_email, action) values (old.id, old.title, who, 'delete');
+    insert into public.draft_events (draft_id, draft_title, actor_email, action) values (old.id, old.title, who, 'deleted');
     return null;
   end if;
   if not private.quiet() then
@@ -588,6 +590,14 @@ begin
             case when title is null then 'removed when its draft was deleted' else 'removed from draft ' || title end,
             old.draft_id);
   end if;
+  -- A Ready or Scheduled draft must always have all 4 slots. If one is
+  -- emptied (by hand, or because its suggestion was deleted), the draft goes
+  -- back to Planning; the drafts trigger logs that change.
+  if tg_op = 'DELETE' then
+    update public.drafts o set status = 'planning'
+     where o.id = old.draft_id and o.status in ('ready', 'scheduled')
+       and (select count(*) from public.draft_slots s where s.draft_id = o.id) < 4;
+  end if;
   if tg_op in ('INSERT', 'UPDATE') and new.submission_id is not null then
     if tg_op = 'INSERT' or new.submission_id is distinct from old.submission_id then
       insert into public.review_events (submission_id, actor_email, action, note, draft_id)
@@ -649,6 +659,9 @@ begin
     if not exists (select 1 from public.drafts d where d.id = new.draft_id and d.status in ('ready', 'scheduled')) then
       raise exception 'Only a Ready or Scheduled draft can be published.' using errcode = '23514';
     end if;
+    if (select count(*) from public.draft_slots s where s.draft_id = new.draft_id) < 4 then
+      raise exception 'Fill all 4 slots before publishing.' using errcode = '23514';
+    end if;
   end if;
   return new;
 end;
@@ -682,7 +695,8 @@ create trigger publish_jobs_log
 -- its published_puzzle_id; the trigger below then runs this. It:
 --   1. marks every suggestion in the draft Used (used_in = the puzzle id),
 --   2. takes those suggestions out of every other unpublished draft,
---   3. puts any of those drafts that were Scheduled back to Ready, and
+--   3. puts any of those drafts that were Scheduled back to Ready, and any
+--      that were Ready back to Planning, and
 --   4. writes it all to the history, naming each affected draft's owner so
 --      they get told.
 -- It can also be called by hand with the secret key. Website users cannot.
@@ -743,15 +757,19 @@ begin
          'Removed ''' || sub.group_name || ''' because it was published in ''' || d.title || '''', g.owner_email
   from gone g join public.submissions sub on sub.id = g.submission_id;
 
-  -- 3. Scheduled drafts that lost a category go back to Ready
+  -- 3. Drafts that lost a category step back: Scheduled -> Ready (the
+  --    owner's rule, so it keeps its place in the queue) and Ready -> Planning.
+  --    Both tell the owner.
   with back as (
-    update public.drafts o set status = 'ready'
-     where o.id = any (hit) and o.status = 'scheduled'
-    returning o.id, o.title, o.owner_email
+    update public.drafts o
+       set status = case o.status when 'scheduled' then 'ready' else 'planning' end
+     where o.id = any (hit) and o.status in ('scheduled', 'ready')
+    returning o.id, o.title, o.owner_email, o.status
   )
   insert into public.draft_events (draft_id, draft_title, actor_email, action, note, notify_email)
   select b.id, b.title, who, 'reverted',
-         'Back to Ready: a category was published in ''' || d.title || '''. Fill the slot and schedule again.', b.owner_email
+         'Back to ' || initcap(b.status) || ': a category was published in ''' || d.title || '''. Fill the slot'
+           || case when b.status = 'ready' then ' and schedule again.' else '.' end, b.owner_email
   from back b;
 
   -- 4. The published draft itself

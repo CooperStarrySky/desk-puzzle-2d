@@ -344,8 +344,10 @@ What each piece holds:
 - **publish_jobs** holds "Publish now" requests for the publishing job (a later step).
 
 When a draft is published, the database marks its suggestions Used, takes them out of
-every other draft, puts any Scheduled draft that lost one back to Ready, and tells
-that draft's owner in the feed.
+every other draft, puts any Scheduled draft that lost one back to Ready and any Ready
+draft back to Planning, and tells that draft's owner in the feed. Emptying a slot of a
+Ready or Scheduled draft by hand also sends it back to Planning. Deleting a draft
+leaves a "deleted draft 'X'" line in the feed with who did it.
 
 To apply it (from the site folder, the same way as steps 5-7):
 
