@@ -29,8 +29,8 @@ export function openProfile(first, onSaved) {
   let color = S.myRow.color || PALETTE[0];
   openModal('<form class="stack" style="--gap:14px" id="pf-form" novalidate>' +
     '<h2 id="modal-h">' + (first ? 'Welcome! What should the group call you?' : 'Your profile') + '</h2>' +
-    (first ? '<p class="muted">Your name shows on everything you do here: “Shortlisted by Priya N.”, comments and 👍. You can change it later from the menu under your name.</p>' : '') +
-    '<label class="field"><span>Display name (up to 40 characters)</span><input class="input" id="pf-name" maxlength="40" autocomplete="name" value="' + esc(S.myRow.display_name || '') + '" placeholder="e.g. Priya N."></label>' +
+    (first ? '<p class="muted">Your name shows on everything you do here: “Shortlisted by John D.”, comments and 👍. You can change it later from the menu under your name.</p>' : '') +
+    '<label class="field"><span>Display name (up to 40 characters)</span><input class="input" id="pf-name" maxlength="40" autocomplete="name" value="' + esc(S.myRow.display_name || '') + '" placeholder="e.g. John D."></label>' +
     '<fieldset class="fgroup"><legend class="eyebrow">Avatar color</legend><div class="swatches" role="radiogroup" aria-label="Avatar color">' +
     PALETTE.map((c, i) => '<button type="button" class="swatch" role="radio" data-c="' + c + '" style="--sw:' + c + '" aria-checked="' + (c === color) + '" tabindex="' + (c === color ? 0 : -1) + '" aria-label="Color ' + (i + 1) + '"></button>').join('') +
     '</div></fieldset>' +
@@ -62,7 +62,7 @@ export function openProfile(first, onSaved) {
     $('#pf-form', m).addEventListener('submit', async (e) => {
       e.preventDefault();
       const v = name.value.trim().replace(/\s+/g, ' ');
-      if (!v) { err('Type a name, like “Priya N.”.'); name.focus(); return; }
+      if (!v) { err('Type a name, like “John D.”.'); name.focus(); return; }
       if (v.length > 40) { err('Keep it to 40 characters.'); return; }
       await busy($('#pf-save', m), 'Saving…', async () => {
         const { data, error } = await S.sb.from('admins').update({ display_name: v, color }).eq('email', S.myRow.email).select('email, display_name, color');

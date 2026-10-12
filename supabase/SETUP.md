@@ -320,7 +320,7 @@ can see any of it; the public key gets nothing.
 What each piece holds:
 
 - **admins** now also has a `display_name` and `color` for each person (used for
-  avatars and "Shortlisted by Priya N."). Each admin can change only their own.
+  avatars and "Shortlisted by John D."). Each admin can change only their own.
 - **submissions** gains `tags` (block or system labels like "Cardio") and a hidden
   search column, so the inbox can find a suggestion by its name, explanation, clue
   labels, or clue notes. This works for single categories and full puzzles.

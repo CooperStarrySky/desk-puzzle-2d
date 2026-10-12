@@ -32,8 +32,8 @@ Group id defaults: "g-" + slug(group name).
 Item id defaults: slug(item label).
 Item title defaults to item label.
 Machines: derived from zones used (rack -> scope, tubes -> lightbox).
-Group credit (optional): `credit: {name: "Priya N.", line: "MS2"}` or the
-shorthand `credit: "Priya N."` names who submitted the category; omit it for
+Group credit (optional): `credit: {name: "John D.", line: "MS2"}` or the
+shorthand `credit: "John D."` names who submitted the category; omit it for
 an anonymous group.
 Puzzle credit (optional): the same `credit:` key at the top level of the spec
 names who submitted a whole puzzle; the game shows it once ("Puzzle by ...").
@@ -161,7 +161,7 @@ VALID_ZONES = {'corkboard', 'folder', 'rack', 'tubes', 'photo', 'rx'}
 
 
 def normalize_credit(raw):
-    """Submitter credit from the spec: `credit: "Priya N."` shorthand or
+    """Submitter credit from the spec: `credit: "John D."` shorthand or
     `credit: {name, line}`. None when absent; a wrong type passes through so
     validate_puzzle can name it. Used for groups and for the whole puzzle."""
     if raw is None:

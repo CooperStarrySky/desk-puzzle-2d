@@ -2173,7 +2173,7 @@ function buildTeachRow(row, i) {
   return r;
 }
 
-/** "Priya N. · MS2" from a group's optional submitter credit, or '' when
+/** "John D. · MS2" from a group's optional submitter credit, or '' when
     the group has none (or only a blank name). */
 function creditText(c) {
   if (!c || typeof c.name !== 'string' || !c.name.trim()) return '';

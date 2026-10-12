@@ -31,7 +31,7 @@ Version 1 category files (the older format) are still accepted unchanged.
   "version": 2,
   "kind": "category",            // or "puzzle"
   "submittedAt": "2026-10-11T15:00:00.000Z",
-  "credit": { "mode": "named", "name": "Priya N.", "line": "MS2" },   // line optional
+  "credit": { "mode": "named", "name": "John D.", "line": "MS2" },   // line optional
             // or { "mode": "anonymous" }
   "contact": { "email": "priya@rowan.edu" },                         // or null
   "consent": true

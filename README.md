@@ -96,14 +96,14 @@ an Anki Browse search string (`nid:id1,id2,...`) to the clipboard so you can ope
 directly in Anki. Puzzles without `anki` data on any group never show the button.
 
 Each `group` may also carry an optional `credit` naming who submitted the category:
-`{"credit": {"name": "Priya N.", "line": "MS2"}}` (`name` required, up to 60 characters;
-`line` optional, up to 40). The results screen shows "Category by Priya N. · MS2" under that
+`{"credit": {"name": "John D.", "line": "MS2"}}` (`name` required, up to 60 characters;
+`line` optional, up to 40). The results screen shows "Category by John D. · MS2" under that
 group's explanation. Leave `credit` out for an anonymous group. In a YAML spec,
-`credit: "Priya N."` is shorthand for a name with no line. This is separate from image
+`credit: "John D."` is shorthand for a name with no line. This is separate from image
 credits, which live in the group's article.
 
 A whole puzzle sent in by one person can instead carry a top-level `credit` with the same
-shape and limits. The results screen then shows "Puzzle by Priya N. · MS2" once, under the
+shape and limits. The results screen then shows "Puzzle by John D. · MS2" once, under the
 title; a group whose own credit has the same name doesn't repeat it on its placard.
 
 ## Keyboard play

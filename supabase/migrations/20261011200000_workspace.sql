@@ -2,7 +2,7 @@
 -- platform repo). Step B1: the database only.
 --
 -- What this sets up, in plain English:
---   * admins        + display_name and color, for avatars and "by Priya N.".
+--   * admins        + display_name and color, for avatars and "by John D.".
 --                   Each admin may change only their own.
 --   * submissions   + tags (block/system labels the group adds) and a search
 --                   index over the name, explanation, clue labels and clue notes.

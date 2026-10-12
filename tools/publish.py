@@ -61,7 +61,7 @@ def _credit_problems(credit, owner):
     """Problems with an optional submitter credit {name, line?} (same rules for a
     group's "Category by" and a full puzzle's "Puzzle by")."""
     if not isinstance(credit, dict):
-        return [f'{owner} credit must be an object like {{"name": "Priya N.", "line": "MS2"}}']
+        return [f'{owner} credit must be an object like {{"name": "John D.", "line": "MS2"}}']
     out = []
     c_name = credit.get("name")
     if not isinstance(c_name, str) or not c_name.strip():
