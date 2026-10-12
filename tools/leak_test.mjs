@@ -9,7 +9,8 @@
 //
 // It acts like a stranger who copied the public key out of studio/config.js
 // (anyone can) and tries to read, change, or add submissions, admins, the rate
-// log, and the private images. Every line must say PASS. Any FAIL means
+// log, the private images, and the puzzle group's workspace (history, comments,
+// votes, drafts, slots, publish jobs). Every line must say PASS. Any FAIL means
 // answers or emails could leak: stop and fix it before students use the inbox.
 //
 // Settings come from studio/config.js, or from the environment instead:
@@ -138,6 +139,34 @@ const cols = new Set((totals.json || []).flatMap((row) => Object.keys(row)));
 result(!cols.has('anon_id'), `totals hold no browser ids (columns: ${cols.size ? [...cols].join(', ') : 'no rows yet'})`);
 r = await call('GET', '/rest/v1/puzzle_stats?select=anon_id&limit=1');
 result(r.status >= 400, `asking puzzle_stats for anon_id is refused (${how(r)})`);
+
+// ── Workspace (history, comments, votes, drafts, publish jobs): admins only ──
+const NOID = '00000000-0000-4000-8000-000000000000';
+const WS_ROWS = {
+  review_events: { submission_id: NOID, action: 'shortlist' },
+  comments: { target_type: 'submission', target_id: NOID, body: 'leak test' },
+  votes: { submission_id: NOID },
+  drafts: { title: 'leak test' },
+  draft_slots: { draft_id: NOID, tier: 1, custom_group: { name: 'leak test' } },
+  draft_events: { draft_id: NOID, draft_title: 'leak test', action: 'create' },
+  publish_jobs: { draft_id: NOID, kind: 'now' },
+  activity: { action: 'vote' },
+};
+for (const [t, row] of Object.entries(WS_ROWS)) {
+  r = await call('GET', `/rest/v1/${t}?select=*&limit=5`);
+  result(nothing(r), `can't read ${t} (${how(r)})`);
+  if (r.status === 404) console.log(`     ${t} is missing: the workspace migration is not applied yet.`);
+  r = await call('POST', `/rest/v1/${t}`, row, { Prefer: 'return=minimal' });
+  result(refused(r), `can't add to ${t} (${how(r)})`);
+}
+r = await call('PATCH', '/rest/v1/drafts?id=not.is.null', { status: 'published' }, { Prefer: 'return=representation' });
+result(nothing(r), `can't change drafts (${how(r)})`);
+r = await call('PATCH', '/rest/v1/publish_jobs?id=not.is.null', { state: 'done' }, { Prefer: 'return=representation' });
+result(nothing(r), `can't move publish jobs along (${how(r)})`);
+r = await call('PATCH', '/rest/v1/admins?email=not.is.null', { display_name: 'leak test' }, { Prefer: 'return=representation' });
+result(nothing(r), `can't rename admins (${how(r)})`);
+r = await call('POST', '/rest/v1/rpc/swap_draft_slots', { p_draft_id: NOID, p_tier_a: 1, p_tier_b: 2 });
+result(refused(r), `can't call swap_draft_slots (${how(r)})`);
 
 // ── Optional: send one sample through the real function ──
 if (SEND) {

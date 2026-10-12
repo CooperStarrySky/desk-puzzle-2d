@@ -310,3 +310,49 @@ Good to know:
   per-browser id.
 - **If the project is paused** (free tier, long breaks), the game quietly hides the
   totals and keeps unsent results for up to 3 days. Restore the project in the dashboard.
+
+## Workspace (puzzle group planning)
+
+The inbox is growing into a shared workspace for the puzzle group. Its data lives in
+`supabase/migrations/20261011200000_workspace.sql`. Only people on the admins list
+can see any of it; the public key gets nothing.
+
+What each piece holds:
+
+- **admins** now also has a `display_name` and `color` for each person (used for
+  avatars and "Shortlisted by Priya N."). Each admin can change only their own.
+- **submissions** gains `tags` (block or system labels like "Cardio") and a hidden
+  search column, so the inbox can find a suggestion by its name, explanation, clue
+  labels, or clue notes. This works for single categories and full puzzles.
+- **review_events** is the history of each suggestion: sent in, shortlisted,
+  declined, reopened, used, commented on, voted for, added to or removed from a
+  draft, published. The database writes these lines itself, using the signed-in
+  email, so nobody can skip or fake "who did it". Older suggestions get a "sent in"
+  line plus their last known review.
+- **comments** are notes on a suggestion or a draft. Everyone reads them; you can
+  edit or delete only your own.
+- **votes** is one thumbs-up per person per suggestion.
+- **drafts** are puzzles being planned. Status goes Planning, Ready, Scheduled,
+  Published. Ready and Scheduled need all 4 slots filled; Scheduled also needs a
+  release time. Only the publishing job (secret key) can mark a draft Published, and
+  after that the draft is frozen.
+- **draft_slots** are the 4 tier slots of a draft. A slot holds a suggestion (or one
+  group of a full-puzzle suggestion) or a group typed in by hand. A suggestion may
+  sit in two drafts at once.
+- **draft_events** is the history of each draft (made, renamed, scheduled, lost a
+  category, published), and **activity** merges both histories for the team feed.
+- **publish_jobs** holds "Publish now" requests for the publishing job (a later step).
+
+When a draft is published, the database marks its suggestions Used, takes them out of
+every other draft, puts any Scheduled draft that lost one back to Ready, and tells
+that draft's owner in the feed.
+
+To apply it (from the site folder, the same way as steps 5-7):
+
+```
+npx supabase db push
+node tools/leak_test.mjs
+```
+
+`db push` should list `20261011200000_workspace.sql`. Every line of the leak test must
+say PASS, including the new workspace lines.
