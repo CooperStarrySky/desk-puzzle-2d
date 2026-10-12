@@ -2,7 +2,7 @@
 .st-planning { background: var(--paper-2); color: var(--ink-soft); }
 .st-ready { background: var(--ok-soft); color: var(--ok); }
 .st-scheduled { background: var(--accent-soft); color: var(--accent); }
-.st-published { background: var(--eosin-soft); color: var(--eosin-ink); }
+.st-published { background: var(--eosin-soft); color: var(--ink); }
 .back { margin: 0 0 6px; font-size: 0.9rem; }
 .flag { display: inline-flex; align-items: center; gap: 4px; background: var(--warn-soft); color: var(--ink); font-weight: 700; font-size: 0.72rem; border-radius: 999px; padding: 2px 8px; max-width: 100%; overflow-wrap: anywhere; align-self: start; }
 
@@ -128,3 +128,37 @@ body.resizing { cursor: col-resize; user-select: none; }
 .pv-col .empty { margin: 0; }
 .modal.full .pv-frame.big { min-height: 320px; }
 .yaml { margin: 0; max-height: 52vh; overflow: auto; background: var(--paper); border: 1px solid var(--panel-edge); border-radius: var(--r-m); padding: 12px; font: 0.8rem/1.45 var(--mono); white-space: pre; color: var(--ink); }
+
+/* ── status flow, publish queue, banner ── */
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.flow .when { font-size: 0.86rem; font-weight: 600; }
+.flow .why { font-size: 0.78rem; color: var(--ink-soft); }
+.job { flex-basis: 100%; margin: 2px 0 0; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: 0.84rem; padding: 7px 10px; border-radius: var(--r-s); background: var(--accent-soft); color: var(--ink); }
+.job .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex: none; }
+.job-queued .dot, .job-running .dot { animation: pulse 1.4s ease-in-out infinite; }
+.job-done { background: var(--ok-soft); } .job-done .dot { background: var(--ok); }
+.job-failed { background: var(--danger-soft); } .job-failed .dot { background: var(--danger); }
+@keyframes pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .job .dot { animation: none; } }
+.banner { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--warn-soft); color: var(--ink); border-left: 4px solid var(--warn); border-radius: var(--r-m); padding: 10px 12px; margin-bottom: 12px; font-weight: 600; font-size: 0.9rem; }
+.banner .faint { font-weight: 400; }
+.pub-h { font-size: 1rem; }
+.steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 4px; font-size: 0.88rem; }
+.losers { margin: 6px 0 0; padding-left: 1.2em; font-size: 0.86rem; }
+.fdates { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ── calendar ── */
+.cal { display: flex; flex-direction: column; gap: 14px; max-width: 860px; }
+.cal-h { font-size: 1.1rem; margin-bottom: 4px; }
+.cal-note { font-size: 0.86rem; margin: 0; }
+.cal-live { border-left: 4px solid var(--ok); }
+.cal-week { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--rule); }
+@media (max-width: 520px) { .cal-week { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+.cal-week > h3 { font: 600 0.84rem/1.3 var(--sans); color: var(--ink-soft); }
+.cal-items { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cal-item { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-m); padding: 10px 12px; color: var(--ink); text-decoration: none; min-width: 0; }
+.cal-item:hover { border-color: var(--accent); }
+.cal-item b { font-family: var(--serif); font-size: 1.02rem; overflow-wrap: anywhere; }
+.cal-item .grow { min-width: 0; flex: 1 1 160px; }
+.cal-when, .cal-who { font-size: 0.82rem; }
+.cal-gap { margin: 0; font-size: 0.86rem; color: var(--ink); background: var(--warn-soft); border-radius: var(--r-m); padding: 8px 12px; font-weight: 600; }

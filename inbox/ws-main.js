@@ -11,8 +11,10 @@ import { showPlanner, resetPlanner } from './ws-plan-editor.js';
 import './ws-plan-slots.js';
 import './ws-plan-checks.js';
 import './ws-plan-preview.js';
+import './ws-plan-flow.js';
+import { showCalendar } from './ws-calendar.js';
 
-export const WS_TABS = { suggestions: true, planner: true, calendar: false, archive: false, activity: true };
+export const WS_TABS = { suggestions: true, planner: true, calendar: true, archive: false, activity: true };
 const TAB_WORDS = { suggestions: 'Suggestions', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity' };
 const VIEWS = ['loading', 'v-setup', 'v-noscript', 'v-signin', 'v-notadmin', 'v-ws'];
 let routing = false, again = false, readyFor = null, prompted = false, tab = '', view = '';
@@ -47,6 +49,7 @@ async function go() {
   if (changedTab) document.title = TAB_WORDS[tab] + ' · Puzzle workspace · Desk Puzzle';
   if (tab === 'activity') await showActivity();
   else if (tab === 'planner') await showPlanner(p.draft);
+  else if (tab === 'calendar') await showCalendar();
   else await showSuggestions(p.id);
   if (changedTab && !p.id) {
     window.scrollTo(0, 0);
