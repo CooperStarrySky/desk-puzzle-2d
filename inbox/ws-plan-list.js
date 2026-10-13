@@ -28,7 +28,7 @@ export function renderDraftList() {
     '<div class="row" style="--gap:8px"><button class="btn" type="button" id="pl-refresh">Refresh</button><button class="btn primary" type="button" id="pl-new">New draft</button></div></div>' +
     (PL.err ? '<div class="err-box">' + esc(PL.err) + ' <button type="button" class="btn small" id="pl-retry">Try again</button></div>'
       : list.length ? '<p class="result-n">' + list.length + (list.length === 1 ? ' draft' : ' drafts') + '</p><div class="drafts" id="draft-list">' + list.map(cardHtml).join('') + '</div>'
-        : '<p class="empty">No drafts yet. Make one with <b>New draft</b>, then drag shortlisted categories into its four slots.</p>');
+        : '<p class="empty">No drafts yet. Make one with <b>New draft</b>, then drag categories into its four slots.</p>');
   const again = async (b, label) => busy(b, label, async () => { await loadPlanner(); renderDraftList(); if (!PL.err) toast('Up to date'); });
   $('#pl-refresh').addEventListener('click', (e) => again(e.currentTarget, 'Refreshing…'));
   const r = $('#pl-retry'); if (r) r.addEventListener('click', (e) => again(e.currentTarget, 'Loading…'));

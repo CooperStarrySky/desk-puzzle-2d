@@ -44,7 +44,8 @@ function tierOptions(r, draftId) {
     return '<option value="' + t + '"' + (t === pick ? ' selected' : '') + '>' + esc(label) + '</option>';
   }).join('');
 }
-export function openUse(r, onChange) {
+/* reload: what to re-fetch after adding (the Archive's bank by default; the Category database passes loadPlanner). */
+export function openUse(r, onChange, reload = loadBank) {
   const open = PL.drafts.filter((d) => d.status !== 'published').sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
   const first = open[0] ? open[0].id : '';
   openModal('<form class="stack" style="--gap:12px" id="use-form"><h2 id="modal-h">Use “' + esc(r.name) + '” in a draft</h2>' +
@@ -65,8 +66,8 @@ export function openUse(r, onChange) {
         let id = did(); const tier = Number($('#ud-tier', m).value), title = $('#ud-title', m).value.trim();
         if (!id && !title) { const er = $('#ud-err', m); er.textContent = 'Give the new draft a title.'; er.hidden = false; $('#ud-title', m).focus(); return; }
         if (!id) id = await newDraft(title, r.tags[0] || null, null);
-        if (!id || !(await useInDraft(r, id, tier))) { await loadBank(); if (onChange) onChange(); return; }
-        await loadBank(); if (onChange) onChange();
+        if (!id || !(await useInDraft(r, id, tier))) { await reload(); if (onChange) onChange(); return; }
+        await reload(); if (onChange) onChange();
         const d = PL.drafts.find((x) => x.id === id);
         close(); done(r, d || { id, title: title || 'the draft' }, tier);
       });

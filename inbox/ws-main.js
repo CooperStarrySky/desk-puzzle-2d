@@ -1,8 +1,10 @@
 /* Puzzle workspace: start-up, who gets in, the tabs and the address bar.
-   Routes: #/suggestions, #s=<id> (a suggestion opened in place), #/planner,
-   #/planner/<draft id>, #/calendar, #/archive, #/archive/categories, #/activity.
+   Routes: #/categories (the Category database), #/categories/trash,
+   #/categories/<id> (a category opened in place), #/planner, #/planner/<draft id>,
+   #/calendar, #/archive, #/archive/categories, #/activity. Old links still work:
+   #/suggestions -> #/categories and #s=<id> -> #/categories/<id>.
    WS_TABS turns a tab off without touching the rest. */
-import { S, $, lc, toast, plainError, makeClient, modalOpen } from './ws-core.js';
+import { S, $, lc, toast, plainError, makeClient, modalOpen, initMenus } from './ws-core.js';
 import { initAuth, isHolding, changePassword, signOut } from './ws-auth.js';
 import { loadPeople, needsProfile, renderMe, openProfile, initMenu } from './ws-profile.js';
 import { initSuggest, showSuggestions, resetSuggest, newCount } from './ws-suggest.js';
@@ -15,8 +17,8 @@ import './ws-plan-flow.js';
 import { showCalendar } from './ws-calendar.js';
 import { showArchive, resetArchive } from './ws-arch-view.js';
 
-export const WS_TABS = { suggestions: true, planner: true, calendar: true, archive: true, activity: true };
-const TAB_WORDS = { suggestions: 'Suggestions', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity' };
+export const WS_TABS = { categories: true, planner: true, calendar: true, archive: true, activity: true };
+const TAB_WORDS = { categories: 'Category database', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity' };
 const VIEWS = ['loading', 'v-setup', 'v-noscript', 'v-signin', 'v-notadmin', 'v-ws'];
 let routing = false, again = false, readyFor = null, prompted = false, tab = '', view = '';
 
@@ -26,13 +28,13 @@ function show(id) {
   $('#ws-tabs').hidden = !inWs; $('#me-wrap').hidden = !inWs;
 }
 function counts() {
-  return { suggestions: newCount(), activity: activityCount() };
+  return { categories: newCount(), activity: activityCount() };
 }
 function renderTabs() {
   const n = counts();
   $('#ws-tabs').innerHTML = Object.keys(WS_TABS).filter((k) => WS_TABS[k]).map((k) =>
     '<a href="#/' + k + '"' + (k === tab ? ' aria-current="page"' : '') + '>' + TAB_WORDS[k] +
-    (n[k] ? ' <span class="n">' + n[k] + '<span class="sr">' + (k === 'suggestions' ? ' new' : ' for you') + '</span></span>' : '') + '</a>').join('');
+    (n[k] ? ' <span class="n">' + n[k] + '<span class="sr">' + (k === 'categories' ? ' new' : ' for you') + '</span></span>' : '') + '</a>').join('');
   // On a phone the strip scrolls sideways: keep the current tab in view.
   const nav = $('#ws-tabs'), a = $('#ws-tabs [aria-current]');
   if (a && nav.clientWidth) {
@@ -44,11 +46,12 @@ function renderTabs() {
 function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
   const id = new URLSearchParams(h).get('s');
-  if (id) return { tab: 'suggestions', id };
-  const [t, sub] = h.split(/[/?]/);
+  if (id) return { tab: 'categories', id };
+  const [t0, sub] = h.split(/[/?]/), t = t0 === 'suggestions' ? 'categories' : t0;
+  if (t === 'categories') return sub === 'trash' ? { tab: t, id: null, sub } : { tab: t, id: sub ? decodeURIComponent(sub) : null };
   if (t === 'planner' && WS_TABS.planner) return { tab: 'planner', id: null, draft: sub ? decodeURIComponent(sub) : null };
   if (t === 'archive' && WS_TABS.archive) return { tab: 'archive', id: null, sub: sub === 'categories' ? sub : '' };
-  return { tab: WS_TABS[t] ? t : 'suggestions', id: null };
+  return { tab: WS_TABS[t] ? t : 'categories', id: null };
 }
 async function go() {
   const p = parseHash();
@@ -59,7 +62,7 @@ async function go() {
   else if (tab === 'planner') await showPlanner(p.draft);
   else if (tab === 'calendar') await showCalendar();
   else if (tab === 'archive') await showArchive(p.sub);
-  else await showSuggestions(p.id);
+  else await showSuggestions(p.sub, p.id);
   if (changedTab && !p.id) {
     window.scrollTo(0, 0);
     if (document.activeElement === document.body) $('#ws-root').focus({ preventScroll: true });
@@ -77,7 +80,8 @@ async function route() {
     S.me = session && session.user ? lc(session.user.email) : null;
     if (!S.me) { if (readyFor) resetAll(); show('v-signin'); return; }
     if (readyFor !== S.me) {
-      // Admins can read the admins list (row rules); anyone else gets zero rows back.
+      if (readyFor) resetAll(); // a different person: drop the last one's data first
+      // Members (and the site owner) can read their own membership; anyone else gets nothing back.
       if (!(await loadPeople())) { $('#notadmin-email').textContent = S.me; show('v-notadmin'); return; }
       readyFor = S.me;
       loadActivity().then(renderTabs);
@@ -117,6 +121,7 @@ function boot() {
   if (S.sb === 'noscript') { show('v-noscript'); return; }
   initAuth(route);
   initMenu();
+  initMenus();
   initSuggest(() => { if (readyFor) renderTabs(); });
   initActivity(() => { if (readyFor) renderTabs(); });
   $('#mi-profile').addEventListener('click', () => openProfile(false, () => go()));

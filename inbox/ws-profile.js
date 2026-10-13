@@ -1,18 +1,32 @@
-/* Puzzle workspace: who is in the group (admins table), your display name and
-   avatar color, and the menu under your avatar in the header. Each admin may
-   change only their own row (database rule). */
+/* Puzzle workspace: who is in the workspace (members of each school, plus the
+   site owner), your display name and avatar color, and the menu under your
+   avatar in the header. You may change only your own name and color. */
 import { S, $, $$, esc, lc, toast, openModal, busy, plainError, person, av, PALETTE } from './ws-core.js';
 
-/* Loads the admins list. Admins can read it; anyone else gets zero rows, which
-   is how the page knows you're not in the group. Returns true for an admin. */
+/* Loads who I am (my schools and roles), everyone's names, the schools and my
+   school's settings. Strangers get nothing back, which is how the page knows
+   you're not a member. Returns true for a member or the site owner. */
 export async function loadPeople() {
-  let res = await S.sb.from('admins').select('email, display_name, color');
-  if (res.error) res = await S.sb.from('admins').select('email'); // older database without names
-  if (res.error || !res.data || !res.data.length) return false;
+  const [mine, own, names, schools, sets] = await Promise.all([
+    S.sb.from('members').select('email, school, role, display_name, color, active').eq('email', S.me),
+    S.sb.from('site_owners').select('email').eq('email', S.me),
+    S.sb.rpc('member_names'),
+    S.sb.from('schools').select('slug, name, status').order('name', { ascending: true }),
+    S.sb.from('school_settings').select('school, comment_default, faculty_badge')]);
+  const rows = (mine.data || []).filter((r) => r.active);
+  S.owner = !own.error && (own.data || []).length > 0;
+  if (!rows.length && !S.owner) return false;
+  S.roles = {}; rows.forEach((r) => { S.roles[r.school] = r.role; });
+  const ordered = rows.map((r) => r.school).sort((a, b) => (b === 'cmsru') - (a === 'cmsru') || (a < b ? -1 : 1));
+  S.school = ordered[0] || null;
+  S.schools = new Map((schools.data || []).map((x) => [x.slug, x]));
+  S.settings = {}; (sets.data || []).forEach((x) => { S.settings[x.school] = x; });
   S.people.clear();
-  res.data.forEach((r) => S.people.set(lc(r.email), r));
-  S.myRow = S.people.get(S.me) || null;
-  return !!S.myRow || res.data.length > 0;
+  (names.data || []).forEach((r) => S.people.set(lc(r.email), r));
+  const me = rows.find((r) => r.school === S.school);
+  S.myRow = me ? { email: me.email, display_name: me.display_name, color: me.color } : null;
+  if (S.myRow && !S.people.has(S.me)) S.people.set(S.me, Object.assign({ schools: ordered }, S.myRow));
+  return true;
 }
 export const needsProfile = () => !!S.myRow && !S.myRow.display_name;
 
@@ -29,7 +43,7 @@ export function openProfile(first, onSaved) {
   let color = S.myRow.color || PALETTE[0];
   openModal('<form class="stack" style="--gap:14px" id="pf-form" novalidate>' +
     '<h2 id="modal-h">' + (first ? 'Welcome! What should the group call you?' : 'Your profile') + '</h2>' +
-    (first ? '<p class="muted">Your name shows on everything you do here: “Shortlisted by John D.”, comments and 👍. You can change it later from the menu under your name.</p>' : '') +
+    (first ? '<p class="muted">Your name shows on everything you do here: comments, 👍 and “Trashed by John D.”. You can change it later from the menu under your name.</p>' : '') +
     '<label class="field"><span>Display name (up to 40 characters)</span><input class="input" id="pf-name" maxlength="40" autocomplete="name" value="' + esc(S.myRow.display_name || '') + '" placeholder="e.g. John D."></label>' +
     '<fieldset class="fgroup"><legend class="eyebrow">Avatar color</legend><div class="swatches" role="radiogroup" aria-label="Avatar color">' +
     PALETTE.map((c, i) => '<button type="button" class="swatch" role="radio" data-c="' + c + '" style="--sw:' + c + '" aria-checked="' + (c === color) + '" tabindex="' + (c === color ? 0 : -1) + '" aria-label="Color ' + (i + 1) + '"></button>').join('') +
@@ -65,9 +79,10 @@ export function openProfile(first, onSaved) {
       if (!v) { err('Type a name, like “John D.”.'); name.focus(); return; }
       if (v.length > 40) { err('Keep it to 40 characters.'); return; }
       await busy($('#pf-save', m), 'Saving…', async () => {
-        const { data, error } = await S.sb.from('admins').update({ display_name: v, color }).eq('email', S.myRow.email).select('email, display_name, color');
-        if (error || !data || !data.length) { err('Could not save: ' + plainError(error || 'no permission')); return; }
-        S.myRow = data[0]; S.people.set(lc(data[0].email), data[0]);
+        const { error } = await S.sb.rpc('set_my_profile', { p_display_name: v, p_color: color });
+        if (error) { err('Could not save: ' + plainError(error)); return; }
+        S.myRow = Object.assign({}, S.myRow, { display_name: v, color });
+        S.people.set(S.me, Object.assign({}, S.people.get(S.me), { display_name: v, color }));
         close(); renderMe(); toast('Saved. You’re ' + v + ' to the group.');
         if (onSaved) onSaved();
       });

@@ -6,8 +6,9 @@ import { BLOCKS } from './ws-suggest.js';
 import { libraryPool, votesFor, imageCount, tierOfKey, otherDrafts, slotsOf } from './ws-plan-data.js';
 
 const CTYPES = [['slide', 'Slide'], ['xray', 'X-ray'], ['photo', 'Photo'], ['text', 'Text']];
-export const LIB_SORTS = [['votes', 'Most 👍'], ['newest', 'Newest'], ['oldest', 'Oldest'], ['short', 'Recently shortlisted'], ['name', 'Name A–Z'], ['diff', 'Difficulty (easy→hard)'], ['imgs', 'Fewest images']];
-const LF0 = { st: 'short', kind: [], tier: [], ct: [], block: [], sub: 'all', img: 'any', use: 'any', votes: '0', within: 'any' };
+export const LIB_SORTS = [['votes', 'Most 👍'], ['newest', 'Newest'], ['oldest', 'Oldest'], ['name', 'Name A–Z'], ['diff', 'Difficulty (easy→hard)'], ['imgs', 'Fewest images']];
+// Shortlist is gone (multischool): the library shows everything not in the Trash.
+const LF0 = { st: 'all', kind: [], tier: [], ct: [], block: [], sub: 'all', img: 'any', use: 'any', votes: '0', within: 'any' };
 const clone = (o) => JSON.parse(JSON.stringify(o));
 let LF = clone(LF0);
 const LX = { open: false, sort: 'votes', q: '' };
@@ -21,7 +22,7 @@ const hay = (it) => lc([it.name, it.explanation, it.parent, it.credit && it.cred
 export function libItems() {
   const d = LIB.draft, q = lc(LX.q), now = Date.now();
   const list = libraryPool().filter((it) => {
-    if (LF.st === 'short' ? it.status !== 'shortlisted' : LF.st === 'new' ? it.status !== 'new' : it.status === 'declined') return false;
+    if (it.status === 'trashed' || it.status === 'declined' || (LF.st === 'new' && it.status !== 'new')) return false;
     if (LF.kind.length && !LF.kind.includes(it.kind)) return false;
     if (LF.tier.length && !LF.tier.includes(String(it.tier))) return false;
     if (LF.ct.length) { const k = clueKinds(it); if (!LF.ct.some((c) => k.has(c))) return false; }
@@ -64,7 +65,7 @@ function cardHtml(it) {
 }
 export function renderLib() {
   const el = $('#lib-list'); if (!el) return;
-  const list = libItems(), all = libraryPool().filter((it) => it.status !== 'declined');
+  const list = libItems(), all = libraryPool().filter((it) => it.status !== 'declined' && it.status !== 'trashed');
   el.innerHTML = list.length ? list.map(cardHtml).join('') : '<p class="empty">Nothing matches. Try clearing a filter.</p>';
   $('#lib-n').textContent = 'Showing ' + list.length + ' of ' + all.length;
 }
@@ -82,7 +83,7 @@ export function renderLibTools() {
     (n ? '<button type="button" class="btn small ghost" id="lf-clear">Clear</button>' : '') +
     '<label class="sr" for="lf-sort">Sort library</label><select class="input" id="lf-sort">' + LIB_SORTS.map((o) => '<option value="' + o[0] + '"' + (LX.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
     '<div class="lf-panel" id="lf-panel"' + (LX.open ? '' : ' hidden') + '><div class="lf-selects">' +
-    sel('st', 'Status', [['short', 'Shortlisted'], ['new', 'New'], ['all', 'All (not declined)']]) + sel('sub', 'Submitter', [['all', 'Anyone'], ['named', 'Named'], ['anon', 'Anonymous']]) +
+    sel('st', 'Status', [['all', 'All (not in Trash)'], ['new', 'New']]) + sel('sub', 'Submitter', [['all', 'Anyone'], ['named', 'Named'], ['anon', 'Anonymous']]) +
     sel('img', 'Images', [['any', 'Any'], ['has', 'Has images'], ['text', 'Text only']]) +
     sel('use', 'Draft usage', [['any', 'Any'], ['none', 'Not in any draft'], ['other', 'In another draft'], ['this', 'In this draft']]) +
     sel('votes', 'Min 👍', [['0', 'Any'], ['1', '1+'], ['2', '2+'], ['3', '3+']]) + sel('within', 'Submitted within', [['any', 'Any time'], ['7', '7 days'], ['30', '30 days'], ['90', '90 days']]) + '</div>' +

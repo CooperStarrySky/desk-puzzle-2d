@@ -6,8 +6,10 @@ export const CFG = Object.assign({ supabaseUrl: '', supabasePublishableKey: '' }
 const KEY = String(CFG.supabasePublishableKey || CFG.supabaseAnonKey || '').trim();
 export const BUCKET = 'submissions';
 
-/* Shared state. me = signed-in email (lower case). people = email -> admins row. */
-export const S = { sb: null, me: null, myRow: null, people: new Map(), signed: new Map() };
+/* Shared state. me = signed-in email (lower case). people = email -> { display_name, color, schools }.
+   roles = my school -> lead/admin/faculty; owner = site owner; school = the school I speak for. */
+export const S = { sb: null, me: null, myRow: null, people: new Map(), signed: new Map(),
+  roles: {}, owner: false, school: null, schools: new Map(), settings: {} };
 
 export const $ = (s, root) => (root || document).querySelector(s);
 export const $$ = (s, root) => Array.from((root || document).querySelectorAll(s));
@@ -18,6 +20,72 @@ let toastTimer = 0;
 export function toast(msg, ms) {
   const t = $('#toast'); t.textContent = msg; t.hidden = false;
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, ms || 2600);
+}
+/* A toast with buttons, e.g. [['Undo', fn], ['Add reason', fn]]. Stays up longer. */
+export function toastAct(msg, acts, ms) {
+  const t = $('#toast'); clearTimeout(toastTimer);
+  t.innerHTML = '<span>' + esc(msg) + '</span>';
+  (acts || []).forEach(([label, fn]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'toast-btn'; b.textContent = label;
+    b.addEventListener('click', () => { t.hidden = true; fn(); }); t.appendChild(b);
+  });
+  t.hidden = false; toastTimer = setTimeout(() => { t.hidden = true; }, ms || 8000);
+}
+
+/* ===== Schools and roles (the database enforces all of this too) ===== */
+/* schName: the short code for tight spots ("CMSRU"); schFull: the school's full name. */
+export const schName = (slug) => String(slug || '').toUpperCase();
+export const schFull = (slug) => { const s = S.schools.get(slug); return s ? s.name : schName(slug); };
+export const roleIn = (school) => (S.owner ? 'owner' : S.roles[school] || null);
+/* Trash, restore and tags in the shared bank: the owner or any school's lead/admin. */
+export const isCurator = () => S.owner || Object.values(S.roles).some((r) => r === 'lead' || r === 'admin');
+/* Plan drafts: the owner or a lead/admin somewhere. Faculty never. */
+export const canPlan = isCurator;
+/* Fix an original: the receiving school's leads and admins, and the owner. */
+export const canFix = (r) => ['owner', 'lead', 'admin'].includes(roleIn(r.school));
+export const isFacultyOnly = () => !S.owner && Object.keys(S.roles).length > 0 && !isCurator();
+
+/* ===== ⋯ menus. items: [action, label, { arg, off: 'why it is turned off', danger }] ===== */
+const MACT = {};
+export function onMenu(name, fn) { MACT[name] = fn; }
+export function menuHtml(label, items) {
+  return '<div class="mnu"><button type="button" class="btn small mnu-btn" aria-haspopup="menu" aria-expanded="false" aria-label="More actions' + (label ? ' for ' + esc(label) : '') + '">⋯</button>' +
+    '<div class="mnu-pop" role="menu" hidden>' + items.map(([act, text, o = {}]) =>
+      '<button type="button" role="menuitem" class="mnu-i' + (o.danger ? ' danger' : '') + '" data-mact="' + esc(act) + '" data-arg="' + esc(o.arg == null ? '' : o.arg) + '"' +
+      (o.off ? ' aria-disabled="true" title="' + esc(o.off) + '"' : '') + '>' + esc(text) + (o.off ? '<small>' + esc(o.off) + '</small>' : '') + '</button>').join('') + '</div></div>';
+}
+export function closeMenus(except) {
+  $$('.mnu-pop:not([hidden])').forEach((p) => { if (p === except) return; p.hidden = true; const b = p.previousElementSibling; if (b) b.setAttribute('aria-expanded', 'false'); });
+}
+function openMenu(btn) {
+  const pop = btn.nextElementSibling; closeMenus(pop); pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+  const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)) + 'px';
+  pop.style.top = (r.bottom + h + 8 > innerHeight && r.top > h + 8 ? r.top - h - 4 : r.bottom + 4) + 'px';
+  const f = $('.mnu-i:not([aria-disabled])', pop) || $('.mnu-i', pop); if (f) f.focus();
+}
+export function initMenus() {
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('.mnu-btn'), it = e.target.closest('.mnu-i');
+    if (b) { if (b.getAttribute('aria-expanded') === 'true') closeMenus(); else openMenu(b); return; }
+    if (it) {
+      const btn = it.closest('.mnu-pop').previousElementSibling;
+      if (it.getAttribute('aria-disabled')) { toast(it.title, 4500); return; }
+      closeMenus(); btn.focus({ preventScroll: true });
+      if (MACT[it.dataset.mact]) MACT[it.dataset.mact](it.dataset.arg, btn);
+      return;
+    }
+    if (!e.target.closest('.mnu-pop')) closeMenus();
+  });
+  window.addEventListener('keydown', (e) => {
+    const pop = $('.mnu-pop:not([hidden])'); if (!pop) return;
+    const items = $$('.mnu-i', pop), i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeMenus(); pop.previousElementSibling.focus(); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus(); }
+    else if (e.key === 'Tab') closeMenus();
+  }, true);
+  window.addEventListener('scroll', () => closeMenus(), true);
+  window.addEventListener('resize', () => closeMenus());
 }
 export function when(iso) {
   const d = new Date(iso);
@@ -53,6 +121,7 @@ export function plainError(e) {
    browser) or, when unticked, in sessionStorage (gone when the tab closes). */
 export const KEEP_KEY = 'dp2d:inbox-keep', EMAIL_KEY = 'dp2d:inbox-email';
 export function prefGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+export function prefJson(k, d) { try { const v = prefGet(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
 export function prefSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* storage off */ } }
 export function keepSignedIn() { return prefGet(KEEP_KEY) !== '0'; }
 const inboxStorage = {
@@ -130,7 +199,8 @@ export const ZONES = { rack: ['Slide', '◎', 'slide'], tubes: ['X-ray', '▩', 
   corkboard: ['Sticky note', '✎', 'text'], folder: ['Paper', '☰', 'text'], rx: ['Rx', '℞', 'text'] };
 export const ZONE_NAMES = { corkboard: 'Sticky note', folder: 'Paper sheet', rack: 'Microscope slide', tubes: 'X-ray film', photo: 'Photograph', rx: 'Prescription' };
 export const TIER_WORDS = { 1: 'Easy', 2: 'Medium', 3: 'Hard', 4: 'Hardest' };
-export const STATUS_WORDS = { new: 'New', shortlisted: 'Shortlisted', used: 'Used', declined: 'Declined' };
+// shortlisted/declined: only old Planner/Archive rows from before multischool (kept so they still read).
+export const STATUS_WORDS = { new: 'New', used: 'Used', trashed: 'In Trash', shortlisted: 'Shortlisted', declined: 'Declined' };
 export const isPuzzle = (r) => r.kind === 'puzzle';
 export const itemsOf = (g) => (g && Array.isArray(g.items) ? g.items : []);
 export const nidsOf = (g) => (g && g.anki && Array.isArray(g.anki.nids) ? g.anki.nids : []);

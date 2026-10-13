@@ -8,7 +8,8 @@ const TYPES = { submit: 'Sent in', shortlist: 'Shortlists', decline: 'Declines',
 const TYPE_OF = { submitted: 'submit', shortlist: 'shortlist', decline: 'decline', reopen: 'restore', used: 'used', vote: 'vote', unvote: 'vote',
   comment: 'comment', schedule: 'schedule', unschedule: 'schedule', publish: 'publish', publish_requested: 'publish' };
 const SUB_SAID = { submitted: 'sent in', shortlist: 'shortlisted', decline: 'declined', reopen: 'moved back to New', used: 'marked as used',
-  comment: 'commented on', vote: 'gave 👍 to', unvote: 'took back their 👍 on', add_to_draft: 'put in a draft:', remove_from_draft: 'took out of a draft:', publish: 'published' };
+  comment: 'commented on', vote: 'gave 👍 to', unvote: 'took back their 👍 on', add_to_draft: 'put in a draft:', remove_from_draft: 'took out of a draft:', publish: 'published',
+  trash: 'moved to Trash', restore: 'restored from Trash', edit: 'fixed the original of', undo_edit: 'undid a fix to', adapt: 'adapted' };
 const DRAFT_SAID = { create: 'made the draft', rename: 'renamed the draft', status: 'changed the status of', schedule: 'scheduled', unschedule: 'unscheduled',
   deleted: 'deleted the draft', comment: 'commented on the draft', lost_slot: 'took a category from', reverted: 'reverted', publish_requested: 'asked to publish', publish: 'published' };
 const A = { list: null, who: '', type: '', err: '', onCounts: () => {} };
@@ -33,7 +34,7 @@ function lineHtml(a) {
   const subj = a.subject === 'submission' && a.submission_id ? '<a href="#s=' + encodeURIComponent(a.submission_id) + '">' + name + '</a>'
     : a.subject === 'draft' && a.draft_id && a.action !== 'deleted' ? '<a href="#/planner/' + encodeURIComponent(a.draft_id) + '">' + name + '</a>' : '<b>' + name + '</b>';
   const said = esc((a.subject === 'submission' ? SUB_SAID : DRAFT_SAID)[a.action] || a.action.replace(/_/g, ' '));
-  const note = a.note && ['decline', 'comment', 'lost_slot', 'reverted', 'rename', 'status'].includes(a.action) ? ': <q>' + esc(a.note) + '</q>' : '';
+  const note = a.note && ['decline', 'trash', 'comment', 'lost_slot', 'reverted', 'rename', 'status'].includes(a.action) ? ': <q>' + esc(a.note) + '</q>' : '';
   return '<li' + (mine ? ' class="notify"' : '') + '>' + av(a.actor_email, 1) + '<p class="what">' + (mine ? '<span class="for-you">For you</span>' : '') +
     '<b>' + who + '</b> ' + said + ' ' + subj + note + '</p><span class="when" title="' + esc(when(a.at)) + '">' + esc(ago(a.at)) + '</span></li>';
 }
