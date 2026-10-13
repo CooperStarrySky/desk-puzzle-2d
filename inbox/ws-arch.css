@@ -59,3 +59,5 @@ mark { background: var(--eosin-soft); color: inherit; border-radius: 3px; paddin
 .use-d:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .use-d input { margin-top: 4px; }
 @media (max-width: 520px) { .arch-card { padding: 12px; } .arch-cats { grid-template-columns: minmax(0, 1fr); } .arch-tools select.input { flex: 1 1 calc(50% - 4px); } }
+.same-hint { color: var(--warn); font-weight: 600; font-size: 0.78rem; }
+p.same-hint { font-size: 0.86rem; border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: var(--r-s); padding: 7px 10px; }

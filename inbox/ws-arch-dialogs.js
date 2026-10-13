@@ -22,6 +22,7 @@ export function openCategory(key, onChange) {
     '<dl class="kv"><dt>Credit</dt><dd>' + esc(cr) + '</dd>' + (r.parent ? '<dt>Part of</dt><dd>Full-puzzle suggestion “' + esc(r.parent) + '”</dd>' : '') +
     (r.it ? '<dt>Sent in</dt><dd>' + esc(fmt(r.date)) + '</dd>' : '') + '<dt>Explanation</dt><dd>' + (r.explanation ? esc(r.explanation) : '<span class="faint">None yet</span>') + '</dd></dl>' +
     '<section class="stack" style="--gap:6px"><h3 class="dlg-h">Used in ' + (r.usedN ? r.usedN + (r.usedN === 1 ? ' puzzle' : ' puzzles') : 'no published puzzle yet') + '</h3>' +
+    (r.same ? '<p class="same-hint" id="cat-same">Same name as a used category: <b>' + esc(r.same.name) + '</b> (used ' + r.same.n + '×). Check it isn’t a repeat.</p>' : '') +
     (r.usedN ? '<ul class="pick-list used-list" id="cat-used">' + r.usedIn.map((p) => usedLi(r, p)).join('') + '</ul>' : '') + '</section>' +
     '<section class="stack" style="--gap:6px"><h3 class="dlg-h">Clues (' + r.items.length + ')</h3><ul class="clue-list" id="cat-clues">' + r.items.map((c) =>
       '<li><b>' + esc(c.label) + '</b> <span class="faint">' + esc(ZONE_NAMES[c.zone] || c.zone || '') + '</span>' + (c.info && c.info.text ? '<br><span class="muted">' + esc(c.info.text) + '</span>' : '') + '</li>').join('') + '</ul></section>' +

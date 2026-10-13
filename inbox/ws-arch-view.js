@@ -70,6 +70,7 @@ function catRow(r) {
   const hit = n && !r.name.toLowerCase().includes(n) ? clues.filter((c) => c.toLowerCase().includes(n)) : [];
   return '<li><button type="button" class="cat-row t' + (r.tier || 0) + '" data-cat="' + esc(r.key) + '">' +
     '<span class="cr-name"><b>' + hl(r.name, n) + '</b>' + (r.parent ? '<small class="faint">from full puzzle “' + esc(r.parent) + '”</small>' : '') +
+    (r.same ? '<small class="same-hint">Same name as a used category: ' + esc(r.same.name) + ' (used ' + r.same.n + '×)</small>' : '') +
     '<small class="muted">' + (hit.length ? 'Clue: ' + hit.map((c) => hl(c, n)).join(' · ') : clues.map((c) => hl(c, n)).join(' · ')) + '</small></span>' +
     '<span class="cr-tier"><span class="tierdot" aria-hidden="true"></span>' + esc(TIER_WORDS[r.tier] || 'No tier') + '</span>' +
     '<span class="cr-tags">' + (r.tags.length ? r.tags.map((t) => '<span class="tagchip">' + esc(t) + '</span>').join('') : '<span class="faint">No block</span>') + '</span>' +
@@ -115,7 +116,7 @@ function render() {
   $('#ws-main').innerHTML = '<div class="view-head"><div><p class="eyebrow">Archive</p><h1>' + (cats ? 'Category bank' : 'Published puzzles') + '</h1></div>' +
     '<div class="row" style="--gap:6px"><nav class="chips" aria-label="Archive view"><a class="chip" href="#/archive"' + (cats ? '' : ' aria-current="page"') + '>By puzzle</a>' +
     '<a class="chip" href="#/archive/categories"' + (cats ? ' aria-current="page"' : '') + '>Categories</a></nav><button class="btn" type="button" id="ar-refresh">Refresh</button></div></div>' +
-    (cats ? '<p class="muted arch-intro">Every category sent in or published. “Used” counts published puzzles that hold it (matched by draft, by suggestion, or by the same name for older puzzles).</p>' : '') +
+    (cats ? '<p class="muted arch-intro">Every category sent in or published. “Used” counts published puzzles that hold it (a suggestion counts only if it was in a published draft or marked used there; older hand-made categories are matched by name).</p>' : '') +
     toolsHtml() + '<p class="result-n" id="ar-n" aria-live="polite"></p><div id="ar-out"></div>';
   const set = (id, k) => $('#' + id) && $('#' + id).addEventListener(id === 'ar-q' ? 'input' : 'change', (e) => { AF[k] = e.target.value; AF.shown = STEP; renderList(); });
   [['ar-q', 'q'], ['ar-school', 'school'], ['ar-block', 'block'], ['ar-use', 'use'], ['ar-votes', 'votes'], ['ar-status', 'status'], ['ar-sort', 'sort']].forEach((x) => set(x[0], x[1]));

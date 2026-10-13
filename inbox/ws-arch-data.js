@@ -2,10 +2,15 @@
    files (puzzles/index.json + each puzzle); class numbers from puzzle_stats.
    The category bank = every category ever sent in (each single suggestion and
    each group of a full-puzzle suggestion) plus every published category that
-   no suggestion accounts for (older puzzles built by hand). "Used" counts the
-   published puzzles holding a category, found three ways: a slot in the draft
-   that was published, the suggestion's used_in, or the same name (for puzzles
-   made before the workspace). School: a missing value means CMSRU. */
+   no suggestion accounts for (older puzzles built by hand). A suggestion is
+   "used" only when it really was: it sat in a slot of a published draft, or
+   its own used_in names the puzzle. Names only merge published hand-made
+   groups with each other (the same category in two old puzzles = used 2x);
+   a never-used suggestion that shares a name with a used category gets a
+   hint ("Same name as a used category") instead of a count.
+   School: a missing value means CMSRU (lead, 2026-10-12: B5's publish step
+   will write "school" into index.json entries; keep this fallback; school is
+   not settable from the site for now). */
 import { S, lc, toast, plainError } from './ws-core.js';
 import { PL, loadPlanner, libraryPool, keyOf, placeItem, votesFor } from './ws-plan-data.js';
 import { ARCH, loadArchive } from './ws-plan-checks.js';
@@ -52,7 +57,6 @@ function build() {
     });
     const u = it.sub.used_in && byId.get(it.sub.used_in);
     if (u && !row.uses.has(u.id)) { const gi = groupOf(u, nm, 0); if (gi != null || it.gi == null) use(row, u, gi); }
-    P.forEach((p) => p.full.forEach((g) => { if (norm(g.name) === nm && !row.uses.has(p.id)) use(row, p, g.gi); }));
     cats.push(row);
   });
   const byName = new Map();
@@ -75,6 +79,9 @@ function build() {
     // The search also finds a category by the name and clues it was published with (names can change at build time).
     r.hay = hay(r) + ps.map((p) => { const x = r.uses.get(p.id); return x == null ? '' : '\n' + hay(p.full[x]); }).join('');
   });
+  // Never-used suggestion, same name as a used category: a hint, not a count.
+  const usedByName = new Map(); cats.forEach((r) => { if (r.usedN && !usedByName.has(norm(r.name))) usedByName.set(norm(r.name), r); });
+  cats.forEach((r) => { const u = r.it && !r.usedN ? usedByName.get(norm(r.name)) : null; r.same = u ? { name: u.name, n: u.usedN, key: u.key } : null; });
   P.forEach((p) => {
     p.cats = p.full.map((g) => claimed.get(p.id + '#' + g.gi) || null);
     p.blocks = []; p.drafts.forEach((d) => { if (d.block && !p.blocks.includes(d.block)) p.blocks.push(d.block); });
