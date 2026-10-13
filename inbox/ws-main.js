@@ -1,7 +1,7 @@
 /* Puzzle workspace: start-up, who gets in, the tabs and the address bar.
    Routes: #/suggestions, #s=<id> (a suggestion opened in place), #/planner,
-   #/planner/<draft id>, #/calendar, #/activity.
-   Archive comes in a later step; WS_TABS keeps it hidden. */
+   #/planner/<draft id>, #/calendar, #/archive, #/archive/categories, #/activity.
+   WS_TABS turns a tab off without touching the rest. */
 import { S, $, lc, toast, plainError, makeClient, modalOpen } from './ws-core.js';
 import { initAuth, isHolding, changePassword, signOut } from './ws-auth.js';
 import { loadPeople, needsProfile, renderMe, openProfile, initMenu } from './ws-profile.js';
@@ -13,8 +13,9 @@ import './ws-plan-checks.js';
 import './ws-plan-preview.js';
 import './ws-plan-flow.js';
 import { showCalendar } from './ws-calendar.js';
+import { showArchive, resetArchive } from './ws-arch-view.js';
 
-export const WS_TABS = { suggestions: true, planner: true, calendar: true, archive: false, activity: true };
+export const WS_TABS = { suggestions: true, planner: true, calendar: true, archive: true, activity: true };
 const TAB_WORDS = { suggestions: 'Suggestions', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity' };
 const VIEWS = ['loading', 'v-setup', 'v-noscript', 'v-signin', 'v-notadmin', 'v-ws'];
 let routing = false, again = false, readyFor = null, prompted = false, tab = '', view = '';
@@ -32,6 +33,12 @@ function renderTabs() {
   $('#ws-tabs').innerHTML = Object.keys(WS_TABS).filter((k) => WS_TABS[k]).map((k) =>
     '<a href="#/' + k + '"' + (k === tab ? ' aria-current="page"' : '') + '>' + TAB_WORDS[k] +
     (n[k] ? ' <span class="n">' + n[k] + '<span class="sr">' + (k === 'suggestions' ? ' new' : ' for you') + '</span></span>' : '') + '</a>').join('');
+  // On a phone the strip scrolls sideways: keep the current tab in view.
+  const nav = $('#ws-tabs'), a = $('#ws-tabs [aria-current]');
+  if (a && nav.clientWidth) {
+    if (a.offsetLeft + a.offsetWidth > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = a.offsetLeft + a.offsetWidth - nav.clientWidth;
+    else if (a.offsetLeft < nav.scrollLeft) nav.scrollLeft = a.offsetLeft;
+  }
 }
 /* Which tab (and card) the address asks for. */
 function parseHash() {
@@ -40,16 +47,18 @@ function parseHash() {
   if (id) return { tab: 'suggestions', id };
   const [t, sub] = h.split(/[/?]/);
   if (t === 'planner' && WS_TABS.planner) return { tab: 'planner', id: null, draft: sub ? decodeURIComponent(sub) : null };
+  if (t === 'archive' && WS_TABS.archive) return { tab: 'archive', id: null, sub: sub === 'categories' ? sub : '' };
   return { tab: WS_TABS[t] ? t : 'suggestions', id: null };
 }
 async function go() {
   const p = parseHash();
-  const changedTab = p.tab !== tab || (p.draft || '') !== view;
-  tab = p.tab; view = p.draft || ''; renderTabs();
+  const changedTab = p.tab !== tab || (p.draft || p.sub || '') !== view;
+  tab = p.tab; view = p.draft || p.sub || ''; renderTabs();
   if (changedTab) document.title = TAB_WORDS[tab] + ' · Puzzle workspace · Desk Puzzle';
   if (tab === 'activity') await showActivity();
   else if (tab === 'planner') await showPlanner(p.draft);
   else if (tab === 'calendar') await showCalendar();
+  else if (tab === 'archive') await showArchive(p.sub);
   else await showSuggestions(p.id);
   if (changedTab && !p.id) {
     window.scrollTo(0, 0);
@@ -84,7 +93,7 @@ async function route() {
     if (again) { again = false; setTimeout(route, 0); }
   }
 }
-function resetAll() { resetSuggest(); resetActivity(); resetPlanner(); readyFor = null; prompted = false; tab = ''; view = ''; $('#ws-main').innerHTML = ''; }
+function resetAll() { resetSuggest(); resetActivity(); resetPlanner(); resetArchive(); readyFor = null; prompted = false; tab = ''; view = ''; $('#ws-main').innerHTML = ''; }
 
 const darkMq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 function applyTheme(t) {

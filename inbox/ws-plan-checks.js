@@ -17,9 +17,17 @@ export function loadArchive() {
       const idx = await (await fetch('../puzzles/index.json', { cache: 'no-cache' })).json();
       ARCH.current = idx.current || '';
       ARCH.list = await Promise.all((idx.puzzles || []).map(async (p) => {
-        let groups = [];
-        try { const j = await (await fetch('../puzzles/' + encodeURIComponent(p.file), { cache: 'no-cache' })).json(); groups = (j.groups || []).map((g) => String(g.name || '')); } catch (e) { /* one bad file: skip its names */ }
-        return { id: p.id, title: p.title, date: p.date, groups };
+        let groups = [], full = [], credit = null;
+        try {
+          const j = await (await fetch('../puzzles/' + encodeURIComponent(p.file), { cache: 'no-cache' })).json();
+          const byId = new Map((j.items || []).map((it) => [it.id, it]));
+          // full = each group with its clue pieces, for the Archive (groups = names only, for the checks).
+          full = (j.groups || []).map((g, gi) => ({ gi, id: g.id || '', name: String(g.name || ''), tier: Number(g.tier) || 0, explanation: String(g.explanation || ''),
+            credit: g.credit || null, article: g.article, anki: g.anki, items: Array.isArray(g.items) ? g.items : (g.itemIds || []).map((x) => byId.get(x)).filter(Boolean) }));
+          groups = full.map((g) => g.name); credit = j.credit || null;
+        } catch (e) { /* one bad file: skip its names */ }
+        // A puzzle without "school" in index.json is CMSRU's (the only school so far).
+        return { id: p.id, title: p.title, date: p.date, school: String(p.school || 'cmsru'), groups, full, credit };
       }));
       ARCH.loaded = true;
     } catch (e) { ARCH.err = 'Could not read the published puzzles list.'; ARCH.p = null; }

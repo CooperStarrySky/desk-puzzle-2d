@@ -1,0 +1,61 @@
+/* Puzzle workspace: Archive (mockup: parts/05-archive-markup.html + 05b). */
+.chips .chip[aria-current="page"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+a.chip { text-decoration: none; }
+.arch-intro { font-size: 0.88rem; margin: -6px 0 12px; max-width: 70ch; }
+.arch-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+.arch-tools input.input { flex: 1 1 260px; width: auto; }
+.arch-tools select.input { flex: 0 0 auto; width: auto; max-width: 100%; padding-block: 8px; }
+.arch-list { display: flex; flex-direction: column; gap: 14px; }
+.arch-card { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-l); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.arch-card h2 { font-size: 1.25rem; overflow-wrap: anywhere; }
+.arch-top { align-items: flex-start; }
+.row.spread { justify-content: space-between; }
+.arch-card .live { color: var(--eosin); }
+.badge.school { background: var(--accent-soft); color: var(--accent); letter-spacing: 0.04em; }
+.arch-cats { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; }
+.arch-cat { text-align: left; background: var(--card); border: 1px solid var(--panel-edge); border-left: 4px solid var(--tc, var(--panel-edge)); border-radius: var(--r-s); padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
+.arch-cat:hover { border-color: var(--accent); border-left-color: var(--tc, var(--accent)); }
+.arch-cat b { font-size: 0.9rem; display: flex; gap: 7px; align-items: baseline; }
+.arch-cat b .tierdot { transform: translateY(1px); }
+.arch-cat small { color: var(--ink-soft); font-size: 0.76rem; }
+.arch-credits { font-size: 0.84rem; overflow-wrap: anywhere; }
+.arch-note { font-size: 0.84rem; color: var(--ink-soft); border: 1.5px dashed var(--panel-edge); border-radius: var(--r-m); padding: 8px 11px; }
+mark { background: var(--eosin-soft); color: inherit; border-radius: 3px; padding: 0 2px; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { background: var(--card); border: 1px solid var(--panel-edge); border-radius: var(--r-m); padding: 7px 11px; min-width: 104px; }
+.stat .eyebrow { font-size: 0.6rem; } .stat b { display: block; font: 600 1.1rem/1.2 var(--serif); margin-top: 3px; }
+/* category bank */
+.cat-head, .cat-row { display: grid; grid-template-columns: minmax(0, 1fr) 6.6em 8.5em 5.2em 6.2em 3.6em 7.6em 7.4em; gap: 10px; align-items: center; }
+.cat-head { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); padding: 0 12px 6px 16px; }
+.cat-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cat-row { width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--panel-edge); border-left: 4px solid var(--tc, var(--panel-edge)); border-radius: var(--r-m); padding: 9px 12px; font-size: 0.84rem; color: var(--ink); }
+.cat-row:hover { border-color: var(--accent); border-left-color: var(--tc, var(--accent)); }
+.cr-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.cr-name b { font-size: 0.95rem; }
+.cr-name small { font-size: 0.78rem; }
+.cr-tier { display: inline-flex; gap: 6px; align-items: center; }
+.cr-tags { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
+.cr-used { color: var(--ink-soft); white-space: nowrap; }
+.cr-used.on { color: var(--ink); font-weight: 700; }
+.cr-votes, .cr-last { white-space: nowrap; }
+.more { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+@media (max-width: 1000px) {
+  .cat-head { display: none; }
+  .cat-row { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+  .cr-name { flex: 1 1 100%; }
+  .cr-last:not(:empty)::before { content: "Last used "; color: var(--ink-faint); }
+  .cr-last .sr { display: none; }
+}
+/* dialogs */
+.arch-dlg h2 { overflow-wrap: anywhere; }
+.dlg-h { font-size: 1rem; }
+.used-list button { width: auto; flex: none; }
+.used-list li > span { flex: 1 1 220px; min-width: 0; }
+.used-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--panel-edge); border-radius: var(--r-s); background: var(--card); font-size: 0.86rem; flex-wrap: wrap; }
+.clue-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: 0.88rem; }
+.clue-list li { overflow-wrap: anywhere; }
+.use-drafts { max-height: 260px; overflow-y: auto; }
+.use-d { padding: 7px 9px; border: 1px solid var(--panel-edge); border-radius: var(--r-s); background: var(--card); align-items: flex-start; }
+.use-d:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.use-d input { margin-top: 4px; }
+@media (max-width: 520px) { .arch-card { padding: 12px; } .arch-cats { grid-template-columns: minmax(0, 1fr); } .arch-tools select.input { flex: 1 1 calc(50% - 4px); } }
