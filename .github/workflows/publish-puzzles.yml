@@ -1,0 +1,99 @@
+name: Publish puzzles
+
+# Publishes puzzles planned in the workspace (inbox/): Scheduled drafts whose
+# release time has passed, and "Publish now" requests. One draft per run, via
+# tools/publish_drafts.mjs. Setup and dry runs: supabase/SETUP.md, section
+# "Automatic publishing". Until the SUPABASE_SECRET_KEY secret exists, every
+# run just says so and stops (green, no failure emails).
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: build it and push to a publish-dry-run/ branch only (main and the workspace stay unchanged)'
+        type: boolean
+        default: false
+      draft_id:
+        description: 'Optional: only this draft (its id, from the workspace)'
+        type: string
+        required: false
+        default: ''
+
+# Never two runs at once; a new run waits for the one in progress.
+concurrency:
+  group: publish-puzzles
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # commit + push the new puzzle to main
+  pages: write      # ask GitHub Pages to rebuild (pushes made with this token don't start a build)
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check that publishing is set up
+        id: key
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SECRET_KEY" ]; then
+            echo "SUPABASE_SECRET_KEY is not set, so automatic publishing is not switched on yet. Nothing to do."
+            echo "Setup: supabase/SETUP.md, section \"Automatic publishing\"."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out the site (full history)
+        if: steps.key.outputs.ok == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        if: steps.key.outputs.ok == 'true'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install Pillow and PyYAML (build_puzzle.py)
+        if: steps.key.outputs.ok == 'true'
+        run: python3 -m pip install --disable-pip-version-check 'pillow==12.2.0' 'pyyaml==6.0.3'
+
+      - name: Set up Node
+        if: steps.key.outputs.ok == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: Chrome for the menu thumbnail
+        if: steps.key.outputs.ok == 'true'
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || true)"
+          if [ -n "$CHROME" ]; then
+            # Ubuntu 24.04 runners may refuse Chrome's sandbox; it only renders our own page here.
+            printf '#!/bin/sh\nexec "%s" --no-sandbox "$@"\n' "$CHROME" > "$RUNNER_TEMP/chrome"
+            chmod +x "$RUNNER_TEMP/chrome"
+            echo "CHROME_PATH=$RUNNER_TEMP/chrome" >> "$GITHUB_ENV"
+          else
+            echo "Chrome not found: the puzzle still publishes, with the menu's drawn desk instead of a thumbnail."
+          fi
+
+      - name: Git identity for the commit
+        if: steps.key.outputs.ok == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish
+        if: steps.key.outputs.ok == 'true'
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+          DRAFT_ID: ${{ inputs.draft_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/publish_drafts.mjs
