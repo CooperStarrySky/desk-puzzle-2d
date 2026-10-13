@@ -16,3 +16,7 @@ __pycache__/
 # tools/assemble_puzzle.py). They hold puzzle answers and private contact
 # emails, and this repo is public, so they never go into git.
 submissions/
+
+# Test-only packages (PGlite for supabase/tests); never part of the site.
+node_modules/
+package-lock.json

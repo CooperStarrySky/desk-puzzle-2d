@@ -437,3 +437,75 @@ The committed spec (`puzzles/_spec/<id>.yaml`) names every picture and points at
 the private Supabase bucket (inbox → Download for import); the published WebP copies
 are in `puzzles/<id>/`. The spec also keeps each picture's `source:` line from the
 submission, so the image credit and license stay on record.
+
+## Multiple schools and the category database
+
+`supabase/migrations/20261013120000_multischool.sql` turns the inbox into a shared
+category database that several medical schools' puzzle groups can use. Apply it in the
+same release as the new workspace screens (stages S2-S4), not before: today's inbox
+still shows Shortlist and Decline buttons, and those two stop working once it is applied
+(reading, voting, comments, drafts and publishing keep working).
+
+What it changes:
+
+- **schools** (CMSRU only for now) and **members**: who may sign in, per school, as
+  *lead* (manages that school's people), *admin*, or *faculty* (reads, comments,
+  approves drafts; never deletes or plans). Everyone on the old admins list becomes a
+  CMSRU admin with their name and color. The old table is kept, unused, as
+  `admins_pre_multischool`; a view called `admins` stands in for it so the current
+  inbox can still list people and change its own name and color.
+- **site_owners**: whoever runs the whole site. The migration adds nobody. Right after
+  applying it, run this once in the SQL editor (your own sign-in email):
+  ```
+  insert into public.site_owners (email) values (lower('you@example.edu'));
+  ```
+- People are managed only through `add_member`, `change_role`, `move_school` (owner
+  only) and `set_member_active` (remove/restore access). A lead manages only their own
+  school and cannot create leads. Nobody sets passwords; a new member signs up and the
+  sign-up hook (same function, same dashboard setting) lets them in because they are
+  on the list.
+- **Status** is now new / used / trashed. Shortlisted ones became New; declined ones
+  moved to the Trash with who, when, and the note as the reason. Trash/Restore is open
+  to any school's leads and admins (the bank is shared) and is logged.
+- New full-puzzle suggestions are refused by the database (single categories only).
+- Fixing an original goes through `edit_submission` (logged in `submission_edits`,
+  undoable with `undo_submission_edit`), only for the receiving school's leads/admins
+  and the site owner.
+- A draft slot may hold an **adapted copy** (`draft_slots.adapted`). New pictures for a
+  copy go in the private `submissions` bucket under `drafts/<draft id>/<file>`.
+- Drafts, their slots, history, comments and publish jobs are visible only to the
+  draft's school (and the site owner). `other_school_releases(from, to)` tells you only
+  "School X has a puzzle on this day".
+- Publishing records a **category_uses** row per category. A published category is
+  taken out of the same school's other drafts only; other schools keep it.
+
+To apply and check (the pglite tests need no Supabase and touch nothing live):
+
+```
+npm install --no-save @electric-sql/pglite
+node supabase/tests/multischool.test.mjs
+node supabase/tests/import_published.test.mjs
+npx supabase db push
+node tools/leak_test.mjs
+```
+
+Then, once, import the categories of puzzles that are already live:
+
+```
+node tools/import_published_categories.mjs              # dry run: the list
+node tools/import_published_categories.mjs --sql import.sql
+```
+
+and paste `import.sql` into the SQL editor. Running it twice is harmless.
+
+**Emptying the Trash automatically** is off: the setting
+(`site_settings.trash_retention_days`) starts as "never", and nothing is scheduled. If
+you later decide to turn it on, set the number of days in the workspace and schedule the
+clean-up once in the SQL editor:
+
+```
+select cron.schedule('dp-purge-trash', '23 4 * * *', 'select private.purge_trash()');
+```
+
+It never deletes a trashed category that went out in a puzzle or still sits in a draft.
+It removes database rows only; the category's pictures stay in the private bucket.

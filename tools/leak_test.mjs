@@ -143,7 +143,7 @@ result(r.status >= 400, `asking puzzle_stats for anon_id is refused (${how(r)})`
 // ── Workspace (history, comments, votes, drafts, publish jobs): admins only ──
 const NOID = '00000000-0000-4000-8000-000000000000';
 const WS_ROWS = {
-  review_events: { submission_id: NOID, action: 'shortlist' },
+  review_events: { submission_id: NOID, action: 'trash' },
   comments: { target_type: 'submission', target_id: NOID, body: 'leak test' },
   votes: { submission_id: NOID },
   drafts: { title: 'leak test' },
@@ -167,6 +167,48 @@ r = await call('PATCH', '/rest/v1/admins?email=not.is.null', { display_name: 'le
 result(nothing(r), `can't rename admins (${how(r)})`);
 r = await call('POST', '/rest/v1/rpc/swap_draft_slots', { p_draft_id: NOID, p_tier_a: 1, p_tier_b: 2 });
 result(refused(r), `can't call swap_draft_slots (${how(r)})`);
+
+// ── Multiple schools (20261013120000_multischool.sql): members only ──
+const MS_ROWS = {
+  schools: { slug: 'leak-test', name: 'Leak test' },
+  site_owners: { email: 'leak@test.example' },
+  members: { email: 'leak@test.example', school: 'cmsru', role: 'lead' },
+  member_events: { school: 'cmsru', target_email: 'leak@test.example', action: 'member_add' },
+  submission_edits: { submission_id: NOID, editor_email: 'leak@test.example', path: 'name' },
+  category_uses: { submission_id: NOID, school: 'cmsru', puzzle_id: 'leak-test-2099-01-01' },
+  school_settings: { school: 'leak-test' },
+  site_settings: { trash_retention_days: 1 },
+  category_usage: { submission_id: NOID },
+  admins_pre_multischool: { email: 'leak@test.example' },
+};
+for (const [t, row] of Object.entries(MS_ROWS)) {
+  r = await call('GET', `/rest/v1/${t}?select=*&limit=5`);
+  result(nothing(r), `can't read ${t} (${how(r)})`);
+  if (r.status === 404 && t !== 'admins_pre_multischool') console.log(`     ${t} is missing: the multischool migration is not applied yet.`);
+  r = await call('POST', `/rest/v1/${t}`, row, { Prefer: 'return=minimal' });
+  result(refused(r), `can't add to ${t} (${how(r)})`);
+}
+r = await call('PATCH', '/rest/v1/site_settings?id=not.is.null', { trash_retention_days: 1 }, { Prefer: 'return=representation' });
+result(nothing(r), `can't change site settings (${how(r)})`);
+const MS_RPCS = {
+  add_member: { p_email: 'leak@test.example', p_school: 'cmsru', p_role: 'lead' },
+  change_role: { p_email: 'leak@test.example', p_school: 'cmsru', p_role: 'lead' },
+  move_school: { p_email: 'leak@test.example', p_from: 'cmsru', p_to: 'cmsru' },
+  set_member_active: { p_email: 'leak@test.example', p_school: 'cmsru', p_active: true },
+  set_my_profile: { p_display_name: 'leak', p_color: null },
+  trash_submission: { p_id: NOID, p_reason: 'leak test' },
+  restore_submission: { p_id: NOID },
+  edit_submission: { p_id: NOID, p_patch: { name: 'leak test' } },
+  undo_submission_edit: { p_edit_id: NOID },
+  approve_draft: { p_draft_id: NOID },
+  unapprove_draft: { p_draft_id: NOID },
+  other_school_releases: { p_from: '2026-01-01', p_to: '2026-12-31' },
+  member_names: {},
+};
+for (const [fn, body] of Object.entries(MS_RPCS)) {
+  r = await call('POST', `/rest/v1/rpc/${fn}`, body);
+  result(r.status >= 400 || nothing(r), `can't call ${fn} (${how(r)})`);
+}
 
 // ── Optional: send one sample through the real function ──
 if (SEND) {
