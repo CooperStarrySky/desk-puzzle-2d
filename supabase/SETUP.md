@@ -380,7 +380,7 @@ The workflow only runs once it is on `main`, so merge `feature/publisher` first.
 ### One-time setup (two steps)
 
 1. **Make a secret key for the robot.** Supabase dashboard → Project Settings →
-   API Keys → Secret keys → Add a new secret key. Name it `github-publisher`. Copy it
+   API Keys → Secret keys → Add a new secret key. Name it `githubpublisher` (Supabase allows only letters, numbers and underscores). Copy it
    (it starts with `sb_secret_`). A separate key means you can revoke just this one
    later without breaking the submit function.
 2. **Give it to GitHub.** On GitHub, open the repo → Settings → Secrets and variables →
