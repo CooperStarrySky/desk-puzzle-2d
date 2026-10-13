@@ -5,7 +5,8 @@
    posted to the frame after every change. Also: "Preview as player" (big) and
    "Export puzzle spec" (the YAML that tools/build_puzzle.py reads). */
 import { $, $$, esc, toast, openModal, isStoragePath, signedUrl } from './ws-core.js';
-import { slotsOf } from './ws-plan-data.js';
+import { PL, slotsOf } from './ws-plan-data.js';
+import { draftSpec, specToYaml } from './ws-publish-spec.js';
 import { addPart, current } from './ws-plan-editor.js';
 import { etParts, nextThursday, releaseLabel } from './ws-plan-time.js';
 
@@ -87,28 +88,19 @@ function playerPreview() {
   });
 }
 
-/* ===== Export: the repo's spec format (puzzles/_spec/*.yaml for tools/build_puzzle.py) ===== */
-const yq = (v) => JSON.stringify(String(v == null ? '' : v));
+/* ===== Export: the repo's spec format (puzzles/_spec/*.yaml for tools/build_puzzle.py) =====
+   Same file the automatic publisher writes (shared code: ws-publish-spec.js). */
 export function specYaml(d) {
-  const sl = slotsOf(d.id), date = d.target_release ? etParts(d.target_release).date : nextThursday();
-  const L = ['# Desk Puzzle spec, exported from the puzzle workspace (draft ' + yq(d.title) + ').',
-    '# Image pieces: download the images from the inbox ("Download for import") and add image: lines.',
-    '# Check it with: python3 tools/build_puzzle.py puzzles/_spec/<file>.yaml', '',
-    'title: ' + yq(d.title), 'date: ' + date + (d.target_release ? '  # ' + releaseLabel(d.target_release) : '  # not scheduled yet: next Thursday'), '', 'groups:'];
-  [1, 2, 3, 4].forEach((t) => {
-    const it = sl[t] && sl[t].item, tw = ['', 'Easy', 'Medium', 'Hard', 'Hardest'][t];
-    if (!it) { L.push('  # tier ' + t + ' (' + tw + '): EMPTY'); return; }
-    L.push('  - name: ' + yq(it.name), '    tier: ' + t + '  # ' + tw, '    explanation: ' + yq(it.explanation.trim()));
-    if (it.credit) L.push('    credit:', '      name: ' + yq(it.credit.name)); if (it.credit && it.credit.line) L.push('      line: ' + yq(it.credit.line));
-    L.push('    items:');
-    it.items.forEach((c) => {
-      L.push('      - label: ' + yq(c.label), '        zone: ' + c.zone);
-      if (typeof c.note === 'string' && c.note.trim()) L.push('        note: ' + yq(c.note.trim()));
-      const pic = (c.scope && c.scope.image) || (c.info && c.info.image);
-      if (pic) L.push('        # image in the inbox: ' + String(pic).replace(/\n/g, ' '));
-    });
-  });
-  return L.join('\n') + '\n';
+  const date = d.target_release ? etParts(d.target_release).date : nextThursday();
+  const r = draftSpec(d, PL.slots.filter((s) => s.draft_id === d.id), PL.subs, { date });
+  const where = new Map(r.images.map((im) => [im.file, im.ref.kind === 'storage' ? 'in the inbox: ' + im.ref.path : im.ref.kind === 'site' ? 'on the site: ' + im.ref.path
+    : im.ref.kind === 'data' ? 'inside the suggestion' : 'a link: ' + String(im.ref.value).slice(0, 80)]));
+  const header = ['Desk Puzzle spec, exported from the puzzle workspace (draft "' + String(d.title).replace(/\s+/g, ' ') + '").',
+    'Date: ' + (d.target_release ? releaseLabel(d.target_release) : 'not scheduled yet, so next Thursday') + '.',
+    'Images: download them from the inbox ("Download for import") and save them in',
+    '../' + r.id + '-src/ under the names below.',
+    'Check it with: python3 tools/build_puzzle.py puzzles/_spec/' + r.id + '.yaml'];
+  return specToYaml(r.spec, { header, imagesDir: '../' + r.id + '-src/', imageNote: (x, k) => where.get(x[k]) || '' });
 }
 function exportDialog() {
   const d = current(); if (!d) return;

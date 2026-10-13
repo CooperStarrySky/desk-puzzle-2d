@@ -12,14 +12,14 @@ export function draftWhen(d) {
 }
 function cardHtml(d) {
   const sl = slotsOf(d.id), n = sl.filter(Boolean).length, job = latestJob(d.id);
-  const queued = job && (job.state === 'queued' || job.state === 'running');
+  const jw = !job || d.status === 'published' ? '' : { queued: 'Publish queued', running: 'Publishing…', failed: 'Publishing failed' }[job.state] || '';
   return '<a class="draft-card" href="#/planner/' + encodeURIComponent(d.id) + '" data-did="' + esc(d.id) + '"><div class="row spread"><span class="st st-' + esc(d.status) + '">' + esc(DSTATUS[d.status] || d.status) + '</span>' +
     '<span class="muted dc-when">' + esc(draftWhen(d)) + '</span></div>' +
     '<h3>' + esc(d.title) + '</h3>' + (d.block ? '<span class="tagchip">' + esc(d.block) + '</span>' : '') +
     '<div class="minislots" aria-hidden="true">' + [1, 2, 3, 4].map((t) => '<span class="t' + t + (sl[t] ? '' : ' off') + '"></span>').join('') + '</div>' +
     '<p class="muted dc-names">' + [1, 2, 3, 4].map((t) => (sl[t] ? esc(sl[t].item.name) : '<i>' + TIER_WORDS[t] + ' empty</i>')).join(' · ') + '</p>' +
     '<div class="row spread"><span class="row" style="--gap:6px">' + av(d.owner_email) + '<span class="dc-owner">Owner: ' + esc(person(d.owner_email).name) + '</span></span>' +
-    '<span class="fill-n">' + n + '/4 slots' + (queued ? ' · <b>Publishing queued</b>' : '') + '</span></div></a>';
+    '<span class="fill-n">' + n + '/4 slots' + (jw ? ' · <b class="jw jw-' + esc(job.state) + '">' + jw + '</b>' : '') + '</span></div></a>';
 }
 export function renderDraftList() {
   const list = PL.drafts.slice().sort((a, b) => (ORDER[a.status] - ORDER[b.status]) ||

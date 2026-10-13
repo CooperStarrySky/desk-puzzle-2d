@@ -162,3 +162,14 @@ body.resizing { cursor: col-resize; user-select: none; }
 .cal-item .grow { min-width: 0; flex: 1 1 160px; }
 .cal-when, .cal-who { font-size: 0.82rem; }
 .cal-gap { margin: 0; font-size: 0.86rem; color: var(--ink); background: var(--warn-soft); border-radius: var(--r-m); padding: 8px 12px; font-weight: 600; }
+
+/* ── publish progress (publish_jobs) ── */
+.st-publishing { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.job-prog { list-style: none; display: flex; gap: 4px; margin: 0 0 0 auto; padding: 0; font-size: 0.74rem; }
+.job-prog li { padding: 1px 8px; border-radius: 999px; color: var(--ink-soft); border: 1px solid var(--panel-edge); }
+.job-prog li.past { color: var(--ok); border-color: var(--ok); }
+.job-prog li.now { color: var(--ink); font-weight: 700; border-color: var(--ink); }
+.job-prog li.now.bad { color: var(--danger); border-color: var(--danger); }
+.job-err { flex-basis: 100%; margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.job #f-retry { margin-top: 2px; }
+.jw-failed { color: var(--danger); }
