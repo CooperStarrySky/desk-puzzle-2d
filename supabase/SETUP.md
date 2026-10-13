@@ -485,7 +485,7 @@ To apply and check (the pglite tests need no Supabase and touch nothing live):
 npm install --no-save @electric-sql/pglite
 node supabase/tests/multischool.test.mjs
 node supabase/tests/import_published.test.mjs
-node supabase/tests/ui/run_all.mjs      # Category database in headless Chrome, every role
+node supabase/tests/ui/run_all.mjs      # Category database + Planner/Calendar/Activity/Archive in headless Chrome, every role
 npx supabase db push
 node tools/leak_test.mjs
 ```

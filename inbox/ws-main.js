@@ -1,5 +1,5 @@
 /* Puzzle workspace: start-up, who gets in, the tabs and the address bar.
-   Routes: #/categories (the Category database), #/categories/trash,
+   Routes: #/categories (the Category database, tab "Categories"), #/categories/trash,
    #/categories/<id> (a category opened in place), #/planner, #/planner/<draft id>,
    #/calendar, #/archive, #/archive/categories, #/activity. Old links still work:
    #/suggestions -> #/categories and #s=<id> -> #/categories/<id>.
@@ -14,11 +14,12 @@ import './ws-plan-slots.js';
 import './ws-plan-checks.js';
 import './ws-plan-preview.js';
 import './ws-plan-flow.js';
+import './ws-plan-appr.js';
 import { showCalendar } from './ws-calendar.js';
 import { showArchive, resetArchive } from './ws-arch-view.js';
 
 export const WS_TABS = { categories: true, planner: true, calendar: true, archive: true, activity: true };
-const TAB_WORDS = { categories: 'Category database', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity' };
+const TAB_WORDS = { categories: 'Categories', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity' };
 const VIEWS = ['loading', 'v-setup', 'v-noscript', 'v-signin', 'v-notadmin', 'v-ws'];
 let routing = false, again = false, readyFor = null, prompted = false, tab = '', view = '';
 
@@ -34,7 +35,7 @@ function renderTabs() {
   const n = counts();
   $('#ws-tabs').innerHTML = Object.keys(WS_TABS).filter((k) => WS_TABS[k]).map((k) =>
     '<a href="#/' + k + '"' + (k === tab ? ' aria-current="page"' : '') + '>' + TAB_WORDS[k] +
-    (n[k] ? ' <span class="n">' + n[k] + '<span class="sr">' + (k === 'categories' ? ' new' : ' for you') + '</span></span>' : '') + '</a>').join('');
+    (n[k] ? ' <span class="n">' + n[k] + '<span class="sr">' + (k === 'categories' ? ' new' : ' new since your last visit') + '</span></span>' : '') + '</a>').join('');
   // On a phone the strip scrolls sideways: keep the current tab in view.
   const nav = $('#ws-tabs'), a = $('#ws-tabs [aria-current]');
   if (a && nav.clientWidth) {
@@ -57,6 +58,7 @@ async function go() {
   const p = parseHash();
   const changedTab = p.tab !== tab || (p.draft || p.sub || '') !== view;
   tab = p.tab; view = p.draft || p.sub || ''; renderTabs();
+  if (!(tab === 'planner' && p.draft)) { const sc = $('#sheet-scrim'); if (sc) sc.remove(); document.body.classList.remove('sheet-lock'); }
   if (changedTab) document.title = TAB_WORDS[tab] + ' · Puzzle workspace · Desk Puzzle';
   if (tab === 'activity') await showActivity();
   else if (tab === 'planner') await showPlanner(p.draft);

@@ -114,4 +114,20 @@ t('YAML round trip (PyYAML) keeps every value', () => {
   assert.equal(it.id, 'null'); assert.equal(it.label, 'null'); assert.equal(it.note, 'Line # not a comment'); assert.equal(it.source, "O'Brien"); assert.equal(it.image, 'null-info.webp');
   assert.equal(back.groups[0].tier, 1);
 });
+t('adapted copy (S3 "Edit for this puzzle") replaces name, explanation and clues; image from drafts/', () => {
+  const subs = { a: cat('a', 'Alpha'), b: cat('b', 'Beta'), c: cat('c', 'Gamma'), e: cat('e', 'Delta') };
+  const copy = JSON.parse(JSON.stringify(subs.a.payload));
+  copy.name = 'Alpha, our cut'; copy.explanation = 'Tailored.'; copy.items[1] = clue('New photo', 'photo', { info: { title: 'New photo', image: 'drafts/d1/new-photo-x.webp' } });
+  copy.items[3] = clue('Swapped in', 'corkboard', { swap: { sid: 'b', name: 'Beta' } });
+  const rows = [Object.assign(slot(1, 'a'), { adapted: copy }), slot(2, 'b'), slot(3, 'c'), slot(4, 'e')];
+  const r = draftSpec(draft, rows, subs, { date: '2026-10-22' });
+  const g = r.spec.groups.find((x) => x.tier === 1);
+  assert.equal(g.name, 'Alpha, our cut'); assert.equal(g.explanation, 'Tailored.');
+  assert.deepEqual(g.items.map((x) => x.label), ['Alpha a', 'New photo', 'Alpha c', 'Swapped in']);
+  assert.ok(r.images.some((im) => im.ref.kind === 'storage' && im.ref.path === 'drafts/d1/new-photo-x.webp' && im.tier === 1));
+  assert.deepEqual(r.problems, []);
+  assert.equal(subs.a.payload.name, 'Alpha'); // the original is untouched
+  const plain = draftSpec(draft, [slot(1, 'a'), slot(2, 'b'), slot(3, 'c'), slot(4, 'e')], subs, { date: '2026-10-22' });
+  assert.equal(plain.spec.groups[0].name, 'Alpha');
+});
 console.log(n + ' tests passed');

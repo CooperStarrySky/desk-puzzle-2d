@@ -9,26 +9,32 @@ import { COLS } from './ws-suggest.js';
 
 export const DSTATUS = { planning: 'Planning', ready: 'Ready', scheduled: 'Scheduled', published: 'Published' };
 export const IMAGE_ZONES = ['rack', 'tubes', 'photo'];
-const DCOLS = 'id, title, block, target_release, status, owner_email, notes, dismissed_warnings, published_puzzle_id, published_at, created_at, updated_at, updated_by';
-export const PL = { drafts: [], slots: [], events: [], jobs: [], subs: new Map(), votes: new Map(), loaded: false, err: '', seq: 0 };
+const DCOLS = 'id, title, block, target_release, status, owner_email, notes, dismissed_warnings, published_puzzle_id, published_at, created_at, updated_at, updated_by, school, faculty_approved_by, faculty_approved_at';
+/* uses: submission id -> [{ school, puzzle_id, puzzle_date, adapted }] (category_uses, every school).
+   removed: slot removals per draft (review_events), for "edited since approval". */
+export const PL = { drafts: [], slots: [], events: [], jobs: [], subs: new Map(), votes: new Map(), uses: new Map(), removed: [], loaded: false, err: '', seq: 0 };
 
 export async function loadPlanner() {
   const seq = ++PL.seq;
   try {
     const res = await Promise.all([
       S.sb.from('drafts').select(DCOLS).order('updated_at', { ascending: false }).limit(500),
-      S.sb.from('draft_slots').select('draft_id, tier, submission_id, group_index, custom_group, placed_by, placed_at').limit(5000),
+      S.sb.from('draft_slots').select('draft_id, tier, submission_id, group_index, custom_group, adapted, placed_by, placed_at').limit(5000),
       S.sb.from('draft_events').select('id, draft_id, draft_title, actor_email, action, note, notify_email, at').order('at', { ascending: false }).limit(3000),
       S.sb.from('publish_jobs').select('id, draft_id, requested_by, requested_at, kind, state, step, error, finished_at').order('requested_at', { ascending: false }).limit(500),
       S.sb.from('submissions').select(COLS).order('created_at', { ascending: false }).limit(2000),
-      S.sb.from('votes').select('submission_id, voter_email').limit(10000)]);
+      S.sb.from('votes').select('submission_id, voter_email').limit(10000),
+      S.sb.from('category_uses').select('submission_id, school, puzzle_id, puzzle_date, adapted').order('published_at', { ascending: false }).limit(5000),
+      S.sb.from('review_events').select('draft_id, action, at').eq('action', 'remove_from_draft').order('at', { ascending: false }).limit(3000)]);
     const bad = res.find((r) => r.error);
     if (bad) throw bad.error;
     if (seq !== PL.seq) return;
-    const [d, sl, ev, jb, su, vo] = res.map((r) => r.data || []);
+    const [d, sl, ev, jb, su, vo, us, rm] = res.map((r) => r.data || []);
     PL.drafts = d; PL.slots = sl; PL.events = ev; PL.jobs = jb;
     PL.subs = new Map(su.map((r) => [r.id, r]));
     PL.votes = new Map(); vo.forEach((v) => { if (!PL.votes.has(v.submission_id)) PL.votes.set(v.submission_id, []); PL.votes.get(v.submission_id).push(v.voter_email); });
+    PL.uses = new Map(); us.forEach((u) => { if (!PL.uses.has(u.submission_id)) PL.uses.set(u.submission_id, []); PL.uses.get(u.submission_id).push(u); });
+    PL.removed = rm.filter((x) => x.draft_id);
     PL.err = ''; PL.loaded = true;
   } catch (e) { if (seq === PL.seq) PL.err = plainError(e); }
 }
@@ -63,13 +69,20 @@ export const votesFor = (it) => PL.votes.get(it.sid) || [];
 export const imageCount = (it) => it.items.filter((c) => IMAGE_ZONES.includes(c.zone)).length;
 
 /* ===== Slots ===== */
+/* An adapted copy (draft_slots.adapted) shown in place of its original: same key,
+   the copy's name, explanation and clues, plus .adapted (the copy) and .orig. */
+function adaptedItem(orig, a) {
+  return Object.assign({}, orig, { name: String(a.name || orig.name), explanation: String(a.explanation == null ? orig.explanation : a.explanation),
+    items: itemsOf(a), adapted: a, orig });
+}
 /* [null, slot1, slot2, slot3, slot4]; each filled slot = { tier, row, item }. */
 export function slotsOf(draftId) {
   const out = [null, null, null, null, null];
   PL.slots.filter((s) => s.draft_id === draftId).forEach((s) => {
-    const item = s.custom_group ? Object.assign({ key: 'custom:' + s.tier, kind: 'custom', sid: null, gi: null, items: [], explanation: '', credit: null, status: 'shortlisted', tags: [] },
+    let item = s.custom_group ? Object.assign({ key: 'custom:' + s.tier, kind: 'custom', sid: null, gi: null, items: [], explanation: '', credit: null, status: 'shortlisted', tags: [] },
       s.custom_group, { items: itemsOf(s.custom_group), name: String(s.custom_group.name || 'Custom group') })
       : itemByKey(keyOf(s.submission_id, s.group_index));
+    if (item && s.adapted && !s.custom_group) item = adaptedItem(item, s.adapted);
     out[s.tier] = { tier: s.tier, row: s, item: item || { key: keyOf(s.submission_id, s.group_index), kind: 'missing', name: 'A suggestion you can’t see', items: [], explanation: '', credit: null, tags: [] } };
   });
   return out;
@@ -93,8 +106,9 @@ function fail(what, error) {
   toast(what + ': ' + nice, 6000);
   return false;
 }
-export async function createDraft(title, block) {
-  const { data, error } = await S.sb.from('drafts').insert({ title, block: block || null }).select('id');
+export async function createDraft(title, block, school, target) {
+  const row = { title, block: block || null }; if (school) row.school = school; if (target) row.target_release = target;
+  const { data, error } = await S.sb.from('drafts').insert(row).select('id');
   if (error || !data || !data[0]) return fail('Could not make the draft', error);
   return data[0].id;
 }
@@ -108,7 +122,7 @@ export async function placeItem(draftId, tier, key) {
   const from = tierOfKey(draftId, key);
   if (from) return from === tier ? true : moveSlot(draftId, from, tier);
   const [sid, gi] = key.split(':');
-  const row = { submission_id: sid, group_index: gi == null ? null : Number(gi), custom_group: null };
+  const row = { submission_id: sid, group_index: gi == null ? null : Number(gi), custom_group: null, adapted: null };
   const taken = PL.slots.some((s) => s.draft_id === draftId && s.tier === tier);
   const { error } = taken ? await S.sb.from('draft_slots').update(row).eq('draft_id', draftId).eq('tier', tier).select('tier')
     : await S.sb.from('draft_slots').insert(Object.assign({ draft_id: draftId, tier }, row)).select('tier');
@@ -129,4 +143,29 @@ export async function removeSlot(draftId, tier) {
 export async function requestPublish(draftId) {
   const { error } = await S.sb.from('publish_jobs').insert({ draft_id: draftId, kind: 'now' }).select('id');
   return error ? fail('Could not ask to publish', error) : true;
+}
+/* Save (or clear, with null) the adapted copy in one slot. */
+export async function saveAdapted(draftId, tier, adapted) {
+  const { data, error } = await S.sb.from('draft_slots').update({ adapted: adapted || null }).eq('draft_id', draftId).eq('tier', tier).select('tier');
+  if (error || !data || !data.length) return fail('Could not save the copy', error);
+  return true;
+}
+/* Undo of "Remove from draft": the same row back in the same tier. */
+export async function restoreSlot(draftId, row) {
+  const back = { draft_id: draftId, tier: row.tier, submission_id: row.submission_id, group_index: row.group_index, custom_group: row.custom_group || null, adapted: row.adapted || null };
+  const { error } = await S.sb.from('draft_slots').insert(back).select('tier');
+  return error ? fail('Could not put it back', error) : true;
+}
+/* Faculty approval (faculty of the draft's school, or the site owner). */
+export async function setApproval(draftId, on) {
+  const { error } = await S.sb.rpc(on ? 'approve_draft' : 'unapprove_draft', { p_draft_id: draftId });
+  return error ? fail(on ? 'Could not approve it' : 'Could not take the approval back', error) : true;
+}
+/* Has the puzzle itself changed since faculty approved it? (a slot placed, moved,
+   replaced or adapted, a slot taken out, or the title changed; notes and dates don't count) */
+export function editedSinceApproval(d) {
+  const at = d && d.faculty_approved_at; if (!at) return false;
+  const t = new Date(at).getTime(), after = (x) => !!x && new Date(x).getTime() > t + 500;
+  return PL.slots.some((s) => s.draft_id === d.id && after(s.placed_at)) || PL.removed.some((r) => r.draft_id === d.id && after(r.at)) ||
+    PL.events.some((e) => e.draft_id === d.id && e.action === 'rename' && after(e.at));
 }

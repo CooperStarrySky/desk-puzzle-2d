@@ -64,8 +64,16 @@ function openMenu(btn) {
   pop.style.top = (r.bottom + h + 8 > innerHeight && r.top > h + 8 ? r.top - h - 4 : r.bottom + 4) + 'px';
   const f = $('.mnu-i:not([aria-disabled])', pop) || $('.mnu-i', pop); if (f) f.focus();
 }
+/* ===== One-time tips: shown until "Got it" (remembered on this device). ===== */
+const TIPS_KEY = 'dp2d:ws-tips';
+export function tipHtml(id, text) {
+  if (prefJson(TIPS_KEY, {})[id]) return '';
+  return '<p class="tip" data-tip="' + esc(id) + '"><span><span aria-hidden="true">💡 </span>' + esc(text) + '</span><button type="button" class="btn small ghost" data-tipx="' + esc(id) + '" aria-label="Dismiss this tip">Got it</button></p>';
+}
 export function initMenus() {
   document.addEventListener('click', (e) => {
+    const tx = e.target.closest && e.target.closest('[data-tipx]');
+    if (tx) { const t = prefJson(TIPS_KEY, {}); t[tx.dataset.tipx] = 1; prefSet(TIPS_KEY, JSON.stringify(t)); const p = tx.closest('.tip'); if (p) p.remove(); return; }
     const b = e.target.closest('.mnu-btn'), it = e.target.closest('.mnu-i');
     if (b) { if (b.getAttribute('aria-expanded') === 'true') closeMenus(); else openMenu(b); return; }
     if (it) {

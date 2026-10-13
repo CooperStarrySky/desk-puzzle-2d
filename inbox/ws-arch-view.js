@@ -2,14 +2,17 @@
    puzzle with its four categories, credits and class numbers) and
    "Categories" (the category bank: one row per category, how often it was
    used, 👍, status; searchable, filterable, sortable). Clicking a category
-   opens it (ws-arch-dialogs.js). Routes: #/archive, #/archive/categories. */
+   opens it (ws-arch-dialogs.js); each links to "Open in Category database".
+   A puzzle whose draft had faculty approval shows the small seal.
+   Routes: #/archive, #/archive/categories. */
 import { $, $$, esc, busy, toast, avs, person, TIER_WORDS, STATUS_WORDS } from './ws-core.js';
 import { BLOCKS } from './ws-suggest.js';
 import { AR, BANK, loadBank, schoolName } from './ws-arch-data.js';
 import { ARCH } from './ws-plan-checks.js';
 import { dayLabel } from './ws-plan-time.js';
 import { classSummary, isStatsEligible } from '../src/stats-core.js';
-import { openCategory, openReuse } from './ws-arch-dialogs.js';
+import { openCategory } from './ws-arch-dialogs.js';
+import { sealHtml } from './ws-plan-seal.js';
 
 const STEP = 60;
 export const AF = { view: 'puzzles', q: '', school: '', block: '', use: 'any', votes: '0', status: '', sort: 'used', shown: STEP };
@@ -52,13 +55,15 @@ function puzzleCard(p) {
   const n = q();
   return '<article class="arch-card" data-pid="' + esc(p.id) + '"><div class="row spread arch-top"><div class="stack" style="--gap:3px"><p class="eyebrow">Released ' + esc(fmt(p.date)) +
     (p.id === ARCH.current ? ' · <span class="live">Live now</span>' : '') + '</p><h2>' + hl(p.title, n) + '</h2>' +
-    '<div class="row" style="--gap:6px"><span class="badge school">' + esc(schoolName(p.school)) + '</span>' + p.blocks.map((b) => '<span class="tagchip">' + esc(b) + '</span>').join('') + '</div></div>' +
-    '<div class="row" style="--gap:8px">' + (p.people.length ? avs(p.people) : '') + '<button type="button" class="btn small" data-reuse="' + esc(p.id) + '">Reuse as starting point</button></div></div>' +
+    '<div class="row" style="--gap:6px"><span class="badge school">' + esc(schoolName(p.school)) + '</span>' + p.blocks.map((b) => '<span class="tagchip">' + esc(b) + '</span>').join('') +
+    (p.drafts.map((d) => sealHtml(d, 'sm')).find(Boolean) || '') + '</div></div>' +
+    '<div class="row" style="--gap:8px">' + (p.people.length ? avs(p.people) : '') + '</div></div>' +
     '<div class="arch-cats">' + p.full.map((g, i) => {
       const r = p.cats[i], cr = g.credit || (r && r.it && r.credit), uses = r ? r.usedN : 1;
-      return '<button type="button" class="arch-cat t' + (g.tier || 0) + '" data-cat="' + esc(r ? r.key : '') + '"><b><span class="tierdot" aria-hidden="true"></span>' + hl(g.name, n) + '</b>' +
+      return '<div class="arch-cat-w"><button type="button" class="arch-cat t' + (g.tier || 0) + '" data-cat="' + esc(r ? r.key : '') + '"><b><span class="tierdot" aria-hidden="true"></span>' + hl(g.name, n) + '</b>' +
         '<small>' + esc(TIER_WORDS[g.tier] || 'Tier ?') + (cr && cr.name ? ' · by ' + esc(cr.name) : '') + (uses > 1 ? ' · used ' + uses + '×' : '') + '</small>' +
-        '<small>' + g.items.map((c) => hl(c.label, n)).join(' · ') + '</small></button>';
+        '<small>' + g.items.map((c) => hl(c.label, n)).join(' · ') + '</small></button>' +
+        (r && r.it ? '<a class="arch-open" href="#/categories/' + encodeURIComponent(r.it.sid) + '">Open in Category database</a>' : '') + '</div>';
     }).join('') + '</div>' +
     '<p class="arch-credits"><span class="faint">Credits:</span> ' + (p.credits.length ? esc(p.credits.join(', ')) : 'none recorded') +
     (p.people.length ? ' <span class="faint">· Built by</span> ' + esc(p.people.map((e) => person(e).name).join(', ')) : '') + '</p>' + statsHtml(p) + '</article>';
@@ -122,9 +127,8 @@ function render() {
   [['ar-q', 'q'], ['ar-school', 'school'], ['ar-block', 'block'], ['ar-use', 'use'], ['ar-votes', 'votes'], ['ar-status', 'status'], ['ar-sort', 'sort']].forEach((x) => set(x[0], x[1]));
   $('#ar-refresh').addEventListener('click', (e) => busy(e.currentTarget, 'Refreshing…', async () => { await loadBank(); renderList(); toast('Up to date'); }));
   $('#ar-out').addEventListener('click', (e) => {
-    const c = e.target.closest('[data-cat]'), r = e.target.closest('[data-reuse]');
+    const c = e.target.closest('[data-cat]');
     if (e.target.id === 'ar-more') { AF.shown += STEP; const i = AF.shown - STEP; renderList(); const b = $$('.cat-row')[i]; if (b) b.focus(); return; }
-    if (r) { const p = BANK.puzzles.find((x) => x.id === r.dataset.reuse); if (p) openReuse(p); return; }
     if (c && c.dataset.cat) openCategory(c.dataset.cat, renderList);
   });
   renderList();

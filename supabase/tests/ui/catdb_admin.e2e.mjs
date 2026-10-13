@@ -13,7 +13,7 @@ check('A0 signs in as CMSRU admin', await P.signInAs(U.ADMIN));
 await P.settle();
 
 // 1. Names, routes, nothing left of Shortlist or full puzzles.
-check('A1 tab is "Category database"', /^Category database/.test(await P.text('#ws-tabs [aria-current]')), await P.text('#ws-tabs'));
+check('A1 tab is "Categories" (S3 rename)', /^Categories/.test(await P.text('#ws-tabs [aria-current]')), await P.text('#ws-tabs'));
 check('A1 heading', (await P.text('#ws-main h1')) === 'Category database');
 check('A1 route #/categories', (await P.js('location.hash')) === '#/categories');
 const body = await P.text('#v-ws');

@@ -55,6 +55,14 @@ function build() {
       const d = pub.find((x) => x.id === s.draft_id), p = d && byId.get(d.published_puzzle_id);
       if (p) use(row, p, groupOf(p, nm, s.tier));
     });
+    // category_uses (multischool): every puzzle that published this category, including imported ones.
+    // (Matched by name, else by 2+ shared clue labels, since names can change at build time.)
+    (PL.uses.get(it.sid) || []).forEach((x) => {
+      const p = byId.get(x.puzzle_id); if (!p || row.uses.has(p.id)) return;
+      let gi = groupOf(p, nm, 0);
+      if (gi == null) { const mine = it.items.map((c) => norm(c.label)), g = p.full.find((f) => f.items.filter((c) => mine.includes(norm(c.label))).length >= 2); gi = g ? g.gi : null; }
+      if (gi != null) use(row, p, gi);
+    });
     const u = it.sub.used_in && byId.get(it.sub.used_in);
     if (u && !row.uses.has(u.id)) { const gi = groupOf(u, nm, 0); if (gi != null || it.gi == null) use(row, u, gi); }
     cats.push(row);
@@ -130,19 +138,4 @@ export async function newDraft(title, block, notes) {
   const { data, error } = await S.sb.from('drafts').insert({ title, block: block || null, notes: notes || null }).select('id');
   if (error || !data || !data[0]) { toast('Could not make the draft: ' + plainError(error || 'no permission'), 6000); return null; }
   return data[0].id;
-}
-/* "Reuse as starting point": a new draft with the puzzle's four groups as custom slots. */
-export async function reusePuzzle(p, title) {
-  const names = p.full.map((g) => g.name).join('; ');
-  const id = await newDraft(title, p.blocks[0] || null, 'Started from ' + p.title + ' (' + p.date + '): ' + names + '. Swap groups out one at a time.');
-  if (!id) return null;
-  const used = new Set();
-  for (const g of p.full.slice().sort((a, b) => a.tier - b.tier)) {
-    let t = g.tier >= 1 && g.tier <= 4 && !used.has(g.tier) ? g.tier : [1, 2, 3, 4].find((x) => !used.has(x));
-    if (!t) break;
-    used.add(t);
-    if (!(await putCustom(id, t, customFrom(p, g)))) break;
-  }
-  await loadPlanner();
-  return id;
 }

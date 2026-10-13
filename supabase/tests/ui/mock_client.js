@@ -40,7 +40,12 @@
   window.__inboxMockClient = {
     from,
     rpc: (name, args) => post({ rpc: name, args: args || {} }),
-    storage: { from: () => ({
+    storage: { from: (bucket) => ({
+      // Uploads go through the real storage.objects row rules (pg_server.mjs); the bytes are kept nowhere.
+      upload: async (path, blob, opts) => {
+        st.uploads = (st.uploads || []).concat({ path, type: blob && blob.type, size: blob && blob.size });
+        return post({ storage: 'upload', bucket, path, upsert: !!(opts && opts.upsert) });
+      },
       createSignedUrl: async (p) => ({ data: { signedUrl: PIX + '#' + encodeURIComponent(p) }, error: null }),
       download: async () => ({ data: new Blob([new Uint8Array([82, 73, 70, 70, 1, 2, 3])], { type: 'image/webp' }), error: null }),
     }) },

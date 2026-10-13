@@ -831,7 +831,9 @@ begin
   if d.status = 'published' then
     raise exception 'A published draft can no longer be changed.' using errcode = '42501';
   end if;
-  if (d.faculty_approved_at is not null) = p_on then
+  -- Taking back an approval that isn't there does nothing. Approving again
+  -- (after the draft changed) re-stamps who and when: a "re-approve".
+  if not p_on and d.faculty_approved_at is null then
     return;
   end if;
   update public.drafts
@@ -923,11 +925,15 @@ begin
                       or char_length(pg_catalog.btrim(c ->> 'label')) not between 1 and 80) then
       raise exception 'An adapted copy needs a name and 4 clues, each with a label.' using errcode = '23514';
     end if;
-    -- Images: a copy may keep any image of the category it came from, or use
-    -- a new one uploaded for this draft (drafts/<draft id>/...).
+    -- Images: a copy may keep any image of the category it came from, use a
+    -- clue swapped in from another category of the shared database (every
+    -- member can already read those), or a new one uploaded for this draft
+    -- (drafts/<draft id>/...). Never another draft's uploads.
     for img in select private.image_paths(new.adapted) loop
       if img not like 'drafts/' || new.draft_id::text || '/%'
-         and img not in (select private.image_paths(s.payload) from public.submissions s where s.id = new.submission_id) then
+         and (img like 'drafts/%'
+              or not exists (select 1 from public.submissions s
+                              where img in (select private.image_paths(s.payload)))) then
         bad := img;
         exit;
       end if;

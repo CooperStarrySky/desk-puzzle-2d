@@ -57,6 +57,12 @@ export async function checkDrafts(db, ok, ID, P, testSub) {
   ok(!err(r), 'faculty: approves a draft', r.error);
   r = await call(P.ADMIN, `select faculty_approved_by, status from public.drafts where id = $1`, [ID.dPlan]);
   ok(r.rows[0]?.faculty_approved_by === P.FAC && r.rows[0]?.status === 'scheduled', 'faculty: approval stamped, status untouched');
+  r = await call(P.FAC, `select faculty_approved_at a from public.drafts where id = $1`, [ID.dPlan]);
+  const firstAt = r.rows[0]?.a;
+  r = await call(P.FAC, `select public.approve_draft($1)`, [ID.dPlan]);
+  ok(!err(r), 'approve: approving again (re-approve) works', r.error);
+  r = await call(P.FAC, `select faculty_approved_at a from public.drafts where id = $1`, [ID.dPlan]);
+  ok(r.rows[0]?.a && new Date(r.rows[0].a) >= new Date(firstAt), 're-approve: stamp kept or moved forward');
   r = await call(P.ADMIN, `update public.drafts set faculty_approved_by = $2 where id = $1`, [ID.dPlan, P.ADMIN]);
   ok(err(r), 'approve: admins cannot forge approval');
   r = await call(P.ADMIN, `select public.approve_draft($1)`, [ID.dPlan]);
@@ -68,7 +74,7 @@ export async function checkDrafts(db, ok, ID, P, testSub) {
   r = await call(P.FAC, `select public.approve_draft($1)`, [ID.dPub]);
   ok(err(r), 'approve: a published draft is frozen');
   r = await call(P.FAC, `select action from public.draft_events where draft_id = $1 and action in ('approve', 'unapprove') order by at`, [ID.dPlan]);
-  ok(r.rows.length === 2, 'approve: approve/unapprove in the draft history');
+  ok(r.rows.length === 3 && r.rows[2].action === 'unapprove', 'approve: approve, re-approve, unapprove in the draft history', r.rows);
 
   // Owner of a draft must be able to plan in its school.
   r = await call(P.ADMIN, `update public.drafts set owner_email = $2 where id = $1`, [ID.dPlan, P.FAC]);
@@ -92,12 +98,27 @@ export async function checkDrafts(db, ok, ID, P, testSub) {
   const foreign = JSON.parse(JSON.stringify(copy)); foreign.items[1].info.image = `drafts/${TD}/theirs.webp`;
   r = await setAdapted(P.ADMIN, foreign);
   ok(err(r), 'adapt: cannot point at another draft\'s images');
+  const stray = JSON.parse(JSON.stringify(copy)); stray.items[1].info.image = 'nowhere/made-up.webp';
+  r = await setAdapted(P.ADMIN, stray);
+  ok(err(r), 'adapt: cannot point at an image no category uses');
+  // S3: a clue swapped in from another category of the shared database keeps its image.
+  r = await as(db, 'postgres', `select s.id, p from public.submissions s, private.image_paths(s.payload) p where s.id <> $1 and p not like 'drafts/%' limit 1`, [ID.sNew]);
+  if (r.rows.length) {
+    const swapped = JSON.parse(JSON.stringify(copy)); swapped.items[3] = { label: 'Swapped clue', zone: 'photo', info: { title: 'Swapped clue', image: r.rows[0].p } };
+    const s1 = await setAdapted(P.ADMIN, swapped);
+    ok(!err(s1), 'adapt: a clue swapped in from another category keeps its image', s1.error);
+  } else {
+    await as(db, 'postgres', `update public.submissions set payload = jsonb_set(payload, '{items,0,info,image}', '"swapsrc/c0-info.webp"') where id <> $1 and kind = 'category' and id = (select id from public.submissions where id <> $1 and kind = 'category' limit 1)`, [ID.sNew]);
+    const swapped = JSON.parse(JSON.stringify(copy)); swapped.items[3] = { label: 'Swapped clue', zone: 'photo', info: { title: 'Swapped clue', image: 'swapsrc/c0-info.webp' } };
+    const s1 = await setAdapted(P.ADMIN, swapped);
+    ok(!err(s1), 'adapt: a clue swapped in from another category keeps its image', s1.error);
+  }
   r = await setAdapted(P.ADMIN, copy);
   ok(!err(r) && r.rows.length === 1, 'adapt: CMSRU admin saves an adapted copy (new image + changed clue)', r.error);
   r = await call(P.ADMIN, `select submission_id, adapted ->> 'name' n from public.draft_slots where draft_id = $1 and tier = 1`, [ID.dPlan]);
   ok(r.rows[0]?.submission_id === ID.sNew && r.rows[0]?.n === 'Clubbing, adapted', 'adapt: slot keeps the source and the copy');
   r = await call(P.ADMIN, `select school from public.review_events where submission_id = $1 and action = 'adapt'`, [ID.sNew]);
-  ok(r.rows.length === 1 && r.rows[0].school === 'cmsru', 'adapt: logged, private to CMSRU');
+  ok(r.rows.length >= 1 && r.rows.every((x) => x.school === 'cmsru'), 'adapt: logged, private to CMSRU');
   r = await call(P.OTHER, `select 1 from public.review_events where submission_id = $1 and action in ('adapt', 'add_to_draft') and school = 'cmsru'`, [ID.sNew]);
   ok(r.rows.length === 0, 'adapt: the test school does not see CMSRU draft lines on a shared category');
 

@@ -1,7 +1,9 @@
-/* Puzzle workspace: the Planner's suggestion library (left column). Filters
-   and sort last for the session, across drafts. Cards drag onto the slots;
-   "Add to slot…" does the same without a mouse. */
-import { $, $$, esc, toast, TIER_WORDS, STATUS_WORDS, ZONES, lc } from './ws-core.js';
+/* Puzzle workspace: the Planner's category library (left column). Filters
+   and sort last for the session, across drafts. On a desktop, cards drag onto
+   the slots by their ⠿ handle; "Add to draft…" (tap, then choose a tier) does
+   the same without a mouse. On a phone (<600 px) the slots come first and the
+   library opens as a bottom sheet from "＋ Add category". */
+import { $, esc, toast, TIER_WORDS, STATUS_WORDS, ZONES, lc } from './ws-core.js';
 import { BLOCKS } from './ws-suggest.js';
 import { libraryPool, votesFor, imageCount, tierOfKey, otherDrafts, slotsOf } from './ws-plan-data.js';
 
@@ -16,6 +18,20 @@ const LX = { open: false, sort: 'votes', q: '' };
 export const DND = { v: '' };
 /* Set by the editor: what "Add to slot…", "Details" and dropping a slot back here do. */
 export const LIB = { draft: null, onAdd: null, onDetails: null, onRemove: null };
+/* Touch screens get tap-to-choose instead of drag and drop. */
+export const TOUCH = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+document.documentElement.classList.toggle('touch', TOUCH);
+/* Phone bottom sheet: open or close the library over the slots. */
+export function libSheet(on) {
+  const lib = $('#lib'), add = $('#add-cat'); if (!lib) return;
+  const was = lib.classList.contains('sheet-open'); if (was === !!on) return;
+  lib.classList.toggle('sheet-open', !!on); document.body.classList.toggle('sheet-lock', !!on);
+  if (add) add.setAttribute('aria-expanded', String(!!on));
+  let sc = $('#sheet-scrim');
+  if (on && !sc) { sc = document.createElement('div'); sc.id = 'sheet-scrim'; sc.className = 'sheet-scrim'; sc.addEventListener('click', () => libSheet(false)); document.body.appendChild(sc); }
+  if (!on && sc) sc.remove();
+  if (on) $('#lib-q').focus(); else if (add && add.offsetParent) add.focus();
+}
 
 const clueKinds = (it) => new Set(it.items.map((c) => (ZONES[c.zone] || [])[2]).filter(Boolean));
 const hay = (it) => lc([it.name, it.explanation, it.parent, it.credit && it.credit.name].concat(it.items.map((c) => c.label + ' ' + (c.note || ''))).join(' \n '));
@@ -51,8 +67,9 @@ export function alsoFlags(key) {
 function cardHtml(it) {
   const t = LIB.draft ? tierOfKey(LIB.draft.id, it.key) : 0, vs = votesFor(it).length, imgs = imageCount(it);
   const kinds = Array.from(clueKinds(it)).map((k) => (CTYPES.find((c) => c[0] === k) || [k, k])[1]).join(', ');
-  return '<div class="lib-card t' + (it.tier || 0) + (t ? ' in-use' : '') + '" draggable="true" data-key="' + esc(it.key) + '">' +
-    '<h4><span class="tierdot" title="Suggested ' + esc(TIER_WORDS[it.tier] || '?') + '"></span>' + esc(it.name) + '</h4>' +
+  const drag = !TOUCH && !!LIB.draft && LIB.canEdit;
+  return '<div class="lib-card t' + (it.tier || 0) + (t ? ' in-use' : '') + '"' + (drag ? ' draggable="true"' : '') + ' data-key="' + esc(it.key) + '">' +
+    '<h4>' + (drag ? '<span class="grip" title="Drag onto a slot" aria-hidden="true">⠿</span>' : '') + '<span class="tierdot" title="Suggested ' + esc(TIER_WORDS[it.tier] || '?') + '"></span>' + esc(it.name) + '</h4>' +
     (it.kind === 'group' ? '<p class="faint lib-from"><span class="kind-tag puzzle">Group</span> from the full puzzle “' + esc(it.parent) + '”</p>' : '') +
     '<p class="lib-ex">' + (it.explanation.trim() ? esc(it.explanation) : '<i>No explanation yet</i>') + '</p>' +
     '<ul class="lib-clues">' + it.items.map((c) => '<li><span aria-hidden="true">' + ((ZONES[c.zone] || [])[1] || '•') + '</span>' + esc(c.label) + '</li>').join('') + '</ul>' +
@@ -60,7 +77,7 @@ function cardHtml(it) {
     '<div class="row lib-meta"><span class="st st-' + esc(it.status) + '">' + esc(STATUS_WORDS[it.status] || it.status) + '</span>' +
     '<span class="faint">' + (it.tags.length ? esc(it.tags.join(', ')) + ' · ' : '') + '👍 ' + vs + ' · ' + imgs + (imgs === 1 ? ' image' : ' images') + '</span></div>' +
     (t ? '<span class="badge in-draft">In this draft · ' + esc(TIER_WORDS[t]) + '</span>' : '') + alsoFlags(it.key) +
-    '<div class="row lib-btns"><button type="button" class="btn small" data-add="' + esc(it.key) + '">' + (t ? 'Move to slot…' : 'Add to slot…') + '</button>' +
+    '<div class="row lib-btns">' + (LIB.canEdit ? '<button type="button" class="btn small" data-add="' + esc(it.key) + '">' + (t ? 'Move…' : 'Add to draft…') + '</button>' : '') +
     '<button type="button" class="btn small ghost" data-det="' + esc(it.key) + '">Details</button></div></div>';
 }
 export function renderLib() {

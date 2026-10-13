@@ -1,10 +1,12 @@
 /* Puzzle workspace: a draft's checks. Blocking ones (an empty slot, a missing
    explanation, two clues with the same label) stop Mark ready, Schedule and
-   Publish. Warnings (too like a category already published, more than 10
-   image pieces) are advice: each can be dismissed for this draft (saved in
+   Publish, and so does an image clue of an adapted copy that has no image.
+   Warnings (in the Trash, already used in a puzzle by any school, too like a
+   category already published, more than 10 image pieces) are advice: each can be dismissed for this draft (saved in
    drafts.dismissed_warnings) and brought back. The panel collapses. */
-import { $, esc, busy, toast, lc } from './ws-core.js';
-import { slotsOf, imageCount, patchDraft } from './ws-plan-data.js';
+import { $, esc, busy, toast, lc, schFull } from './ws-core.js';
+import { PL, slotsOf, imageCount, patchDraft } from './ws-plan-data.js';
+import { isImg, picOf } from './ws-plan-adapt.js';
 import { addPart, refresh, current, readOnly } from './ws-plan-editor.js';
 import { dayLabel } from './ws-plan-time.js';
 
@@ -58,6 +60,12 @@ export function draftChecks(d) {
     if (!it.explanation.trim()) out.push({ k: 'noex-' + it.key, lvl: 'block', msg: '“' + it.name + '” has no explanation for the results screen.' });
     it.items.forEach((c) => { const k = lc(c.label); if (!k) return; if (!seen.has(k)) seen.set(k, { label: c.label, in: [] }); seen.get(k).in.push(it.name); });
     imgs += imageCount(it);
+    if (it.status === 'trashed') out.push({ k: 'trash-' + it.key, lvl: 'warn', msg: '“' + it.name + '”: this category is in Trash. Restore it or put another one here.' });
+    const uses = (it.sid && PL.uses.get(it.sid)) || [];
+    if (uses.length) out.push({ k: 'used-' + it.key, lvl: 'warn', msg: '“' + it.name + '” was already used: ' +
+      uses.map((u) => schFull(u.school) + ' on ' + (u.puzzle_date ? dayLabel(String(u.puzzle_date).slice(0, 10), true) : 'an earlier puzzle') + (u.adapted ? ' (adapted)' : '')).join('; ') + '.' });
+    // Only a gap the copy made (a new image type or a swapped clue), not one the original already had.
+    if (it.adapted) it.items.forEach((c, i) => { const o = (it.orig.items || [])[i]; if (isImg(c.zone) && !picOf(c) && !(o && isImg(o.zone) && !picOf(o))) out.push({ k: 'noimg-' + it.key + ':' + lc(c.label), lvl: 'block', msg: '“' + it.name + '”: clue “' + c.label + '” needs an image (Edit for this puzzle → Replace image).' }); });
     if (it.status !== 'used') similar(it).forEach((h) => out.push({ k: 'sim:' + it.key + ':' + lc(h.name), lvl: 'warn',
       msg: '“' + it.name + '” is similar to ‘' + h.name + '’ (' + h.p.title + ', ' + (h.p.date ? dayLabel(h.p.date, true) : 'published') + ').' }));
   });

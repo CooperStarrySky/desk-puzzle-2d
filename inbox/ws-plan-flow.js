@@ -1,15 +1,16 @@
 /* Puzzle workspace: a draft's status. Planning -> Ready (blocking checks must
    pass) -> Scheduled (a release moment, default Thursday 6:00 AM Eastern) ->
-   Published. "Publish now" only asks: it adds a publish_jobs row that the
+   Published. "Publish now" sits under the draft's ⋯ menu with a specific
+   warning (who it goes live to, which puzzle it replaces). It only asks: it adds a publish_jobs row that the
    publisher (the "Publish puzzles" GitHub workflow, every 10 minutes) picks up.
    The job's progress shows here (Queued -> Publishing (step) -> Live, or the
    failed step with its reason and "Try again"), checked every 20 s while it is
    open. The banner says when the database moved this draft back (a category
    of it was published in another puzzle). */
-import { S, $, esc, busy, toast, openModal, ago, person } from './ws-core.js';
+import { S, $, esc, busy, toast, openModal, ago, person, menuHtml, onMenu, schFull } from './ws-core.js';
 import { PL, DSTATUS, slotsOf, eventsOf, latestJob, patchDraft, requestPublish } from './ws-plan-data.js';
 import { addPart, refresh, current, readOnly } from './ws-plan-editor.js';
-import { blockers } from './ws-plan-checks.js';
+import { blockers, ARCH, loadArchive } from './ws-plan-checks.js';
 import { etParts, etToIso, nextThursday, releaseLabel, weekOf, todayEt, shortDay } from './ws-plan-time.js';
 
 const openJob = (j) => !!j && (j.state === 'queued' || j.state === 'running');
@@ -54,11 +55,15 @@ function render(d) {
   const el = $('#flow'); if (!el) return;
   const nb = blockers(d).length, j = latestJob(d.id), busyJob = openJob(j);
   const why = nb ? '<span class="why">Fix ' + nb + ' blocking check' + (nb > 1 ? 's' : '') + ' first</span>' : '';
+  const ro = readOnly(d), pubOff = nb ? 'Fix the blocking checks first' : busyJob ? 'A publish request is already waiting' : null;
+  const menu = (extra) => (ro ? '' : menuHtml('this draft', [['pubNow', 'Publish now…', { off: pubOff, danger: true }]].concat(extra)));
   let h = '<span class="st st-' + esc(d.status) + '">' + esc(DSTATUS[d.status]) + '</span>';
-  if (d.status === 'planning') h += btn('f-ready', 'Mark ready', 'primary', nb) + why;
-  else if (d.status === 'ready') h += btn('f-sched', 'Schedule…', 'primary', nb) + btn('f-pub', 'Publish now…', '', nb || busyJob) + btn('f-plan', 'Back to planning', 'ghost') + why;
+  if (ro && d.status !== 'published') { /* faculty: the status only */ } else if (d.status === 'planning') h += btn('f-ready', 'Mark ready', 'primary', nb) + why;
+  else if (d.status === 'ready') h += btn('f-sched', 'Schedule…', 'primary', nb) +
+    (d.target_release ? '<span class="why">Target ' + esc(releaseLabel(d.target_release)) + ', not scheduled yet</span>' : '<span class="nudge" id="f-nudge">Needs a date</span>') +
+    menu([['toPlanning', 'Back to planning', {}]]) + why;
   else if (d.status === 'scheduled') h += '<span class="when">Goes live ' + esc(releaseLabel(d.target_release)) + '</span>' + btn('f-sched', 'Change time…', '', nb) +
-    btn('f-pub', 'Publish now…', '', nb || busyJob) + btn('f-unsched', 'Unschedule', 'ghost') + why;
+    menu([['unsched', 'Unschedule', {}]]) + why;
   else h += '<span class="when">Published' + (d.published_puzzle_id ? ' as <span class="code">' + esc(d.published_puzzle_id) + '</span>' : '') + (d.published_at ? ' · ' + esc(ago(d.published_at)) : '') + '</span>';
   el.innerHTML = h + jobHtml(j, d);
   banner(d);
@@ -95,7 +100,7 @@ function scheduleDialog(d) {
       const iso = D.value ? etToIso(D.value, T.value || '06:00') : null, w = $('#sch-warn', m);
       $('#sch-err', m).hidden = true;
       $('#sch-live', m).textContent = iso ? 'Goes live ' + releaseLabel(iso) : 'Pick a date.';
-      const clash = iso ? PL.drafts.filter((o) => o.id !== d.id && o.status === 'scheduled' && o.target_release && weekOf(o.target_release) === weekOf(D.value)) : [];
+      const clash = iso ? PL.drafts.filter((o) => o.id !== d.id && o.school === d.school && o.status === 'scheduled' && o.target_release && weekOf(o.target_release) === weekOf(D.value)) : [];
       w.hidden = !clash.length;
       w.textContent = clash.length ? 'Heads up: ' + clash.map((o) => '“' + o.title + '” (' + releaseLabel(o.target_release) + ')').join(' and ') + ' is already scheduled the week of ' + shortDay(weekOf(D.value)) + '.' : '';
     };
@@ -107,7 +112,7 @@ function scheduleDialog(d) {
       await busy($('#sch-go', m), 'Scheduling…', async () => {
         if (!(await patchDraft(d.id, { status: 'scheduled', target_release: iso }, 'Could not schedule it'))) return;
         close(); toast('Scheduled: goes live ' + releaseLabel(iso)); await refresh();
-        const f = $('#f-pub'); if (f) f.focus();
+        const f = $('#flow .mnu-btn'); if (f) f.focus();
       });
     });
   });
@@ -116,17 +121,24 @@ function scheduleDialog(d) {
 function losers(d) {
   const mine = new Set(PL.slots.filter((s) => s.draft_id === d.id && s.submission_id).map((s) => s.submission_id)), out = [];
   PL.drafts.forEach((o) => {
-    if (o.id === d.id || o.status === 'published') return;
+    if (o.id === d.id || o.status === 'published' || o.school !== d.school) return; // only the same school's drafts lose it
     slotsOf(o.id).forEach((s) => { if (s && s.row.submission_id && mine.has(s.row.submission_id)) out.push({ o, name: s.item.name }); });
   });
   return out;
 }
 const STEPS = ['Build the puzzle files from this draft', 'Make the menu-card picture', 'Set it as this week’s puzzle', 'Credit the contributors',
   'Mark its suggestions Used', 'Take them out of other drafts', 'Publish the site', 'Class stats start counting'];
-function publishDialog(d) {
-  const hit = losers(d), back = { scheduled: 'goes back to Ready', ready: 'goes back to Planning', planning: 'stays in Planning' };
+/* The puzzle a school's players get today (the live one, else its newest published). */
+function livePuzzle(school) {
+  const mine = ARCH.list.filter((p) => p.school === school).sort((a, b) => (a.date < b.date ? 1 : -1));
+  return mine.find((p) => p.id === ARCH.current) || mine[0] || null;
+}
+async function publishDialog(d) {
+  await loadArchive();
+  const hit = losers(d), back = { scheduled: 'goes back to Ready', ready: 'goes back to Planning', planning: 'stays in Planning' }, live = livePuzzle(d.school);
   openModal('<div class="stack" style="--gap:12px"><h2 id="modal-h">Publish “' + esc(d.title) + '” now?</h2>' +
-    '<p>This replaces the live puzzle for everyone as soon as the publisher runs' + (d.status === 'scheduled' ? ', instead of waiting for ' + esc(releaseLabel(d.target_release)) : '') + '. <b>Usually within 10 minutes.</b></p>' +
+    '<p class="pub-warn" id="pub-warn">Goes live to all ' + esc(schFull(d.school)) + ' players immediately; ' + (live ? 'replaces ' + esc(live.title) + '.' : 'nothing is live for them yet.') + '</p>' +
+    '<p class="muted">“Immediately” means the next publisher run, <b>usually within 10 minutes</b>' + (d.status === 'scheduled' ? ', instead of waiting for ' + esc(releaseLabel(d.target_release)) : '') + '.</p>' +
     '<h3 class="pub-h">What happens at release</h3><ol class="steps">' + STEPS.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ol>' +
     (hit.length ? '<div class="note-box"><b>Other drafts lose categories:</b><ul class="losers">' + hit.map((x) => '<li>‘' + esc(x.name) + '’ from ' + esc(x.o.title) + ' (' + esc(DSTATUS[x.o.status]) + ', ' + back[x.o.status] + ')</li>').join('') + '</ul></div>'
       : '<p class="muted">No other draft uses these categories.</p>') +
@@ -144,10 +156,7 @@ function mount() {
   el.addEventListener('click', (e) => {
     const d = current(), b = e.target.closest('button'); if (!d || !b || readOnly(d)) return;
     if (b.id === 'f-ready') setStatus(d, { status: 'ready' }, 'Marked Ready', 'f-sched');
-    else if (b.id === 'f-plan') setStatus(d, { status: 'planning' }, 'Back to Planning', 'f-ready');
-    else if (b.id === 'f-unsched') setStatus(d, { status: 'ready', target_release: null }, 'Unscheduled. Back to Ready.', 'f-sched');
     else if (b.id === 'f-sched') scheduleDialog(d);
-    else if (b.id === 'f-pub') publishDialog(d);
     else if (b.id === 'f-retry') busy(b, 'Asking…', async () => {
       if (!(await requestPublish(d.id))) return;
       toast('Asked again. Publishing, ' + SOON + '.', 4000); await refresh();
@@ -155,4 +164,8 @@ function mount() {
     });
   });
 }
+const act = (fn) => () => { const d = current(); if (d && !readOnly(d)) fn(d); };
+onMenu('pubNow', act((d) => publishDialog(d)));
+onMenu('toPlanning', act((d) => setStatus(d, { status: 'planning' }, 'Back to Planning', 'f-ready')));
+onMenu('unsched', act((d) => setStatus(d, { status: 'ready', target_release: null }, 'Unscheduled. Back to Ready.', 'f-sched')));
 addPart({ mount, update: render });

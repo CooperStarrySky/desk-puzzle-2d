@@ -6,7 +6,7 @@
 //
 //   PGLITE_MODULE=/path/to/pglite/dist/index.js node supabase/tests/ui/pg_server.mjs 4820
 //
-// POST /__pg     { who, table, op, cols, filters, order, limit, patch, ret } or { who, rpc, args }
+// POST /__pg     { who, table, op, cols, filters, order, limit, patch, ret } or { who, rpc, args } or { who, storage: 'upload', bucket, path }
 // POST /__reset  fresh database + seed (between test files)
 import http from 'node:http';
 import fs from 'node:fs';
@@ -67,9 +67,19 @@ async function rpc(who, name, args) {
   if (r.error) return { data: null, error: { message: r.error } };
   return { data: set ? r.rows : meta.rows[0].typname === 'void' ? null : r.rows[0].v, error: null };
 }
+async function upload(who, bucket, name, upsert) {
+  const r = await as(db, who, 'insert into storage.objects (bucket_id, name) values ($1, $2) returning name', [bucket, name]);
+  if (!r.error) return { data: { path: name }, error: null };
+  if (upsert && /duplicate|unique/i.test(r.error)) {
+    const u = await as(db, who, 'update storage.objects set created_at = now() where bucket_id = $1 and name = $2 returning name', [bucket, name]);
+    if (!u.error && u.rows.length) return { data: { path: name }, error: null };
+  }
+  return { data: null, error: { message: /row-level security/i.test(r.error) ? 'new row violates row-level security policy' : r.error } };
+}
 async function run(b) {
   const who = b.who || 'anon';
   if (b.rpc) return rpc(who, b.rpc, b.args);
+  if (b.storage === 'upload') return upload(who, String(b.bucket || ''), String(b.path || ''), b.upsert);
   const t = 'public.' + q(b.table), params = [];
   let sql;
   if (b.op === 'select') {
