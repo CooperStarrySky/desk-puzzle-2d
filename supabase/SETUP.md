@@ -341,7 +341,8 @@ What each piece holds:
   sit in two drafts at once.
 - **draft_events** is the history of each draft (made, renamed, scheduled, lost a
   category, published), and **activity** merges both histories for the team feed.
-- **publish_jobs** holds "Publish now" requests for the publishing job (a later step).
+- **publish_jobs** holds "Publish now" requests and scheduled runs for the publishing
+  job (see "Automatic publishing" below).
 
 When a draft is published, the database marks its suggestions Used, takes them out of
 every other draft, puts any Scheduled draft that lost one back to Ready and any Ready
@@ -358,3 +359,81 @@ node tools/leak_test.mjs
 
 `db push` should list `20261011200000_workspace.sql`. Every line of the leak test must
 say PASS, including the new workspace lines.
+
+## Automatic publishing
+
+A GitHub workflow, **Publish puzzles** (`.github/workflows/publish-puzzles.yml`), turns
+workspace drafts into live puzzles. It runs every 10 minutes and does at most one draft
+per run, oldest first:
+
+- a **Scheduled** draft whose release time has passed, or
+- a draft someone pressed **Publish now** on (it usually goes out within 10 minutes).
+
+Each run builds the puzzle with the same tools you would use by hand
+(`build_puzzle.py`, `make_thumbnails.mjs`, `publish.py`, then the puzzle checks),
+commits it to `main` as "Publish <title> (<date>) from the workspace", asks GitHub
+Pages to rebuild, and marks the draft Published. The database then marks its
+suggestions Used and takes them out of other drafts. The puzzle id is the title plus the
+release day in Eastern time (`fruit-findings-2026-10-15`); Publish now uses today's date.
+The workflow only runs once it is on `main`, so merge `feature/publisher` first.
+
+### One-time setup (two steps)
+
+1. **Make a secret key for the robot.** Supabase dashboard → Project Settings →
+   API Keys → Secret keys → Add a new secret key. Name it `github-publisher`. Copy it
+   (it starts with `sb_secret_`). A separate key means you can revoke just this one
+   later without breaking the submit function.
+2. **Give it to GitHub.** On GitHub, open the repo → Settings → Secrets and variables →
+   Actions → New repository secret. Name: `SUPABASE_SECRET_KEY`. Value: the key you
+   copied. Save.
+
+That's all. The project address comes from `studio/config.js`. Until the secret exists,
+each run just logs "SUPABASE_SECRET_KEY is not set" and stops without failing. Never
+paste the key anywhere else: not in this repo, not in `studio/config.js`, not in chat.
+
+### Try it safely first (dry run)
+
+Actions tab → **Publish puzzles** → **Run workflow** → tick **dry_run** → (optional)
+paste a draft id into **draft_id** → Run workflow.
+
+A dry run reads the workspace but never changes it, and it does not touch `main`. It
+builds the puzzle and pushes the commit to a branch named `publish-dry-run/<puzzle id>`,
+which you can open on GitHub to check the files. Pages only publishes `main`, so the
+live site stays as it is. Delete the branch afterwards if you like.
+
+### What a failure looks like
+
+Nothing goes live. The draft keeps its status (Ready or Scheduled), and the workspace
+shows a red box on it: "Publishing failed at <step>", the reason in plain English (for
+example "The picture for clue "X" (tier 1) is not a JPEG, PNG, WebP or GIF file"), and a
+**Try again** button. The Actions tab shows a red run with the full log, and GitHub
+emails you if your notifications are on. A Scheduled draft that failed is not retried
+every 10 minutes: fix the draft (any edit) or press Try again. Trying again never
+publishes the same draft twice.
+
+### Things GitHub does that are worth knowing
+
+- **Scheduled runs can be late.** GitHub says the `schedule` event "can be delayed
+  during periods of high loads", especially at the start of each hour, and queued runs
+  may even be dropped when load is very high
+  ([Events that trigger workflows: schedule](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#schedule)).
+  A 6:00 AM release usually goes out a few minutes after 6:00, sometimes later.
+- **Scheduled workflows switch off after 60 days of quiet.** In a public repo, GitHub
+  disables scheduled workflows when there has been no repository activity for 60 days
+  (same page). Each publish is a commit, so a weekly puzzle keeps it alive. After a long
+  break, check Actions → Publish puzzles; if it says disabled, press **Enable workflow**.
+- **Pages rebuild.** Commits pushed by a workflow with its built-in token do not start a
+  Pages build by themselves
+  ([Configuring a publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)),
+  so the publisher asks for one through the API
+  ([Request a GitHub Pages build](https://docs.github.com/en/rest/pages/pages#request-a-github-pages-build)).
+  If that request fails, the run log says so; the puzzle is committed and appears with
+  the next Pages build.
+
+### Picture originals
+
+The committed spec (`puzzles/_spec/<id>.yaml`) names every picture and points at
+`../<id>-src/`, the same untracked folder hand-built puzzles use. The originals stay in
+the private Supabase bucket (inbox → Download for import); the published WebP copies
+are in `puzzles/<id>/`. The spec also keeps each picture's `source:` line from the
+submission, so the image credit and license stay on record.
