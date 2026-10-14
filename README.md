@@ -102,7 +102,7 @@ group's explanation. Leave `credit` out for an anonymous group. In a YAML spec,
 `credit: "John D."` is shorthand for a name with no line. This is separate from image
 credits, which live in the group's article.
 
-A whole puzzle sent in by one person can instead carry a top-level `credit` with the same
+A whole puzzle written by one person (or an old full-puzzle submission) can instead carry a top-level `credit` with the same
 shape and limits. The results screen then shows "Puzzle by John D. · MS2" once, under the
 title; a group whose own credit has the same name doesn't repeat it on its placard.
 
@@ -275,17 +275,20 @@ Editor-first alternative: export JSON from `?editor`, run
 
 ## Category submissions
 
-Anyone at CMSRU can send the puzzle group one category, or a whole puzzle. The menu links to
-`studio/?submit`, where they write a hidden answer, a one-line explanation,
-four clues (with images if they like), a suggested difficulty, and choose to
-be credited or stay anonymous.
+Students at any school on the Studio's list can send the puzzle group one category
+at a time (full puzzles ended with the multischool release). The menu links to
+`studio/?submit`, where they pick their school, write a hidden answer, a one-line
+explanation, four clues (with images if they like), a suggested difficulty, and
+choose to be credited or stay anonymous.
 
 Once the Supabase inbox is set up (step-by-step in `supabase/SETUP.md`), they
 press **Send to the puzzle group** and get a receipt code. Submissions land in a
 private, unlisted inbox at `inbox/` (pathologyconnections.org/inbox) (nothing links to it), where the puzzle group signs in with
 email + password (new accounts and resets are confirmed with an emailed 6-digit
-code, never a link; only emails on the admins list can sign up) to shortlist, decline, or mark them used, and downloads them for
-import. Run `node tools/leak_test.mjs` after setup and after any database
+code, never a link; only people added in the Admin console can sign up). It is a
+shared category database for every school: 👍, Add to draft, Move to Trash, and a
+Planner that builds each school's puzzles from it. **Download for import** still
+gives the file for the by-hand route below. Run `node tools/leak_test.mjs` after setup and after any database
 change; every line must say PASS. Node tests for the server side live in
 `supabase/tests/` (`node supabase/tests/<name>.test.mjs`).
 
@@ -302,9 +305,9 @@ of git. The email only ever lands in `submissions/<slug>/contact.txt`.
    `python3 tools/import_submission.py ~/Downloads/desk-puzzle-submission-*.json --apply`.
    Each one becomes `submissions/<slug>/<slug>.yaml` (a one-group spec with a
    `# suggested tier` comment and the submitter's credit, if they asked for
-   it) plus an `images/` folder. A full-puzzle file becomes a complete 4-group
-   spec instead (one top-level puzzle credit, `date: ""` to fill in); skip step 2 and
-   go straight to `tools/build_puzzle.py` once the date is set. File format:
+   it) plus an `images/` folder. An old full-puzzle file (sent before the
+   multischool release) still becomes a complete 4-group spec (one top-level
+   puzzle credit, `date: ""` to fill in); skip step 2 for those. File format:
    `supabase/SUBMISSION_FORMAT.md`.
 2. Pick four and combine them:
    `python3 tools/assemble_puzzle.py --title "…" --date YYYY-MM-DD a.yaml b.yaml c.yaml d.yaml --apply`.

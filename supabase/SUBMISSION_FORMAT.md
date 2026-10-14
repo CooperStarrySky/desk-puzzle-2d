@@ -23,24 +23,29 @@ Version 1 category files (the older format) are still accepted unchanged.
 - Reply: `{ "ok": true, "receipt": "DP-XXXX-XXXX" }` or
   `{ "ok": false, "error": "plain English", "problems": [...] }`.
 
-## The wrapper (both kinds)
+## The wrapper
 
 ```jsonc
 {
   "format": "desk-puzzle-submission",
   "version": 2,
-  "kind": "category",            // or "puzzle"
+  "kind": "category",            // the only kind accepted since the multischool release
+  "school": "cmsru",             // short code of an active school (the Studio's "Your school" list)
   "submittedAt": "2026-10-11T15:00:00.000Z",
   "credit": { "mode": "named", "name": "John D.", "line": "MS2" },   // line optional
             // or { "mode": "anonymous" }
-  "contact": { "email": "priya@rowan.edu" },                         // or null
+  "contact": { "email": "john.doe@rowan.edu" },                         // or null
   "consent": true
 }
 ```
 
 `consent: true` covers both "I can share this" and "no identifiable patient in
 any image". Credit is at most 60 characters for the name and 40 for the line.
-For a full puzzle the credit applies to the whole puzzle.
+
+`school` is required: 2-24 lowercase letters, digits, or hyphens, and it must
+be a school whose status is `active` (the list the Studio gets from the public
+`active_schools()` function). Anything else gets a plain-English 400 asking the
+sender to reload the Studio and pick from the list.
 
 ## A clue (version 2)
 
@@ -85,39 +90,29 @@ heading/text blocks (no images), 6000 characters in all. `anki.nids` is
 optional, up to 50 positive whole numbers. Name 120, explanation 400. At most
 8 images and a 7 MB request.
 
-## kind "puzzle"
+## Full puzzles (retired)
 
-```jsonc
-"puzzle": {
-  "title": "Holes, haze, and old paint",
-  "groups": [
-    { "name": "...", "explanation": "...", "tier": 1, "article": [...], "anki": {...}, "items": [ 4 clues ] },
-    ... exactly 4 groups
-  ]
-}
-```
-
-- Tiers must be exactly 1, 2, 3, and 4, each used once.
-- No date: the puzzle group sets it when publishing.
-- Title up to 120 characters; each group follows the category rules above.
-- At most 16 images (one per clue) and a 9 MB request. The Studio compresses
-  images to fit.
+Since the multischool release the function refuses `"kind": "puzzle"` with a
+400 ("Full puzzles can't be sent any more...") before any rate counting, and the
+database refuses new full-puzzle rows. Full-puzzle rows stored before then stay
+as they are: the inbox can still show them and `tools/import_submission.py`
+still reads their files (its full-puzzle path is kept only for those old rows).
+Their stored shape was `payload = { title, groups: [4 groups with tier 1-4] }`
+with images at `<uuid>/<group 1-4>-<clue-id>-info|scope.<ext>`.
 
 ## Size limit on Supabase's side
 
-The function itself refuses anything over 9 MB. I don't know of a documented
+The function refuses anything over 9 MB outright and any category over 7 MB. I don't know of a documented
 Supabase Edge Functions request-size limit below that, but this hasn't been
-confirmed. After deploying, send one large full puzzle (around 8 MB) from the
+confirmed. After deploying, send one large category (around 6 MB) from the
 Studio to check.
 
 ## Where it's stored
 
-One row in `submissions`: `kind`, `group_name` (the category name, or the puzzle
-title), `suggested_tier` (empty for puzzles), and `payload`, which holds the
-category or `{ title, groups }` with image data replaced by storage paths, plus
-`submissionVersion`. Images go in the private `submissions` bucket:
-
-- category: `<uuid>/<clue-id>-info|scope.<ext>`
-- puzzle: `<uuid>/<group 1-4>-<clue-id>-info|scope.<ext>`
+One row in `submissions`: `kind` (always `category` for new rows), `school`,
+`group_name` (the category name), `suggested_tier`, and `payload`, which holds
+the category with image data replaced by storage paths, plus
+`submissionVersion`. Images go in the private `submissions` bucket at
+`<uuid>/<clue-id>-info|scope.<ext>`.
 
 The inbox's **Download for import** rebuilds the original file from these.

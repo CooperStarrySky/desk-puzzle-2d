@@ -1,13 +1,15 @@
-/* Puzzle workspace: a draft's four tier slots. Real drag and drop (library
-   card -> slot, slot -> slot swaps through the database, slot -> library
-   removes) plus buttons for everyone without a mouse: "Add to slot…",
-   "Move to slot…", "Remove", "Pick a category…". "Details" opens the
-   suggestion in a dialog, so the planner never leaves the page. */
-import { $, $$, esc, busy, toast, openModal, fillImages, person, TIER_WORDS, STATUS_WORDS } from './ws-core.js';
+/* Puzzle workspace: a draft's four tier slots. Each filled slot has one main
+   action, "✎ Edit for this puzzle" (an adapted copy, ws-plan-adapt.js), and a
+   ⋯ menu: Move…, Details, Remove from draft (with Undo). Desktop: drag cards
+   by their ⠿ handle onto a slot, slot onto slot (swap), slot back onto the
+   library (remove). Touch screens: tap "Add to draft…" and choose a tier. */
+import { $, $$, esc, busy, toast, toastAct, openModal, fillImages, person, menuHtml, onMenu, TIER_WORDS, STATUS_WORDS } from './ws-core.js';
 import { contentHtml } from './ws-clues.js';
-import { slotsOf, itemByKey, tierOfKey, placeItem, moveSlot, removeSlot, votesFor } from './ws-plan-data.js';
-import { LIB, DND, alsoFlags, libItems } from './ws-plan-lib.js';
+import { slotsOf, itemByKey, tierOfKey, placeItem, moveSlot, removeSlot, restoreSlot, votesFor } from './ws-plan-data.js';
+import { LIB, DND, alsoFlags, libItems, TOUCH, libSheet } from './ws-plan-lib.js';
 import { addPart, refresh, current, readOnly } from './ws-plan-editor.js';
+import { editing, editorHtml, badgeHtml } from './ws-plan-adapt.js';
+import { wireAdapt } from './ws-plan-adapt-pick.js';
 
 const STAIN = { 1: 'Tier 1', 2: 'Tier 2', 3: 'Tier 3', 4: 'Tier 4' };
 const byLine = (it) => (it.credit ? 'Category by ' + it.credit.name + (it.credit.line ? ', ' + it.credit.line : '') : 'Category by an anonymous player');
@@ -17,23 +19,27 @@ function slotHtml(d, t, s) {
   const band = '<div class="slot-band"><b>' + TIER_WORDS[t] + '</b><span>' + STAIN[t] + '</span></div>';
   if (!it) {
     return '<div class="slot t' + t + '" data-t="' + t + '" role="group" aria-label="' + TIER_WORDS[t] + ' slot, empty">' + band +
-      '<div class="slot-body slot-empty"><span>Drop a category here</span>' + (ro ? '' : '<button type="button" class="btn small" data-fill="' + t + '">Pick a category…</button>') + '</div></div>';
+      '<div class="slot-body slot-empty"><span>' + (TOUCH || ro ? 'Empty' : 'Drop a category here') + '</span>' + (ro ? '' : '<button type="button" class="btn small" data-fill="' + t + '">Add category…</button>') + '</div></div>';
   }
-  const flags = it.key ? alsoFlags(it.key) : '';
+  if (!ro && editing(d, t)) return '<div class="slot t' + t + ' filled editing" data-t="' + t + '" role="group" aria-label="' + TIER_WORDS[t] + ' slot: editing ' + esc(it.name) + '">' + band + editorHtml(d, t, it) + '</div>';
+  const flags = it.key ? alsoFlags(it.key) : '', drag = !ro && !TOUCH;
+  const menu = menuHtml(TIER_WORDS[t] + ' slot', [['slotMove', 'Move…', { arg: t }], ['slotDet', 'Details', { arg: it.key, off: it.sid ? null : 'Made by hand, not in the Category database' }],
+    ['slotRm', 'Remove from draft', { arg: t, danger: true }]]);
   return '<div class="slot t' + t + ' filled" data-t="' + t + '" role="group" aria-label="' + TIER_WORDS[t] + ' slot: ' + esc(it.name) + '">' + band +
-    '<div class="slot-body"' + (ro ? '' : ' draggable="true" data-from="' + t + '"') + '><h4>' + esc(it.name) + '</h4>' +
+    '<div class="slot-body"' + (drag ? ' draggable="true" data-from="' + t + '"' : '') + '><h4>' + (drag ? '<span class="grip" title="Drag to another slot" aria-hidden="true">⠿</span>' : '') + esc(it.name) + '</h4>' +
+    (it.adapted ? badgeHtml(d, t, it, ro) : '') +
     (it.kind === 'group' ? '<p class="faint slot-from"><span class="kind-tag puzzle">Group</span> from “' + esc(it.parent) + '”</p>' : '') +
     (flags ? '<p class="row" style="--gap:6px">' + flags + '</p>' : '') +
     '<p class="muted slot-ex">' + (it.explanation.trim() ? esc(it.explanation) : '<i>No explanation yet</i>') + '</p>' +
     '<p class="faint slot-by">' + esc(byLine(it)) + (it.tier && it.tier !== t ? ' · suggested as ' + esc(TIER_WORDS[it.tier]) : '') + '</p>' +
-    (ro ? '' : '<div class="row slot-btns"><button type="button" class="btn small" data-move="' + t + '">Move to slot…</button>' +
-      '<button type="button" class="btn small danger" data-rm="' + t + '">Remove</button>' +
-      (it.sid ? '<button type="button" class="btn small ghost" data-det="' + esc(it.key) + '">Details</button>' : '') + '</div>') + '</div></div>';
+    (ro ? (it.sid ? '<div class="row slot-btns"><button type="button" class="btn small ghost" data-det="' + esc(it.key) + '">Details</button></div>' : '')
+      : '<div class="row slot-btns">' + (it.sid ? '<button type="button" class="btn small primary" data-adapt="' + t + '">✎ Edit for this puzzle</button>' : '') + menu + '</div>') + '</div></div>';
 }
 function render(d) {
   const el = $('#slots'); if (!el) return;
   const sl = slotsOf(d.id);
   el.innerHTML = [1, 2, 3, 4].map((t) => slotHtml(d, t, sl[t])).join('');
+  fillImages(el);
 }
 /* After a save: reload, redraw, and put focus somewhere sensible. */
 async function after(ok, msg, focusSel) {
@@ -47,24 +53,31 @@ export async function place(key, t) {
   const it = itemByKey(key), from = tierOfKey(d.id, key), had = slotsOf(d.id)[t];
   const msg = from ? (had ? 'Swapped ' + TIER_WORDS[from] + ' and ' + TIER_WORDS[t] : 'Moved to ' + TIER_WORDS[t])
     : (had ? 'Replaced “' + had.item.name + '” with “' + (it ? it.name : 'it') + '” in ' : 'Placed “' + (it ? it.name : 'it') + '” in ') + TIER_WORDS[t];
-  await after(await placeItem(d.id, t, key), msg, '[data-move="' + t + '"]');
+  if (await placeItem(d.id, t, key)) libSheet(false);
+  await after(true, msg, '.slot[data-t="' + t + '"] .mnu-btn');
 }
 async function swap(a, b) {
   const d = current(); if (!d || a === b) return;
   const had = slotsOf(d.id)[b];
-  await after(await moveSlot(d.id, a, b), had ? 'Swapped ' + TIER_WORDS[a] + ' and ' + TIER_WORDS[b] : 'Moved to ' + TIER_WORDS[b], '[data-move="' + b + '"]');
+  await after(await moveSlot(d.id, a, b), had ? 'Swapped ' + TIER_WORDS[a] + ' and ' + TIER_WORDS[b] : 'Moved to ' + TIER_WORDS[b], '.slot[data-t="' + b + '"] .mnu-btn');
 }
 export async function remove(t) {
   const d = current(); if (!d) return;
   const s = slotsOf(d.id)[t], wasReady = d.status === 'ready' || d.status === 'scheduled';
-  await after(await removeSlot(d.id, t), 'Took “' + (s ? s.item.name : 'it') + '” out of ' + TIER_WORDS[t] + (wasReady ? '. The draft is back to Planning.' : ''), '[data-fill="' + t + '"]');
+  if (!s || !(await removeSlot(d.id, t))) return;
+  const row = Object.assign({}, s.row), name = s.item.name, did = d.id;
+  await after(true, '', '[data-fill="' + t + '"]');
+  toastAct('Removed “' + name + '” from ' + TIER_WORDS[t] + (wasReady ? '. The draft is back to Planning.' : ''), [['Undo', async () => {
+    if (!(await restoreSlot(did, row))) return;
+    toast('Put back in ' + TIER_WORDS[t]); const cur = current(); if (cur && cur.id === did) await after(true, '', '.slot[data-t="' + t + '"] .mnu-btn');
+  }]]);
 }
 
 /* "Add to slot…" / "Move to slot…": which of the four tiers. */
 function slotPicker(key) {
   const d = current(); if (!d || readOnly(d)) return;
   const it = itemByKey(key), sl = slotsOf(d.id), from = tierOfKey(d.id, key);
-  openModal('<div class="stack" style="--gap:12px"><h2 id="modal-h">' + (from ? 'Move' : 'Put') + ' “' + esc(it ? it.name : 'this') + '” in which slot?</h2><ul class="pick-list">' +
+  openModal('<div class="stack" style="--gap:12px"><h2 id="modal-h">' + (from ? 'Move' : 'Add') + ' “' + esc(it ? it.name : 'this') + '” to which tier?</h2><ul class="pick-list">' +
     [1, 2, 3, 4].map((t) => {
       const s = sl[t], note = t === from ? 'here now' : !s ? 'empty' : from ? 'swaps with “' + s.item.name + '”' : 'replaces “' + s.item.name + '”';
       return '<li><button type="button" class="btn" data-pick="' + t + '"' + (t === from ? ' disabled' : '') + '><span class="row" style="--gap:8px"><span class="tierdot t' + t + '"></span>' + TIER_WORDS[t] + '</span><span class="muted">' + esc(note) + '</span></button></li>';
@@ -92,7 +105,7 @@ export function detailsDialog(key) {
     ' · suggested ' + esc(TIER_WORDS[it.tier] || '?') + ' · 👍 ' + vs.length + (vs.length ? ' (' + esc(vs.map((e) => person(e).name).join(', ')) + ')' : '') + (it.tags.length ? ' · ' + esc(it.tags.join(', ')) : '') + '</p>' +
     (t ? '<p class="badge in-draft">In this draft · ' + TIER_WORDS[t] + '</p>' : '') + (d ? alsoFlags(key) : '') + contentHtml(pseudo) +
     '<div class="modal-actions"><button class="btn ghost" type="button" data-dismiss>Close</button>' +
-    (d && !readOnly(d) ? '<button class="btn primary" type="button" id="det-add">' + (t ? 'Move to slot…' : 'Add to slot…') + '</button>' : '') + '</div></div>',
+    (d && !readOnly(d) ? '<button class="btn primary" type="button" id="det-add">' + (t ? 'Move…' : 'Add to draft…') + '</button>' : '') + '</div></div>',
   (m, close) => {
     m.classList.add('wide'); fillImages(m);
     const b = $('#det-add', m); if (b) b.addEventListener('click', () => { close(); slotPicker(key); });
@@ -105,12 +118,12 @@ function mount(d) {
   LIB.onDetails = (key) => detailsDialog(key);
   LIB.onRemove = (t) => remove(t);
   el.addEventListener('click', (e) => {
-    const b = e.target.closest('button'); if (!b || readOnly(current())) { if (b && b.dataset.det) detailsDialog(b.dataset.det); return; }
-    if (b.dataset.move) { const s = slotsOf(d.id)[Number(b.dataset.move)]; if (s) slotPicker(s.item.key); }
-    else if (b.dataset.rm) busy(b, 'Removing…', () => remove(Number(b.dataset.rm)));
-    else if (b.dataset.fill) fillPicker(Number(b.dataset.fill));
-    else if (b.dataset.det) detailsDialog(b.dataset.det);
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.det) { detailsDialog(b.dataset.det); return; }
+    if (readOnly(current())) return;
+    if (b.dataset.fill) fillPicker(Number(b.dataset.fill));
   });
+  wireAdapt(el, () => { const c = current(); if (c) render(c); });
   el.addEventListener('dragstart', (e) => {
     const b = e.target.closest && e.target.closest('[data-from]'); if (!b) return;
     DND.v = 'slot:' + b.dataset.from; b.classList.add('dragging');
@@ -126,4 +139,7 @@ function mount(d) {
     if (v.startsWith('lib:')) place(v.slice(4), t); else if (v.startsWith('slot:')) swap(Number(v.slice(5)), t);
   });
 }
+onMenu('slotMove', (t) => { const d = current(), s = d && slotsOf(d.id)[Number(t)]; if (s && !readOnly(d)) slotPicker(s.item.key); });
+onMenu('slotDet', (key) => detailsDialog(key));
+onMenu('slotRm', (t) => { const d = current(); if (d && !readOnly(d)) remove(Number(t)); });
 addPart({ mount, update: render });

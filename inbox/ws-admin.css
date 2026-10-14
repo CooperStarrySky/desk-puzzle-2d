@@ -1,0 +1,44 @@
+/* Admin console (ws-admin.js, ws-admin-schools.js), Settings and What's new (ws-settings.js). */
+.adm-sec { margin-top: 22px; }
+.adm-sec h2, .panel.adm-sec h2 { font-size: 1.1rem; margin: 0; }
+.role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.role-card { border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.role-card p { margin: 0; font-size: 0.86rem; color: var(--ink-soft); }
+.role-tag { display: inline-block; width: fit-content; font-size: 0.74rem; font-weight: 700; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+.role-tag.r-owner { background: var(--eosin-soft, var(--accent-soft)); color: var(--ink); }
+.role-tag.r-lead { background: var(--accent-soft); color: var(--accent); }
+.role-tag.r-admin { background: var(--ok-soft); color: var(--ok); }
+.role-tag.r-faculty { background: var(--warn-soft); color: var(--warn); }
+.tbl.ppl td { vertical-align: middle; }
+.tbl.ppl td:nth-child(2) { word-break: break-all; min-width: 140px; }
+.tbl.ppl .btn.small { white-space: nowrap; }
+.school-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.school-card { border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.school-card h3 { margin: 0; font-size: 1rem; min-width: 0; overflow-wrap: anywhere; }
+.school-card p { margin: 0; }
+.steps li.done { color: var(--ok); }
+.steps li span[aria-hidden] { display: inline-block; width: 1.1em; }
+/* Settings */
+.set-box { border: 1px solid var(--panel-edge); border-radius: var(--r-m); padding: 10px 14px 12px; margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.set-box legend { font-weight: 700; padding: 0 6px; }
+.set-row { display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+.set-row > div { min-width: 0; }
+.set-row p { margin: 2px 0 0; font-size: 0.84rem; }
+.set-row select.input { width: auto; max-width: 48%; flex: none; }
+.lock-note { margin: 0; font-size: 0.8rem; color: var(--ink-soft); }
+.switch { flex: none; width: 46px; height: 26px; border-radius: 999px; border: 1px solid var(--panel-edge); background: var(--paper-2); position: relative; cursor: pointer; padding: 0; }
+.switch span { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 3px var(--shadow); transition: left 0.15s; }
+.switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.switch[aria-checked="true"] span { left: 22px; }
+.switch:disabled { opacity: 0.55; cursor: not-allowed; }
+.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 520px) { .set-row { flex-direction: column; align-items: flex-start; } .set-row select.input { max-width: 100%; } }
+/* What's new: one line on the Category database, a short list when opened */
+.wn { margin: -4px 0 12px; }
+.wn-closed { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 0.86rem; }
+.wn-dismiss { border: 0; background: none; color: var(--ink-soft); font-size: 1.1rem; line-height: 1; padding: 2px 6px; border-radius: var(--r-s); cursor: pointer; }
+.wn-dismiss:hover { color: var(--ink); background: var(--paper-2); }
+.wn-list { margin: 6px 0 0; padding: 10px 14px 10px 30px; background: var(--accent-soft); border-radius: var(--r-m); font-size: 0.86rem; display: flex; flex-direction: column; gap: 4px; }
+#gear-btn { white-space: nowrap; }
+@media (max-width: 560px) { #gear-btn { padding-inline: 8px; } }
+.school-card .steps, .modal .steps { list-style: none; padding-left: 0; }

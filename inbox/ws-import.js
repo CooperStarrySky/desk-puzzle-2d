@@ -1,6 +1,6 @@
 /* Puzzle workspace: "Download for import". Rebuilds the Studio's own file format
    so tools/import_submission.py reads it unchanged. Moved unchanged from the old
-   single-file inbox (only sb -> S.sb; "Download all shortlisted" takes its list). */
+   single-file inbox (only sb -> S.sb). */
 import { S, toast, plainError, slug, isPuzzle, isStoragePath, BUCKET } from './ws-core.js';
 const MIME_BY_EXT = { webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
 

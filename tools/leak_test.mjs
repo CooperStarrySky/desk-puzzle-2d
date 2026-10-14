@@ -4,7 +4,7 @@
 // Run it after setting up Supabase, and again after ANY database change:
 //     node tools/leak_test.mjs                 # read/write checks with the public key
 //     node tools/leak_test.mjs --send-sample   # also sends one test category
-//     node tools/leak_test.mjs --send-sample=puzzle  # ...and one tiny test full puzzle
+//     node tools/leak_test.mjs --send-sample=puzzle  # ...and checks full puzzles are refused
 //     node tools/leak_test.mjs --send-sample=stats   # sends one test finish to the "record" function
 //
 // It acts like a stranger who copied the public key out of studio/config.js
@@ -19,8 +19,9 @@
 //
 // --send-sample posts a tiny valid category ("TEST: things that cause
 // clubbing") through the real submit function and expects a receipt code.
-// --send-sample=puzzle also sends a tiny full puzzle ("TEST: automated full
-// puzzle", 4 categories, 4 tiny images). Decline them in the inbox afterwards. Run it before turning on Turnstile, or
+// --send-sample=puzzle also checks that a full puzzle and a category with no
+// school are refused (full puzzles ended with the multischool release).
+// Move the sample to the Trash in the inbox afterwards. Run it before turning on Turnstile, or
 // it is refused (correctly) for missing the "are you human" check.
 //
 // Play stats: the public key may read puzzle_stats (totals only) and nothing
@@ -143,7 +144,7 @@ result(r.status >= 400, `asking puzzle_stats for anon_id is refused (${how(r)})`
 // ── Workspace (history, comments, votes, drafts, publish jobs): admins only ──
 const NOID = '00000000-0000-4000-8000-000000000000';
 const WS_ROWS = {
-  review_events: { submission_id: NOID, action: 'shortlist' },
+  review_events: { submission_id: NOID, action: 'trash' },
   comments: { target_type: 'submission', target_id: NOID, body: 'leak test' },
   votes: { submission_id: NOID },
   drafts: { title: 'leak test' },
@@ -168,26 +169,80 @@ result(nothing(r), `can't rename admins (${how(r)})`);
 r = await call('POST', '/rest/v1/rpc/swap_draft_slots', { p_draft_id: NOID, p_tier_a: 1, p_tier_b: 2 });
 result(refused(r), `can't call swap_draft_slots (${how(r)})`);
 
+// ── Multiple schools (20261013120000_multischool.sql): members only ──
+const MS_ROWS = {
+  schools: { slug: 'leak-test', name: 'Leak test' },
+  site_owners: { email: 'leak@test.example' },
+  members: { email: 'leak@test.example', school: 'cmsru', role: 'lead' },
+  member_events: { school: 'cmsru', target_email: 'leak@test.example', action: 'member_add' },
+  submission_edits: { submission_id: NOID, editor_email: 'leak@test.example', path: 'name' },
+  category_uses: { submission_id: NOID, school: 'cmsru', puzzle_id: 'leak-test-2099-01-01' },
+  school_settings: { school: 'leak-test' },
+  site_settings: { trash_retention_days: 1 },
+  category_usage: { submission_id: NOID },
+  admins_pre_multischool: { email: 'leak@test.example' },
+};
+for (const [t, row] of Object.entries(MS_ROWS)) {
+  r = await call('GET', `/rest/v1/${t}?select=*&limit=5`);
+  result(nothing(r), `can't read ${t} (${how(r)})`);
+  if (r.status === 404 && t !== 'admins_pre_multischool') console.log(`     ${t} is missing: the multischool migration is not applied yet.`);
+  r = await call('POST', `/rest/v1/${t}`, row, { Prefer: 'return=minimal' });
+  result(refused(r), `can't add to ${t} (${how(r)})`);
+}
+r = await call('PATCH', '/rest/v1/site_settings?id=not.is.null', { trash_retention_days: 1 }, { Prefer: 'return=representation' });
+result(nothing(r), `can't change site settings (${how(r)})`);
+const MS_RPCS = {
+  add_member: { p_email: 'leak@test.example', p_school: 'cmsru', p_role: 'lead' },
+  change_role: { p_email: 'leak@test.example', p_school: 'cmsru', p_role: 'lead' },
+  move_school: { p_email: 'leak@test.example', p_from: 'cmsru', p_to: 'cmsru' },
+  set_member_active: { p_email: 'leak@test.example', p_school: 'cmsru', p_active: true },
+  set_my_profile: { p_display_name: 'leak', p_color: null },
+  trash_submission: { p_id: NOID, p_reason: 'leak test' },
+  restore_submission: { p_id: NOID },
+  edit_submission: { p_id: NOID, p_patch: { name: 'leak test' } },
+  undo_submission_edit: { p_edit_id: NOID },
+  approve_draft: { p_draft_id: NOID },
+  unapprove_draft: { p_draft_id: NOID },
+  other_school_releases: { p_from: '2026-01-01', p_to: '2026-12-31' },
+  member_names: {},
+  add_school: { p_slug: 'leak-test', p_name: 'Leak test', p_lead_email: 'leak@test.example' },
+  people_sign_ins: {},
+};
+for (const [fn, body] of Object.entries(MS_RPCS)) {
+  r = await call('POST', `/rest/v1/rpc/${fn}`, body);
+  result(r.status >= 400 || nothing(r), `can't call ${fn} (${how(r)})`);
+}
+
+// The Studio's "Your school" list is public on purpose: active schools' short
+// code and name, nothing more.
+r = await call('POST', '/rest/v1/rpc/active_schools', {});
+{
+  const rows = Array.isArray(r.json) ? r.json : null;
+  const shapeOk = !!rows && rows.every((x) => Object.keys(x).sort().join(',') === 'name,slug');
+  result(r.status === 200 && shapeOk, `active_schools gives only slug + name (${r.status === 200 && rows ? rows.length + ' school(s): ' + rows.map((x) => x.slug).join(', ') : how(r)})`);
+  if (r.status === 404) console.log('     active_schools is missing: the multischool migration is not applied yet.');
+}
+
 // ── Optional: send one sample through the real function ──
 if (SEND) {
   const { goodSample, goodPuzzleSample } = await import(pathToFileURL(path.join(ROOT, 'supabase', 'tests', 'samples.mjs')).href);
-  const res = await call('POST', '/functions/v1/submit', { submission: goodSample(), turnstileToken: '', website: '' }, { Origin: ORIGIN });
+  const res = await call('POST', '/functions/v1/submit', { submission: Object.assign(goodSample(), { school: 'cmsru' }), turnstileToken: '', website: '' }, { Origin: ORIGIN });
   const okReceipt = res.status === 200 && res.json && res.json.ok === true && /^DP-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(res.json.receipt || '');
   result(okReceipt, `sample category accepted by the submit function (${res.status}${res.json ? ': ' + (res.json.receipt || res.json.error || '') : ', ' + res.text.slice(0, 120)})`);
   if (res.status === 404) console.log('     The function is not deployed yet: npx supabase functions deploy submit --no-verify-jwt --use-api');
-  let pzRes = null;
   if (SEND_PUZZLE) {
-    pzRes = await call('POST', '/functions/v1/submit', { submission: goodPuzzleSample(), turnstileToken: '', website: '' }, { Origin: ORIGIN });
-    const okPz = pzRes.status === 200 && pzRes.json && pzRes.json.ok === true && /^DP-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(pzRes.json.receipt || '');
-    result(okPz, `sample full puzzle accepted by the submit function (${pzRes.status}${pzRes.json ? ': ' + (pzRes.json.receipt || pzRes.json.error || '') : ', ' + pzRes.text.slice(0, 120)})`);
-    if (!okPz) pzRes = null;
+    // Full puzzles are no longer accepted (categories only): expect a clear refusal.
+    const pzRes = await call('POST', '/functions/v1/submit', { submission: Object.assign(goodPuzzleSample(), { school: 'cmsru' }), turnstileToken: '', website: '' }, { Origin: ORIGIN });
+    const refusedPz = pzRes.status === 400 && pzRes.json && pzRes.json.ok === false && /one category/i.test(pzRes.json.error || '');
+    result(refusedPz, `full puzzle refused with a plain message (${pzRes.status}${pzRes.json ? ': ' + (pzRes.json.error || pzRes.json.receipt || '') : ''})`);
+    const noSchool = await call('POST', '/functions/v1/submit', { submission: goodSample(), turnstileToken: '', website: '' }, { Origin: ORIGIN });
+    result(noSchool.status === 400 && noSchool.json && /school/i.test(noSchool.json.error || ''), `category without a school refused (${noSchool.status})`);
   }
   const after = await call('GET', '/rest/v1/submissions?select=*&limit=5');
   result(nothing(after), `the sample is still invisible to the public key (${how(after)})`);
   const bad = await call('POST', '/functions/v1/submit', { submission: goodSample() }, { Origin: 'https://not-our-site.example' });
   result(bad.status === 403, `function refuses other websites (${bad.status})`);
-  if (okReceipt) console.log(`     Receipt ${res.json.receipt}: find "TEST: things that cause clubbing" in the inbox and Decline it.`);
-  if (pzRes) console.log(`     Receipt ${pzRes.json.receipt}: find "TEST: automated full puzzle" in the inbox and Decline it.`);
+  if (okReceipt) console.log(`     Receipt ${res.json.receipt}: find "TEST: things that cause clubbing" in the Category database and move it to the Trash.`);
 }
 
 if (SEND_STATS) {

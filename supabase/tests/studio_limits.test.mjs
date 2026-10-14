@@ -11,8 +11,9 @@ const m = /const SEND_LIMITS = (\{[^}]*\});/.exec(html);
 let fails = 0;
 if (!m) { console.log('FAIL SEND_LIMITS not found in studio/index.html'); process.exit(1); }
 const studio = Function('return ' + m[1])();
-// The Studio must know every cap it checks before sending, including the full-puzzle ones.
-for (const k of ['maxImageBytes', 'maxImages', 'maxBodyBytes', 'maxPuzzleImages', 'maxPuzzleBodyBytes', 'puzzleTitle', 'name', 'explanation', 'label', 'source', 'article', 'note']) {
+// The Studio must know every cap it checks before sending (categories only:
+// the full-puzzle caps stay on the server for old files, not in the Studio).
+for (const k of ['maxImageBytes', 'maxImages', 'maxBodyBytes', 'name', 'explanation', 'label', 'source', 'article', 'note']) {
   const has = k in studio;
   console.log((has ? 'PASS ' : 'FAIL ') + `studio SEND_LIMITS has ${k}`);
   if (!has) fails++;
@@ -28,6 +29,19 @@ for (const [k, v] of Object.entries(studio)) {
   console.log((same ? 'PASS ' : 'FAIL ') + `${k}: studio ${v}, server ${LIMITS[k]}`);
   if (!same) fails++;
 }
+for (const k of ['maxPuzzleImages', 'maxPuzzleBodyBytes', 'puzzleTitle']) {
+  const gone = !(k in studio);
+  console.log((gone ? 'PASS ' : 'FAIL ') + `studio has no full-puzzle cap ${k} (full puzzles retired)`);
+  if (!gone) fails++;
+}
+// Full-puzzle mode is gone from the Studio, and every send carries the school.
+const checksStudio = [
+  [!/data-mode="puzzle"|id="mode-puzzle"|submissionFromPuzzle|puzzleChecks/.test(html), 'no full-puzzle mode, checks, or sender left in the Studio'],
+  [/kind: 'category', school: t\(c\.school\)/.test(html), 'the Studio sends kind "category" with the school'],
+  [/\/rest\/v1\/rpc\/active_schools/.test(html), 'the Studio reads the school list from active_schools()'],
+  [/problems\.push\('Pick your school'\)/.test(html), 'the Studio asks for a school before sending'],
+];
+for (const [c, m] of checksStudio) { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; }
 const credit = /const CREDIT_NAME_MAX = (\d+), CREDIT_LINE_MAX = (\d+);/.exec(html);
 const cOk = credit && Number(credit[1]) === LIMITS.creditName && Number(credit[2]) === LIMITS.creditLine;
 console.log((cOk ? 'PASS ' : 'FAIL ') + 'credit name/line caps match');

@@ -1,16 +1,17 @@
 /* Puzzle workspace: Archive dialogs. A category (where it was used, its clues,
-   "Use in a draft…"), the draft-and-slot picker, and "Reuse as starting
-   point" (a new draft holding a published puzzle's four groups as copies). */
+   "Open in Category database", "Use in a draft…") and the draft-and-slot
+   picker. ("Reuse as starting point" was removed in S3: start a draft and
+   use "Edit for this puzzle" instead.) */
 import { $, $$, esc, busy, toast, openModal, TIER_WORDS, STATUS_WORDS, ZONE_NAMES } from './ws-core.js';
 import { PL, DSTATUS, slotsOf, filledCount } from './ws-plan-data.js';
-import { BANK, loadBank, schoolName, useInDraft, newDraft, reusePuzzle } from './ws-arch-data.js';
+import { BANK, loadBank, schoolName, useInDraft, newDraft } from './ws-arch-data.js';
 import { dayLabel } from './ws-plan-time.js';
 
 const fmt = (d) => (d ? dayLabel(String(d).slice(0, 10), true) : '');
 function usedLi(r, p) {
   const gi = r.uses.get(p.id), g = gi != null ? p.full[gi] : null;
   return '<li><span><b>' + esc(p.title) + '</b><br><span class="muted">Released ' + esc(fmt(p.date)) + (g ? ' · ' + esc(TIER_WORDS[g.tier] || '') + ' group' + (g.name !== r.name ? ' “' + esc(g.name) + '”' : '') : '') +
-    ' · ' + esc(schoolName(p.school)) + '</span></span><button type="button" class="btn small" data-reuse="' + esc(p.id) + '">Reuse as starting point</button></li>';
+    ' · ' + esc(schoolName(p.school)) + '</span></span></li>';
 }
 export function openCategory(key, onChange) {
   const r = BANK.byKey.get(key); if (!r) return;
@@ -26,10 +27,9 @@ export function openCategory(key, onChange) {
     (r.usedN ? '<ul class="pick-list used-list" id="cat-used">' + r.usedIn.map((p) => usedLi(r, p)).join('') + '</ul>' : '') + '</section>' +
     '<section class="stack" style="--gap:6px"><h3 class="dlg-h">Clues (' + r.items.length + ')</h3><ul class="clue-list" id="cat-clues">' + r.items.map((c) =>
       '<li><b>' + esc(c.label) + '</b> <span class="faint">' + esc(ZONE_NAMES[c.zone] || c.zone || '') + '</span>' + (c.info && c.info.text ? '<br><span class="muted">' + esc(c.info.text) + '</span>' : '') + '</li>').join('') + '</ul></section>' +
-    '<div class="modal-actions">' + (r.it ? '<a class="btn" href="#s=' + encodeURIComponent(r.it.sid) + '" data-dismiss>Open the suggestion</a>' : '') +
+    '<div class="modal-actions">' + (r.it ? '<a class="btn" id="cat-open" href="#/categories/' + encodeURIComponent(r.it.sid) + '" data-dismiss>Open in Category database</a>' : '') +
     '<button type="button" class="btn" data-dismiss>Close</button><button type="button" class="btn primary" id="cat-use">Use in a draft…</button></div></div>', (m, close) => {
     $('#cat-use', m).addEventListener('click', () => { close(); openUse(r, onChange); });
-    $$('[data-reuse]', m).forEach((b) => b.addEventListener('click', () => { const p = BANK.puzzles.find((x) => x.id === b.dataset.reuse); close(); if (p) openReuse(p); }));
   });
 }
 
@@ -44,7 +44,8 @@ function tierOptions(r, draftId) {
     return '<option value="' + t + '"' + (t === pick ? ' selected' : '') + '>' + esc(label) + '</option>';
   }).join('');
 }
-export function openUse(r, onChange) {
+/* reload: what to re-fetch after adding (the Archive's bank by default; the Category database passes loadPlanner). */
+export function openUse(r, onChange, reload = loadBank) {
   const open = PL.drafts.filter((d) => d.status !== 'published').sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
   const first = open[0] ? open[0].id : '';
   openModal('<form class="stack" style="--gap:12px" id="use-form"><h2 id="modal-h">Use “' + esc(r.name) + '” in a draft</h2>' +
@@ -65,8 +66,8 @@ export function openUse(r, onChange) {
         let id = did(); const tier = Number($('#ud-tier', m).value), title = $('#ud-title', m).value.trim();
         if (!id && !title) { const er = $('#ud-err', m); er.textContent = 'Give the new draft a title.'; er.hidden = false; $('#ud-title', m).focus(); return; }
         if (!id) id = await newDraft(title, r.tags[0] || null, null);
-        if (!id || !(await useInDraft(r, id, tier))) { await loadBank(); if (onChange) onChange(); return; }
-        await loadBank(); if (onChange) onChange();
+        if (!id || !(await useInDraft(r, id, tier))) { await reload(); if (onChange) onChange(); return; }
+        await reload(); if (onChange) onChange();
         const d = PL.drafts.find((x) => x.id === id);
         close(); done(r, d || { id, title: title || 'the draft' }, tier);
       });
@@ -77,27 +78,4 @@ function done(r, d, tier) {
   toast('Added to ' + d.title);
   openModal('<div class="stack" style="--gap:12px"><h2 id="modal-h">Added</h2><p>“' + esc(r.name) + '” is now the ' + esc(TIER_WORDS[tier]) + ' category in <b>' + esc(d.title) + '</b>.</p>' +
     '<div class="modal-actions"><button type="button" class="btn" data-dismiss>Keep browsing</button><a class="btn primary" href="#/planner/' + encodeURIComponent(d.id) + '" data-dismiss id="ud-open">Open the draft</a></div></div>');
-}
-
-/* ===== Reuse as starting point ===== */
-export function openReuse(p) {
-  openModal('<form class="stack" style="--gap:12px" id="reuse-form"><h2 id="modal-h">Reuse “' + esc(p.title) + '”</h2>' +
-    '<p>This starts a new draft with these four groups already in their slots, as copies you can edit or swap out one at a time.</p>' +
-    '<ul class="clue-list">' + p.full.map((g) => '<li class="t' + g.tier + '"><span class="tierdot" aria-hidden="true"></span> ' + esc(TIER_WORDS[g.tier] || '') + ': <b>' + esc(g.name) + '</b></li>').join('') + '</ul>' +
-    (p.full.some((g) => g.items.some((c) => /^data:/.test((c.info && c.info.image) || '') || /^data:/.test((c.scope && c.scope.image) || ''))) ? '<p class="hint">Some images live inside this older puzzle file and are not copied. Those clues say so in their notes.</p>' : '') +
-    '<label class="field"><span>New draft title</span><input class="input" id="rp-title" maxlength="120" value="' + esc(('Remix of ' + p.title).slice(0, 120)) + '"></label>' +
-    '<p class="err" id="rp-err" role="alert" hidden></p>' +
-    '<div class="modal-actions"><button type="button" class="btn" data-dismiss>Cancel</button><button type="submit" class="btn primary" id="rp-go">Create draft</button></div></form>', (m, close) => {
-    $('#reuse-form', m).addEventListener('submit', (e) => {
-      e.preventDefault();
-      busy($('#rp-go', m), 'Creating…', async () => {
-        const title = $('#rp-title', m).value.trim();
-        if (!title) { const er = $('#rp-err', m); er.textContent = 'Give the new draft a title.'; er.hidden = false; return; }
-        const id = await reusePuzzle(p, title);
-        if (!id) return;
-        close(); toast('Draft started from ' + p.title);
-        location.hash = '#/planner/' + encodeURIComponent(id);
-      });
-    });
-  });
 }

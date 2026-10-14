@@ -1,4 +1,4 @@
-// Supabase Edge Function "submit": receives a category or a full puzzle from the Studio and
+// Supabase Edge Function "submit": receives one category (and its school) from the Studio and
 // files it in the private inbox. All the logic is in handler.js (tested in
 // node by supabase/tests/handler.test.mjs); this file only wires it up.
 //

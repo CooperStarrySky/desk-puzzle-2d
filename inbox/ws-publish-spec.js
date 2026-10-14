@@ -59,8 +59,19 @@ function uniq(base, seen) {
 }
 const getSub = (subs, id) => (subs instanceof Map ? subs.get(id) : subs && subs[id]) || null;
 
-/* The group a slot holds, plus who sent it in. */
+/* An adapted copy (draft_slots.adapted, made with "Edit for this puzzle")
+   replaces the original's name, explanation and clues for this puzzle only. */
+function withCopy(sg, a) {
+  if (!sg || !a || typeof a !== 'object') return sg;
+  const g = Object.assign({}, sg.g, { name: typeof a.name === 'string' && a.name.trim() ? a.name : sg.g.name,
+    explanation: typeof a.explanation === 'string' ? a.explanation : sg.g.explanation, items: Array.isArray(a.items) ? a.items : sg.g.items });
+  return Object.assign({}, sg, { g, name: g.name || sg.name, adapted: true });
+}
+/* The group a slot holds (its adapted copy when there is one), plus who sent it in. */
 function slotGroup(slot, subs) {
+  return withCopy(slotGroupOrig(slot, subs), slot.custom_group ? null : slot.adapted);
+}
+function slotGroupOrig(slot, subs) {
   if (slot.custom_group) {
     const g = slot.custom_group;
     return { g, name: g.name, credit: cleanCredit(g.credit), sid: null };

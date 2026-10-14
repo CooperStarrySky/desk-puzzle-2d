@@ -2,11 +2,11 @@
    draft; after any change (yours, or Refresh) update() redraws the parts that
    show data, keeping the preview frame and whatever field you are typing in.
    Other planner modules (slots, checks, preview, status) plug in with addPart(). */
-import { S, $, esc, busy, toast, when, ago, av, person } from './ws-core.js';
+import { S, $, esc, busy, toast, when, ago, av, person, roleIn, tipHtml, schFull } from './ws-core.js';
 import { BLOCKS } from './ws-suggest.js';
 import { fetchComments, commentsHtml, wireComments } from './ws-comments.js';
 import { PL, DSTATUS, loadPlanner, draftById, eventsOf, patchDraft } from './ws-plan-data.js';
-import { LIB, wireLib, renderLib } from './ws-plan-lib.js';
+import { LIB, wireLib, renderLib, TOUCH, libSheet } from './ws-plan-lib.js';
 import { renderDraftList } from './ws-plan-list.js';
 
 /* parts: { mount(d), update(d) } — mount once per draw, update after every change. */
@@ -14,7 +14,8 @@ const parts = [];
 export const ED = { id: null, cmSeq: 0 };
 export function addPart(p) { parts.push(p); }
 export const current = () => (ED.id ? draftById(ED.id) : null);
-export const readOnly = (d) => !!d && d.status === 'published';
+/* Published drafts are frozen; faculty read, comment and approve but never plan. */
+export const readOnly = (d) => !!d && (d.status === 'published' || !['owner', 'lead', 'admin'].includes(roleIn(d.school)));
 
 /* Who touched it last: the draft row, a slot change, or a history line. */
 function lastTouch(d) {
@@ -29,13 +30,15 @@ function metaHtml(d) {
     '<span>Last updated by <b>' + esc(t.who ? person(t.who).name : 'someone') + '</b>, <span title="' + esc(when(t.at)) + '">' + esc(ago(t.at)) + '</span></span>';
 }
 function ownerOptions(d) {
-  const emails = Array.from(S.people.keys()); if (!emails.includes(d.owner_email)) emails.push(d.owner_email);
+  // Owners come from the draft's own school (the database also checks they are a lead or admin there).
+  const emails = Array.from(S.people.keys()).filter((e) => { const r = S.people.get(e); return !r.schools || r.schools.includes(d.school); });
+  if (!emails.includes(d.owner_email)) emails.push(d.owner_email);
   return emails.map((e) => '<option value="' + esc(e) + '"' + (e === d.owner_email ? ' selected' : '') + '>' + esc(person(e).name) + '</option>').join('');
 }
 function shellHtml(d) {
   const ro = readOnly(d) ? ' disabled' : '';
   return '<p class="back"><a href="#/planner">← All drafts</a></p>' +
-    '<div class="view-head"><div class="stack" style="--gap:4px"><p class="eyebrow">Draft · owner <span id="ed-ownername">' + esc(person(d.owner_email).name) + '</span></p><h1 id="ed-h">' + esc(d.title) + '</h1>' +
+    '<div class="view-head"><div class="stack" style="--gap:4px"><p class="eyebrow">Draft' + (S.owner ? ' · ' + esc(schFull(d.school)) : '') + ' · owner <span id="ed-ownername">' + esc(person(d.owner_email).name) + '</span></p><h1 id="ed-h">' + esc(d.title) + '</h1>' +
     '<p class="ed-meta" id="ed-meta">' + metaHtml(d) + '</p></div><button class="btn" type="button" id="ed-refresh">Refresh</button></div>' +
     '<div id="ed-banner"></div>' +
     '<div class="ed-top panel"><label class="field"><span>Title</span><input class="input" id="ed-title" maxlength="120" value="' + esc(d.title) + '"' + ro + '></label>' +
@@ -43,14 +46,17 @@ function shellHtml(d) {
     '<label class="field"><span>Block</span><select class="input" id="ed-block"' + ro + '><option value="">No block</option>' +
     BLOCKS.concat(d.block && !BLOCKS.includes(d.block) ? [d.block] : []).map((b) => '<option' + (b === d.block ? ' selected' : '') + '>' + esc(b) + '</option>').join('') + '</select></label>' +
     '<div class="field ed-flow"><span>Status</span><div class="flow" id="flow"></div></div></div>' +
+    '<div class="appr-bar panel" id="appr" aria-label="Faculty approval" hidden></div>' +
     '<div class="editor" id="editor">' +
-    '<section class="lib panel" id="lib" aria-labelledby="lib-h"><h2 id="lib-h">Suggestion library</h2>' +
+    '<section class="lib panel" id="lib" aria-labelledby="lib-h"><div class="row spread"><h2 id="lib-h">Category library</h2><button type="button" class="btn small primary lib-close" id="lib-close">Done</button></div>' +
     '<label class="sr" for="lib-q">Search the library</label><input class="input" id="lib-q" type="search" autocomplete="off" placeholder="Search names, clues, notes…">' +
     '<div id="lib-tools" class="stack" style="--gap:6px"></div>' +
-    '<p class="hint lib-hint">Drag a card onto a slot, or use “Add to slot…”. Drag a slot back here to take it out.<span class="wide-only"> Drag the bar on the right edge to widen this panel.</span></p>' +
+    (readOnly(d) ? '' : TOUCH ? tipHtml('plan-tap', 'Tap “Add to draft…” on a category, then choose a tier.')
+      : tipHtml('plan-drag', 'Drag a card onto a slot by its ⠿ handle, or use “Add to draft…”. Drag a slot back here to take it out. Drag the library’s right edge to widen it.')) +
     '<div class="lib-list" id="lib-list"></div>' +
     '<div class="lib-handle" id="lib-handle" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="lib" aria-label="Resize the suggestion library (Left and Right arrows; double-click resets)" aria-valuemin="220" aria-valuemax="640"></div></section>' +
-    '<section class="mid-a stack" aria-labelledby="slots-h"><h2 id="slots-h" class="sr">Tier slots</h2><div class="slots" id="slots"></div><div class="panel stack" id="ck-panel" hidden></div></section>' +
+    '<section class="mid-a stack" aria-labelledby="slots-h"><h2 id="slots-h" class="sr">Tier slots</h2>' +
+    (readOnly(d) ? '' : '<button type="button" class="btn primary add-cat" id="add-cat" aria-controls="lib" aria-expanded="false">＋ Add category</button>') + '<div class="slots" id="slots"></div><div class="panel stack" id="ck-panel" hidden></div></section>' +
     '<section class="pv-col panel stack" id="pv-col" aria-labelledby="pv-h" hidden></section>' +
     '<section class="mid-b panel stack" aria-labelledby="notes-h"><h3 id="notes-h">Draft notes</h3><label class="sr" for="ed-notes">Draft notes</label>' +
     '<textarea class="input" id="ed-notes" maxlength="4000" placeholder="Ideas, open questions, who is finding which image…"' + ro + '>' + esc(d.notes || '') + '</textarea>' +
@@ -71,6 +77,9 @@ function wireShell(d) {
   $('#ed-owner').addEventListener('change', (e) => saveField(d, { owner_email: e.target.value }, 'Owner is now ' + person(e.target.value).name));
   $('#ed-block').addEventListener('change', (e) => saveField(d, { block: e.target.value || null }, e.target.value ? 'Block set to ' + e.target.value : 'Block cleared'));
   $('#ed-notes').addEventListener('change', (e) => saveField(d, { notes: e.target.value.trim() || null }, 'Notes saved'));
+  const add = $('#add-cat'); if (add) add.addEventListener('click', () => libSheet(true));
+  $('#lib-close').addEventListener('click', () => libSheet(false));
+  $('#lib').addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#lib').classList.contains('sheet-open') && !$('#modal-root .scrim')) { e.stopPropagation(); libSheet(false); } });
   $('#ed-refresh').addEventListener('click', (e) => busy(e.currentTarget, 'Refreshing…', async () => { await refresh(); if (!PL.err) toast('Up to date'); }));
 }
 /* Draft comments use the same comment list as suggestions (target_type 'draft'). */
@@ -94,7 +103,7 @@ export async function refresh() {
 }
 export function update(d) {
   if (!$('#editor')) return;
-  LIB.draft = d;
+  LIB.draft = d; LIB.canEdit = !readOnly(d);
   $('#ed-meta').innerHTML = metaHtml(d);
   $('#ed-ownername').textContent = person(d.owner_email).name;
   const fields = { 'ed-title': d.title, 'ed-notes': d.notes || '' };
@@ -104,7 +113,7 @@ export function update(d) {
   parts.forEach((p) => p.update && p.update(d));
 }
 function renderEditor(d) {
-  ED.id = d.id; LIB.draft = d;
+  ED.id = d.id; LIB.draft = d; LIB.canEdit = !readOnly(d); libSheet(false);
   $('#ws-main').innerHTML = shellHtml(d);
   document.title = d.title + ' · Planner · Puzzle workspace';
   wireShell(d); wireLib();
