@@ -512,3 +512,14 @@ select cron.schedule('dp-purge-trash', '23 4 * * *', 'select private.purge_trash
 
 It never deletes a trashed category that went out in a puzzle or still sits in a draft.
 It removes database rows only; the category's pictures stay in the private bucket.
+
+## School pill colors
+
+`supabase/migrations/20261014120000_school_color.sql` gives each school the color of
+its "Submitted to ..." pill on category cards (`schools.color`, a `#rrggbb` value).
+CMSRU starts crimson (`#9e1b32`), every other school slate grey. The school's lead or the
+site owner changes it in the workspace under Settings, which calls
+`set_school_color(school, color)`; admins and faculty can't. The public key still can't
+read the schools table, and `active_schools()` still returns only slug and name.
+Apply it before or together with the workspace update that draws the pills; the
+workspace falls back to grey pills if the column isn't there yet.

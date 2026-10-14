@@ -191,6 +191,8 @@ for (const [t, row] of Object.entries(MS_ROWS)) {
 }
 r = await call('PATCH', '/rest/v1/site_settings?id=not.is.null', { trash_retention_days: 1 }, { Prefer: 'return=representation' });
 result(nothing(r), `can't change site settings (${how(r)})`);
+r = await call('PATCH', '/rest/v1/schools?slug=not.is.null', { color: '#000000' }, { Prefer: 'return=representation' });
+result(nothing(r), `can't change a school's pill color (${how(r)})`);
 const MS_RPCS = {
   add_member: { p_email: 'leak@test.example', p_school: 'cmsru', p_role: 'lead' },
   change_role: { p_email: 'leak@test.example', p_school: 'cmsru', p_role: 'lead' },
@@ -207,6 +209,7 @@ const MS_RPCS = {
   member_names: {},
   add_school: { p_slug: 'leak-test', p_name: 'Leak test', p_lead_email: 'leak@test.example' },
   people_sign_ins: {},
+  set_school_color: { p_school: 'cmsru', p_color: '#000000' },  // 20261014120000_school_color.sql
 };
 for (const [fn, body] of Object.entries(MS_RPCS)) {
   r = await call('POST', `/rest/v1/rpc/${fn}`, body);

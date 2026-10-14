@@ -42,3 +42,12 @@
 #gear-btn { white-space: nowrap; }
 @media (max-width: 560px) { #gear-btn { padding-inline: 8px; } }
 .school-card .steps, .modal .steps { list-style: none; padding-left: 0; }
+/* Settings: the school pill color */
+.set-row.pill-row { flex-direction: column; align-items: stretch; gap: 8px; }
+.pill-prev { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px !important; }
+.pill-pick { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.pill-pick .swatches { gap: 6px; }
+.pill-pick .swatch { width: 28px; height: 28px; font-size: 0.8rem; cursor: pointer; }
+.pill-pick .swatch:disabled { cursor: not-allowed; opacity: 0.6; }
+.pc-custom { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: var(--ink-soft); }
+.pc-custom input[type="color"] { width: 38px; height: 30px; padding: 0 2px; border: 1px solid var(--panel-edge); border-radius: var(--r-s); background: var(--card); cursor: pointer; }

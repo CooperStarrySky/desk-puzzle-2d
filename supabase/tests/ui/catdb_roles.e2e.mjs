@@ -6,7 +6,8 @@ import { page, check, summary, resetDb, sql, U, C } from './lib.mjs';
 await resetDb();
 const P = await page();
 const card = (id) => '#sug-list .sug-card[data-id="' + id + '"]';
-const line = (id) => P.text(card(id) + ' .card-line');
+const line = (id) => P.text(card(id) + ' .card-use');
+const vote = (id) => P.js(`(() => { const b = document.querySelector(${JSON.stringify(card(id) + ' .card-acts .vote-btn')}); return b ? b.textContent + ' | ' + b.dataset.tip : null; })()`);
 const db1 = async (q, p) => ((await sql(q, p)).rows || [])[0] || {};
 const menuItem = async (id, act) => { await P.click(card(id) + ' .mnu-btn'); await P.sleep(60); return '.mnu-pop:not([hidden]) [data-mact="' + act + '"]'; };
 const openCard = async (id) => { await P.click('#tg-' + id); await P.waitFor('!!document.querySelector("#sd-' + id + ' .sd-cmts .comments")'); };
@@ -25,7 +26,7 @@ check('F2 nothing trashed', (await db1('select status from submissions where id 
 await closeMenu();
 await openCard(C.clubbing);
 check('F3 tags read-only', (await P.count('#sd-' + C.clubbing + ' [data-tag]')) === 0 && /Pulm/.test(await P.text('#sd-' + C.clubbing + ' .tag-ed')));
-await P.click('#sd-' + C.clubbing + ' [data-act="vote"]'); await P.waitFor('/👍 added/.test(document.getElementById("toast").textContent)');
+await P.click(card(C.clubbing) + ' .card-acts .vote-btn'); await P.waitFor('/👍 added/.test(document.getElementById("toast").textContent)');
 check('F3 faculty can 👍 (counts for CMSRU)', (await db1('select school from votes where voter_email = $1', [U.FAC])).school === 'cmsru');
 await P.type('#sd-' + C.clubbing + ' .cm-in', 'Faculty thought'); await P.click('#sd-' + C.clubbing + ' [data-cact="post"]');
 await P.waitFor('/Faculty thought/.test(document.querySelector("#sd-' + C.clubbing + ' .sd-cmts").textContent)');
@@ -36,12 +37,12 @@ check('F4 keyboard a explains instead of opening', (await P.count('#use-form')) 
 await P.js('location.hash = "#/categories/trash"'); await P.waitFor('document.querySelector("#ws-main h1").textContent === "Trash"'); await P.settle();
 check('F5 Restore and reason off in Trash', (await P.js('[...document.querySelectorAll("#sug-list [data-restore], #sug-list [data-why]")].every((b) => b.disabled)')) && (await P.count('#sug-list [data-restore]')) === 2);
 await openCard(C.blue);
-check('F5 Restore off in the open card too', await P.js('document.querySelector("#sd-' + C.blue + ' [data-act=restore]").disabled'));
+check('F5 Restore off in the open card too', await P.js('document.querySelector(' + JSON.stringify(card(C.blue) + ' [data-restore]') + ').disabled'));
 
 // ===== Rowan-Virtua admin =====
 check('O0 other-school admin signs in', await P.signInAs(U.OTHER, '#/categories')); await P.settle();
-check('O1 votes counted for RV', /👍 4 \(1 from RVSOM\) · 💬 2$/.test(await line(C.clubbing)), await line(C.clubbing));
-check('O1 sees RV draft use, not CMSRU\'s', /in 1 draft/.test(await line(C.asthma)) && !/draft/.test(await line(C.lead)));
+check('O1 votes counted for RV (split in the tooltip)', /^👍 4 \| You and 3 others · 1 from RVSOM · 2 schools$/.test(await vote(C.clubbing)) && /💬 2$/.test(await line(C.clubbing)), [await vote(C.clubbing), await line(C.clubbing)]);
+check('O1 sees RV draft use, not CMSRU\'s', /In 1 draft/.test(await line(C.asthma)) && !/draft/.test(await line(C.lead)));
 await openCard(C.clubbing);
 const cm = await P.text('#sd-' + C.clubbing + ' .sd-cmts');
 check('O2 RV private + all-schools comments, not CMSRU-only', /RV private aside/.test(cm) && /From RV/.test(cm) && !/CMSRU-only note/.test(cm) && !/Faculty thought/.test(cm), cm);
@@ -69,7 +70,7 @@ check('O6 Unused at my school (RV used hemoptysis adapted)', !(await P.count(car
 check('W0 owner signs in, no profile prompt', (await P.signInAs(U.OWNER)) && !(await P.js('!!document.querySelector("#modal-root .scrim")')));
 await P.settle();
 check('W1 no "Unused at my school" without a school', !/Unused at my school/.test(await P.text('#views')));
-check('W1 usage line without a school split', /^Never used · 👍 4 · 💬 \d+$/.test(await line(C.clubbing)), await line(C.clubbing));
+check('W1 usage + 👍 without a school split', /^Not used yet💬 \d+$/.test(await line(C.clubbing)) && /^👍 4 \| 4 thumbs up · 2 schools$/.test(await vote(C.clubbing)), [await line(C.clubbing), await vote(C.clubbing)]);
 await openCard(C.clubbing);
 const ocm = await P.text('#sd-' + C.clubbing + ' .sd-cmts');
 check('W2 owner reads every comment', /RV private aside/.test(ocm) && /CMSRU-only note/.test(ocm));

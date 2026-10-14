@@ -1,12 +1,15 @@
 /* Puzzle workspace: one draft open in the Planner. The page is drawn once per
    draft; after any change (yours, or Refresh) update() redraws the parts that
    show data, keeping the preview frame and whatever field you are typing in.
-   Other planner modules (slots, checks, preview, status) plug in with addPart(). */
+   Other planner modules (slots, checks, preview, status) plug in with addPart().
+   Layout A: Database rail | tier slots | Live preview rail (ws-plan-rails.js);
+   Checks and Faculty approval are small pills in the header. */
 import { S, $, esc, busy, toast, when, ago, av, person, roleIn, tipHtml, schFull } from './ws-core.js';
 import { BLOCKS } from './ws-suggest.js';
 import { fetchComments, commentsHtml, wireComments } from './ws-comments.js';
 import { PL, DSTATUS, loadPlanner, draftById, eventsOf, patchDraft } from './ws-plan-data.js';
-import { LIB, wireLib, renderLib, TOUCH, libSheet } from './ws-plan-lib.js';
+import { LIB, wireLib, renderLib, TOUCH, libHtml, resetLib } from './ws-plan-lib.js';
+import { mountRails, closeSheets } from './ws-plan-rails.js';
 import { renderDraftList } from './ws-plan-list.js';
 
 /* parts: { mount(d), update(d) } — mount once per draw, update after every change. */
@@ -35,32 +38,40 @@ function ownerOptions(d) {
   if (!emails.includes(d.owner_email)) emails.push(d.owner_email);
   return emails.map((e) => '<option value="' + esc(e) + '"' + (e === d.owner_email ? ' selected' : '') + '>' + esc(person(e).name) + '</option>').join('');
 }
+const strip = (n, ic, label, arrow, ctl) => '<button type="button" class="strip" id="' + n + '-strip" aria-controls="' + ctl + '" aria-expanded="false" title="Open the ' + label + '">' +
+  '<span class="ic" aria-hidden="true">' + ic + '</span><span class="vl">' + label + '</span>' + (n === 'db' ? '<span class="cnt" id="db-cnt"></span>' : '') + '<span class="ar" aria-hidden="true">' + arrow + '</span></button>';
+const handle = (n, ctl, label) => '<div class="rail-handle" id="' + n + '-handle" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="' + ctl + '" title="Drag to resize · double-click to reset" ' +
+  'aria-label="' + label + ' width (Left and Right arrows, Shift for bigger steps; double-click resets)"></div>';
 function shellHtml(d) {
   const ro = readOnly(d) ? ' disabled' : '';
+  const tip = readOnly(d) ? '' : TOUCH ? tipHtml('plan-tap', 'Tap “Add to draft…” on a category, then choose a tier. 👁 View shows what is inside first.')
+    : tipHtml('plan-drag', 'Drag a card onto a tier by its ⠿ handle, or use “Add to draft…”. Hover a card or press 👁 View to see inside it. Drag a tier back here to take it out.');
   return '<p class="back"><a href="#/planner">← All drafts</a></p>' +
-    '<div class="view-head"><div class="stack" style="--gap:4px"><p class="eyebrow">Draft' + (S.owner ? ' · ' + esc(schFull(d.school)) : '') + ' · owner <span id="ed-ownername">' + esc(person(d.owner_email).name) + '</span></p><h1 id="ed-h">' + esc(d.title) + '</h1>' +
-    '<p class="ed-meta" id="ed-meta">' + metaHtml(d) + '</p></div><button class="btn" type="button" id="ed-refresh">Refresh</button></div>' +
+    '<div class="view-head ed-head"><div class="stack" style="--gap:4px"><p class="eyebrow">Draft' + (S.owner ? ' · ' + esc(schFull(d.school)) : '') + ' · owner <span id="ed-ownername">' + esc(person(d.owner_email).name) + '</span></p><h1 id="ed-h">' + esc(d.title) + '</h1>' +
+    '<p class="ed-meta" id="ed-meta">' + metaHtml(d) + '</p></div>' +
+    '<div class="ed-pills" id="ed-pills"><div class="pw" id="ck-wrap"><button type="button" class="pill" id="ck-pill" aria-expanded="false" aria-controls="ck-panel">Checks</button>' +
+    '<div class="pop ck-pop panel" id="ck-panel" role="dialog" aria-label="Checks" tabindex="-1" hidden></div></div>' +
+    '<div class="pw" id="appr-wrap" hidden><button type="button" class="pill appr" id="appr-pill" aria-expanded="false" aria-controls="appr">Faculty approval</button>' +
+    '<div class="pop appr-pop panel" id="appr" role="dialog" aria-label="Faculty approval" tabindex="-1" hidden></div></div>' +
+    '<button class="btn" type="button" id="ed-refresh">Refresh</button></div></div>' +
     '<div id="ed-banner"></div>' +
     '<div class="ed-top panel"><label class="field"><span>Title</span><input class="input" id="ed-title" maxlength="120" value="' + esc(d.title) + '"' + ro + '></label>' +
     '<label class="field"><span>Owner</span><select class="input" id="ed-owner"' + ro + '>' + ownerOptions(d) + '</select></label>' +
     '<label class="field"><span>Block</span><select class="input" id="ed-block"' + ro + '><option value="">No block</option>' +
     BLOCKS.concat(d.block && !BLOCKS.includes(d.block) ? [d.block] : []).map((b) => '<option' + (b === d.block ? ' selected' : '') + '>' + esc(b) + '</option>').join('') + '</select></label>' +
     '<div class="field ed-flow"><span>Status</span><div class="flow" id="flow"></div></div></div>' +
-    '<div class="appr-bar panel" id="appr" aria-label="Faculty approval" hidden></div>' +
-    '<div class="editor" id="editor">' +
-    '<section class="lib panel" id="lib" aria-labelledby="lib-h"><div class="row spread"><h2 id="lib-h">Category library</h2><button type="button" class="btn small primary lib-close" id="lib-close">Done</button></div>' +
-    '<label class="sr" for="lib-q">Search the library</label><input class="input" id="lib-q" type="search" autocomplete="off" placeholder="Search names, clues, notes…">' +
-    '<div id="lib-tools" class="stack" style="--gap:6px"></div>' +
-    (readOnly(d) ? '' : TOUCH ? tipHtml('plan-tap', 'Tap “Add to draft…” on a category, then choose a tier.')
-      : tipHtml('plan-drag', 'Drag a card onto a slot by its ⠿ handle, or use “Add to draft…”. Drag a slot back here to take it out. Drag the library’s right edge to widen it.')) +
-    '<div class="lib-list" id="lib-list"></div>' +
-    '<div class="lib-handle" id="lib-handle" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="lib" aria-label="Resize the suggestion library (Left and Right arrows; double-click resets)" aria-valuemin="220" aria-valuemax="640"></div></section>' +
-    '<section class="mid-a stack" aria-labelledby="slots-h"><h2 id="slots-h" class="sr">Tier slots</h2>' +
-    (readOnly(d) ? '' : '<button type="button" class="btn primary add-cat" id="add-cat" aria-controls="lib" aria-expanded="false">＋ Add category</button>') + '<div class="slots" id="slots"></div><div class="panel stack" id="ck-panel" hidden></div></section>' +
-    '<section class="pv-col panel stack" id="pv-col" aria-labelledby="pv-h" hidden></section>' +
+    '<div class="editor la" id="editor" data-db="closed" data-pv="closed">' +
+    '<div class="rail rail-l" id="rail-db">' + strip('db', '🔍', 'Database', '»', 'lib') +
+    '<section class="lib panel" id="lib" aria-labelledby="lib-h" tabindex="-1">' + libHtml(tip) + '</section>' + handle('db', 'lib', 'Database') + '</div>' +
+    '<div class="center"><section class="mid-a stack" aria-labelledby="slots-h"><h2 id="slots-h" class="sr">Tier slots</h2><div class="slots" id="slots"></div></section>' +
     '<section class="mid-b panel stack" aria-labelledby="notes-h"><h3 id="notes-h">Draft notes</h3><label class="sr" for="ed-notes">Draft notes</label>' +
     '<textarea class="input" id="ed-notes" maxlength="4000" placeholder="Ideas, open questions, who is finding which image…"' + ro + '>' + esc(d.notes || '') + '</textarea>' +
-    '<div id="ed-cm"><p class="muted">Loading comments…</p></div></section></div>';
+    '<div id="ed-cm"><p class="muted">Loading comments…</p></div></section></div>' +
+    '<div class="rail rail-r" id="rail-pv">' + handle('pv', 'pv-col', 'Live preview') + strip('pv', '▦', 'Live preview', '«', 'pv-col') +
+    '<section class="pv-col panel stack" id="pv-col" aria-labelledby="pv-h" tabindex="-1" hidden></section></div></div>' +
+    '<nav class="pbar" id="pbar" aria-label="Planner panels"><button type="button" class="btn" data-sheet="db" id="pb-db" aria-controls="lib" aria-expanded="false">🔍 Database</button>' +
+    '<button type="button" class="btn" data-sheet="pv" id="pb-pv" aria-controls="pv-col" aria-expanded="false">▦ Preview</button>' +
+    '<button type="button" class="btn" data-sheet="ck" id="pb-ck" aria-controls="ck-panel" aria-expanded="false">Checks</button></nav>';
 }
 
 async function saveField(d, patch, msg) {
@@ -77,9 +88,6 @@ function wireShell(d) {
   $('#ed-owner').addEventListener('change', (e) => saveField(d, { owner_email: e.target.value }, 'Owner is now ' + person(e.target.value).name));
   $('#ed-block').addEventListener('change', (e) => saveField(d, { block: e.target.value || null }, e.target.value ? 'Block set to ' + e.target.value : 'Block cleared'));
   $('#ed-notes').addEventListener('change', (e) => saveField(d, { notes: e.target.value.trim() || null }, 'Notes saved'));
-  const add = $('#add-cat'); if (add) add.addEventListener('click', () => libSheet(true));
-  $('#lib-close').addEventListener('click', () => libSheet(false));
-  $('#lib').addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#lib').classList.contains('sheet-open') && !$('#modal-root .scrim')) { e.stopPropagation(); libSheet(false); } });
   $('#ed-refresh').addEventListener('click', (e) => busy(e.currentTarget, 'Refreshing…', async () => { await refresh(); if (!PL.err) toast('Up to date'); }));
 }
 /* Draft comments use the same comment list as suggestions (target_type 'draft'). */
@@ -113,11 +121,12 @@ export function update(d) {
   parts.forEach((p) => p.update && p.update(d));
 }
 function renderEditor(d) {
-  ED.id = d.id; LIB.draft = d; LIB.canEdit = !readOnly(d); libSheet(false);
+  ED.id = d.id; LIB.draft = d; LIB.canEdit = !readOnly(d); closeSheets();
   $('#ws-main').innerHTML = shellHtml(d);
   document.title = d.title + ' · Planner · Puzzle workspace';
   wireShell(d); wireLib();
   parts.forEach((p) => p.mount && p.mount(d));
+  mountRails(!PL.slots.some((s) => s.draft_id === d.id));
   update(d);
   loadComments(d);
 }
@@ -133,4 +142,4 @@ export async function showPlanner(id) {
   }
   if (fresh || ED.id !== id) renderEditor(d); else update(d);
 }
-export function resetPlanner() { ED.id = null; LIB.draft = null; PL.loaded = false; }
+export function resetPlanner() { ED.id = null; LIB.draft = null; PL.loaded = false; resetLib(); }
