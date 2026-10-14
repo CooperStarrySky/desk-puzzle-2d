@@ -4,8 +4,8 @@
    so each group of an old full puzzle counts on its own) plus a few
    planner-only filters (images, draft usage, min 👍, submitted within, kind).
    Trash never shows. Filters and sort last for the session, across drafts.
-   Desktop: cards drag onto the slots by their ⠿ handle; "Add to draft…" (then
-   choose a tier) does the same without a mouse. 👁 View, or hovering a card,
+   Desktop: cards drag onto the slots by their ⠿ handle; 👁 View's "Add to
+   draft…" (then choose a tier) does the same without a mouse or on touch. 👁 View, or hovering a card,
    shows what is inside without adding it (ws-plan-peek.js). Folding, widths
    and the phone sheets: ws-plan-rails.js. */
 import { S, $, esc, TIER_WORDS, ZONES, lc, schName, schPill, toast, plainError, busy, fillImages, prefGet, prefSet } from './ws-core.js';
@@ -89,7 +89,7 @@ export function alsoFlags(key) {
 }
 /* The narrow B2 card (owner-approved mockup): name + pill, one clue per line
    (image clues with a small thumbnail), one usage line with zeros hidden, then
-   👁 View, Add to draft… and 👍 (your own, toggles; the split is in the tooltip). */
+   👁 View and 👍 (your own, toggles; the split is in the tooltip). */
 function useLine(it) {
   const u = useOfItem(it), b = [];
   if (u.times_used) b.push('<span>In <b>' + u.times_used + '</b> published puzzle' + (u.times_used === 1 ? '' : 's') + '</span>');
@@ -112,15 +112,27 @@ function cardHtml(it) {
     (it.kind === 'group' ? '<p class="faint lib-from"><span class="kind-tag puzzle">Group</span> from “' + esc(it.parent) + '”</p>' : '') + clues + useLine(it) +
     (t ? '<span class="badge in-draft">In this draft · ' + esc(TIER_WORDS[t]) + '</span>' : '') + alsoFlags(it.key) +
     '<div class="lib-btns"><button type="button" class="btn small ghost lc-view" data-view="' + esc(it.key) + '" aria-label="View ' + esc(it.name) + ' without adding it" title="See inside without adding it">👁 View</button>' +
-    (LIB.canEdit ? '<button type="button" class="btn small primary" data-add="' + esc(it.key) + '">' + (t ? 'Move…' : 'Add to draft…') + '</button>' : '') +
-    (it.sid ? '<button type="button" class="btn small vote-btn has-tip' + (mine ? ' on' : '') + '" data-lvote="' + esc(it.key) + '" aria-pressed="' + mine + '" data-tip="' + esc(tip) + '" aria-label="Thumbs up ' +
-      esc(it.name) + ', ' + vs.length + ' so far. ' + esc(tip) + '">👍 ' + vs.length + '</button>' : '') + '</div></div>';
+    voteHtml(it, vs, mine, tip) + '</div></div>';
+}
+function voteHtml(it, vs, mine, tip) {
+  return (it.sid ? '<button type="button" class="btn small vote-btn has-tip' + (mine ? ' on' : '') + '" data-lvote="' + esc(it.key) + '" aria-pressed="' + mine + '" data-tip="' + esc(tip) + '" aria-label="Thumbs up ' +
+      esc(it.name) + ', ' + vs.length + ' so far. ' + esc(tip) + '">👍 ' + vs.length + '</button>' : '');
+}
+/* Compact row: only the name and 👍. Still drags onto a slot; clicking the row
+   opens the View dialog (which has "Add to draft…", the touch way in). */
+function rowHtml(it) {
+  const t = LIB.draft ? tierOfKey(LIB.draft.id, it.key) : 0, vs = votesFor(it), mine = vs.includes(S.me), tip = libVoteTip(it);
+  const drag = !TOUCH && !!LIB.draft && LIB.canEdit;
+  return '<div class="lib-card b2n lc-row t' + (it.tier || 0) + (t ? ' in-use' : '') + '"' + (drag ? ' draggable="true"' : '') + ' data-key="' + esc(it.key) + '">' +
+    '<button type="button" class="lc-name lc-open" data-view="' + esc(it.key) + '" title="View ' + esc(it.name) + (t ? ' (in this draft · ' + esc(TIER_WORDS[t]) + ')' : '') + '">' +
+    (drag ? '<span class="grip" aria-hidden="true">⠿</span>' : '') + esc(it.name) + '</button>' + voteHtml(it, vs, mine, tip) + '</div>';
 }
 export function renderLib() {
   const el = $('#lib-list'); if (!el) return;
   const list = libItems(), all = pool().length;
-  el.innerHTML = list.length ? list.map(cardHtml).join('') : '<p class="empty">Nothing matches. Try clearing a filter.</p>';
-  el.classList.toggle('compact', prefGet(DENSITY_KEY) === 'compact');
+  const compact = prefGet(DENSITY_KEY) === 'compact';
+  el.innerHTML = list.length ? list.map(compact ? rowHtml : cardHtml).join('') : '<p class="empty">Nothing matches. Try clearing a filter.</p>';
+  el.classList.toggle('compact', compact);
   fillImages(el);
   $('#lib-n').textContent = 'Showing ' + list.length + ' of ' + all;
   const c = $('#lib-count'); if (c) c.textContent = all + (all === 1 ? ' category' : ' categories');
@@ -143,9 +155,9 @@ export function wireLib() {
   wireFilters(PCTX);
   $('#filters').classList.toggle('open', !!PF.drawer); $('#f-toggle').setAttribute('aria-expanded', String(!!PF.drawer));
   lib.addEventListener('click', (e) => {
-    const add = e.target.closest('[data-add]'); if (add && lib.contains(add) && LIB.onAdd) { LIB.onAdd(add.dataset.add, add); return; }
     const v = e.target.closest('[data-view]'); if (v && lib.contains(v)) { viewDialog(v.dataset.view); return; }
     const vb = e.target.closest('[data-lvote]'); if (vb && lib.contains(vb)) { libVote(vb); return; }
+    const row = e.target.closest('.lib-card.lc-row'); if (row && lib.contains(row)) { viewDialog(row.dataset.key); return; }
     const d = e.target.closest('[data-dens]');
     if (d && lib.contains(d)) {
       prefSet(DENSITY_KEY, d.dataset.dens === 'compact' ? 'compact' : null);

@@ -21,7 +21,7 @@ const menu = async (sel, act) => {
   return P.click('.mnu-pop:not([hidden]) [data-mact="' + act + '"]');
 };
 const libAdd = async (sid, t) => {
-  await P.click('#lib-list .lib-card[data-key="' + sid + '"] [data-add]'); await P.waitFor('!!document.querySelector("[data-pick]")');
+  await P.click('#lib-list .lib-card[data-key="' + sid + '"] [data-view]'); await P.waitFor('!!document.getElementById("view-add")'); await P.click('#view-add'); await P.waitFor('!!document.querySelector("[data-pick]")');
   await P.js('document.getElementById("toast").hidden = true');
   await P.click('[data-pick="' + t + '"]'); await P.waitFor('/^(Placed|Replaced|Moved|Swapped)/.test(document.getElementById("toast").textContent) && !document.getElementById("toast").hidden', 8000);
   await P.sleep(300); return P.waitFor('!!document.querySelector("' + slot(t) + '.filled")');
@@ -34,7 +34,7 @@ check('A1 own draft only (no RV draft)', /CMSRU next week/.test(await P.text('#d
 check('A1 sort control, release date first', (await P.attr('#dsort', 'id')) === 'dsort' && (await P.js('document.getElementById("dsort").value')) === 'date');
 
 check('A2 draft opens', await openDraft(D.cmsru));
-check('A2 library verb is "Add to draft…"', (await P.text('#lib-list .lib-card[data-key="' + C.clubbing + '"] [data-add]')) === 'Add to draft…');
+check('A2 rail card has no add button; 👁 View is the way in', (await P.count('#lib-list [data-add]')) === 0 && (await P.count('#lib-list .lib-card[data-key="' + C.clubbing + '"] .lc-view')) === 1);
 check('A2 library cards have grab handles (desktop)', (await P.count('#lib-list .lib-card .grip')) > 0 && (await P.attr('#lib-list .lib-card', 'draggable')) === 'true');
 check('A2 trashed categories are not in the library', (await P.count('#lib-list .lib-card[data-key="' + C.blue + '"]')) === 0);
 check('A3 tap a tier: clubbing → Easy', await libAdd(C.clubbing, 1));

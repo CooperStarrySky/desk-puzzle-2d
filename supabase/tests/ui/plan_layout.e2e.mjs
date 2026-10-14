@@ -33,7 +33,7 @@ for (const dark of [false, true]) {
   check(`P3 ${tag}: "🔍 Database" opens a bottom sheet`, (await P.js('getComputedStyle(document.getElementById("lib")).position')) === 'fixed' && !!(await P.count('#sheet-scrim')) && (await P.attr('#pb-db', 'aria-expanded')) === 'true');
   await fits('P3 library sheet');
   const tier = dark ? 2 : 1; // the light run already filled Easy
-  await P.click('#lib-list .lib-card[data-key="' + (dark ? C.cheese : C.asthma) + '"] [data-add]'); await P.waitFor('!!document.querySelector("[data-pick]")');
+  await P.click('#lib-list .lib-card[data-key="' + (dark ? C.cheese : C.asthma) + '"] [data-view]'); await P.waitFor('!!document.getElementById("view-add")'); await P.click('#view-add'); await P.waitFor('!!document.querySelector("[data-pick]")');
   await P.click('[data-pick="' + tier + '"]'); await P.waitFor('!!document.querySelector("' + slot(tier) + '.filled")');
   await P.sleep(300);
   check(`P3 ${tag}: placing closes the sheet`, !(await P.count('#sheet-scrim')) && (await P.js('getComputedStyle(document.getElementById("lib")).display')) === 'none');

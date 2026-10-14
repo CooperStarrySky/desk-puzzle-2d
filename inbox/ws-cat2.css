@@ -150,3 +150,8 @@
 .lib-card .lib-btns .lc-view { margin-left: 0; }
 .lib-list.compact .lib-card.b2n .b2-clues, .lib-list.compact .lib-card.b2n .lc-use { display: none; }
 .lib-list.compact .lib-card.b2n { padding: 6px 8px 6px 10px; gap: 4px; }
+/* Planner rail, compact: one line per category, name + 👍 only. */
+.lib-list.compact .lib-card.lc-row { display: flex; flex-direction: row; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; cursor: pointer; }
+.lib-card.lc-row .lc-open { flex: 1 1 auto; min-width: 0; text-align: left; background: none; border: 0; padding: 2px 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-card.lc-row .lc-open .grip { margin-right: 4px; }
+.lib-card.lc-row .vote-btn { flex: 0 0 auto; }

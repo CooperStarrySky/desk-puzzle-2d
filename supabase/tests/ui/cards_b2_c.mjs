@@ -21,8 +21,8 @@ export async function runPart3({ P, check, sql, U, C, D, card, q, SHOTS }) {
   const lc = '#lib-list .lib-card[data-key="' + C.clubbing + '"]';
   check('C9 rail card: name + pill, clue list, usage line', (await P.count(lc + ' .lc-head .sch-pill')) === 1 && (await P.count(lc + ' .b2-clues li')) === 4 &&
     (await P.count(lc + ' .b2-clues li.img .thumb')) === 1 && (await P.text(lc + ' .lc-use')) === 'Not used yet' && /In 2 published puzzles/.test(await P.text('#lib-list .lib-card[data-key="' + C.hemoptysis + '"] .lc-use')));
-  const ord = await P.js(`[...document.querySelectorAll(${q(lc + ' .lib-btns > button')})].map((b) => b.dataset.view ? 'view' : b.dataset.add ? 'add' : b.dataset.lvote ? 'vote' : '?')`);
-  check('C9 rail buttons: 👁 View, Add to draft…, 👍', JSON.stringify(ord) === '["view","add","vote"]', ord);
+  const ord = await P.js(`[...document.querySelectorAll(${q(lc + ' .lib-btns > button')})].map((b) => b.dataset.view ? 'view' : b.dataset.lvote ? 'vote' : '?')`);
+  check('C9 rail buttons: 👁 View, 👍 (no Add to draft…)', JSON.stringify(ord) === '["view","vote"]' && (await P.count('#lib-list [data-add]')) === 0, ord);
   check('C9 no "Puzzle group" / "From published puzzle" in the rail', !/Puzzle group|From published puzzle/.test(await P.text('#lib-list')));
   const before = await P.text(lc + ' [data-lvote]');
   await P.click(lc + ' [data-lvote]'); await P.waitFor('/👍/.test(document.getElementById("toast").textContent)'); await P.sleep(150);
@@ -34,7 +34,11 @@ export async function runPart3({ P, check, sql, U, C, D, card, q, SHOTS }) {
     await P.sleep(200); await P.shot(SHOTS + '/14-planner-rail-b2.png');
   }
   await P.click('#lib .dens [data-dens="compact"]'); await P.sleep(150);
-  check('C9 compact in the rail hides clues and usage', (await P.js(`getComputedStyle(document.querySelector(${q(lc + ' .b2-clues')})).display`)) === 'none' && (await P.count('#lib-list.compact')) === 1);
+  check('C9 compact rail row: only name + 👍', (await P.count('#lib-list.compact')) === 1 && (await P.count(lc + '.lc-row')) === 1 && (await P.count(lc + ' .b2-clues, ' + lc + ' .lc-use, ' + lc + ' .sch-pill, ' + lc + ' .lc-view, ' + lc + ' [data-add]')) === 0 &&
+    /Clubbing/i.test(await P.text(lc + ' .lc-open')) && (await P.count(lc + ' [data-lvote]')) === 1 && (await P.attr(lc, 'draggable')) === 'true');
+  await P.click(lc + ' .lc-open'); await P.waitFor('!!document.getElementById("view-add")', 3000);
+  check('C9 clicking a compact row opens View with "Add to draft…"', /Add to draft…|Move…/.test(await P.text('#view-add')));
+  await P.click('#view-close'); await P.sleep(150);
   await P.click('#lib .dens [data-dens="comfortable"]'); await P.sleep(100);
   await P.js('location.hash = "#/categories"'); await P.waitFor('document.querySelector("#ws-main h1").textContent === "Category database"'); await P.settle();
 

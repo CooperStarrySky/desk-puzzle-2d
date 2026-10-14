@@ -44,8 +44,8 @@ const handle = (n, ctl, label) => '<div class="rail-handle" id="' + n + '-handle
   'aria-label="' + label + ' width (Left and Right arrows, Shift for bigger steps; double-click resets)"></div>';
 function shellHtml(d) {
   const ro = readOnly(d) ? ' disabled' : '';
-  const tip = readOnly(d) ? '' : TOUCH ? tipHtml('plan-tap', 'Tap “Add to draft…” on a category, then choose a tier. 👁 View shows what is inside first.')
-    : tipHtml('plan-drag', 'Drag a card onto a tier by its ⠿ handle, or use “Add to draft…”. Hover a card or press 👁 View to see inside it. Drag a tier back here to take it out.');
+  const tip = readOnly(d) ? '' : TOUCH ? tipHtml('plan-tap', 'Tap 👁 View on a category (or tap its name in Compact), then “Add to draft…” and choose a tier.')
+    : tipHtml('plan-drag', 'Drag a card onto a tier by its ⠿ handle, or open 👁 View and use “Add to draft…”. Hover a card to see inside it. Drag a tier back here to take it out.');
   return '<p class="back"><a href="#/planner">← All drafts</a></p>' +
     '<div class="view-head ed-head"><div class="stack" style="--gap:4px"><p class="eyebrow">Draft' + (S.owner ? ' · ' + esc(schFull(d.school)) : '') + ' · owner <span id="ed-ownername">' + esc(person(d.owner_email).name) + '</span></p><h1 id="ed-h">' + esc(d.title) + '</h1>' +
     '<p class="ed-meta" id="ed-meta">' + metaHtml(d) + '</p></div>' +

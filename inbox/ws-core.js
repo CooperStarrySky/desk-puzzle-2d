@@ -235,8 +235,17 @@ export function creditText(r) {
 }
 
 /* ===== Images: short-lived signed links from the private bucket ===== */
-export function isStoragePath(v) { return typeof v === 'string' && v && !/^(data:|https?:|blob:)/.test(v); }
+/* Pictures of imported published puzzles keep their public site path (puzzles/<id>/<file>.webp). */
+export function isSitePath(v) { return typeof v === 'string' && /^\/?puzzles\//.test(v); }
+export function isStoragePath(v) { return typeof v === 'string' && !!v && !/^(data:|https?:|blob:)/.test(v) && !isSitePath(v); }
+/* Any picture reference at all (storage, site, data:, web link). */
+export function hasImage(v) { return typeof v === 'string' && !!v.trim(); }
+/* Site paths resolve against the site root (this file lives in /inbox/). */
+export const siteUrl = (v) => new URL('../' + String(v).replace(/^\/+/, ''), import.meta.url).href;
 export async function signedUrl(path) {
+  if (!hasImage(path)) return '';
+  if (isSitePath(path)) return siteUrl(path);
+  if (!isStoragePath(path)) return path;
   const hit = S.signed.get(path);
   if (hit && hit.until > Date.now()) return hit.url;
   const { data, error } = await S.sb.storage.from(BUCKET).createSignedUrl(path, 600);
@@ -246,7 +255,7 @@ export async function signedUrl(path) {
 }
 export async function fillImages(root) {
   // Plain web links (images of imported published puzzles) need no signing.
-  $$('[data-src]', root).forEach((el) => { if (!el.style.backgroundImage) el.style.backgroundImage = 'url("' + el.dataset.src.replace(/["\\\n]/g, (c) => '\\' + c) + '")'; });
+  $$('[data-src]', root).forEach((el) => { if (el.tagName === 'IMG') { if (!el.src) el.src = el.dataset.src; return; } if (!el.style.backgroundImage) el.style.backgroundImage = 'url("' + el.dataset.src.replace(/["\\\n]/g, (c) => '\\' + c) + '")'; });
   await Promise.all($$('[data-path]', root).map(async (el) => {
     const url = await signedUrl(el.dataset.path);
     if (!el.isConnected) return;

@@ -5,7 +5,7 @@
    or a clue swapped in from another category. The slot then shows
    "Adapted · N changes"; tapping it lists original vs copy with Reset per
    change and Reset all. Pickers (image, swap) are in ws-plan-adapt-pick.js. */
-import { S, BUCKET, esc, isStoragePath, ZONES, ZONE_NAMES } from './ws-core.js';
+import { S, BUCKET, esc, isStoragePath, isSitePath, siteUrl, ZONES, ZONE_NAMES } from './ws-core.js';
 import { slotsOf, saveAdapted } from './ws-plan-data.js';
 
 export const IMG_ZONES = ['rack', 'tubes', 'photo'];
@@ -71,7 +71,7 @@ export function tidy(w, o) {
 export function thumb(c, extra) {
   const p = picOf(c), cls = 'ph mini ' + (isImg(c.zone) ? c.zone : 'text') + (extra ? ' ' + extra : '');
   if (p && isStoragePath(p)) return '<span class="' + cls + ' pic" data-path="' + esc(p) + '" aria-hidden="true"></span>';
-  if (p) return '<span class="' + cls + ' pic" style="background-image:url(&quot;' + esc(p.replace(/["\\\n]/g, '')) + '&quot;)" aria-hidden="true"></span>';
+  if (p) return '<span class="' + cls + ' pic" style="background-image:url(&quot;' + esc((isSitePath(p) ? siteUrl(p) : p).replace(/["\\\n]/g, '')) + '&quot;)" aria-hidden="true"></span>';
   return '<span class="' + cls + '" aria-hidden="true">' + esc(isImg(c.zone) ? short(c.zone) : c.label) + '</span>';
 }
 const side = (c) => '<div class="dv-side">' + thumb(c) + '<span class="stack" style="--gap:2px"><b>' + esc(c.label) + '</b><span class="faint">' + esc(ZONE_NAMES[c.zone] || c.zone) +

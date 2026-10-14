@@ -45,7 +45,7 @@ export async function runPart3({ P, check, sql, U, C, D, settle, shot, mouse, ce
   check('A2 approved: "✓ Faculty approved · Dr. Lee ▾"', /^✓ Faculty approved · Dr\. Lee/.test(await P.text('#appr-pill')), await P.text('#appr-pill'));
   check('A2 not "edited" yet', !/edited/.test(await P.text('#appr-pill')));
   await P.sleep(800); // the app ignores changes within 0.5 s of the approval
-  await P.click('[data-add="' + C.hemoptysis + '"]'); await P.waitFor('!!document.querySelector("[data-pick]")'); await P.click('[data-pick="2"]');
+  await P.click('#lib-list [data-view="' + C.hemoptysis + '"]'); await P.waitFor('!!document.getElementById("view-add")'); await P.click('#view-add'); await P.waitFor('!!document.querySelector("[data-pick]")'); await P.click('[data-pick="2"]');
   await P.waitFor('/edited/.test(document.getElementById("appr-pill").textContent)');
   await P.click('#appr-pill'); await P.sleep(150);
   check('A3 edited since approval: pill says so, popover has the note', /edited/.test(await P.text('#appr-pill')) && /Edited since approval/.test(await P.text('#appr-edited')) && (await P.count('#appr .seal')) === 1,

@@ -7,7 +7,7 @@
    Filters, chips and saved views: ws-cat-filters.js. Trash, Add to draft,
    menus and keyboard: ws-cat-actions.js. The open card: ws-detail.js. */
 import { S, $, $$, esc, toast, plainError, av, person, isPuzzle, groupsOf, itemsOf, allItems, ZONES, TIER_WORDS, lc,
-  schName, schPill, isCurator, canPlan, modalOpen, prefGet, prefSet, isStoragePath, fillImages } from './ws-core.js';
+  schName, schPill, isCurator, canPlan, modalOpen, prefGet, prefSet, fillImages } from './ws-core.js';
 import { mountDetail } from './ws-detail.js';
 import { filtersShell, searchHtml, renderFilters, renderActive, blankF, wireFilters } from './ws-cat-filters.js';
 import { catMenu, wireListActions, initCatKeys } from './ws-cat-actions.js';
@@ -191,7 +191,7 @@ export function clueImage(it) {
 }
 export function thumbHtml(p, label) {
   if (!p) return '';
-  return '<span class="thumb" role="img" aria-label="Picture: ' + esc(label) + '" ' + (isStoragePath(p) ? 'data-path' : 'data-src') + '="' + esc(p) + '"></span>';
+  return '<span class="thumb" role="img" aria-label="Picture: ' + esc(label) + '" ' + 'data-path' + '="' + esc(p) + '"></span>';
 }
 export function clueList(r) {
   if (isPuzzle(r)) {

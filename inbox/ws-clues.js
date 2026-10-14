@@ -1,19 +1,19 @@
 /* Puzzle workspace: how a suggestion's content is drawn when it opens: the
    little desk, each clue with its pictures and notes, and the teaching note.
    Moved from the old single-file inbox's detail page. */
-import { esc, isPuzzle, itemsOf, nidsOf, groupsOf, isStoragePath, ZONE_NAMES, TIER_WORDS } from './ws-core.js';
+import { esc, isPuzzle, itemsOf, nidsOf, groupsOf, hasImage, ZONE_NAMES, TIER_WORDS } from './ws-core.js';
 
 function pieceHtml(it, i) {
   const info = it.info || {}; const scope = it.scope || {};
   const pic = it.zone === 'rack' ? (scope.image || info.image) : (it.zone === 'photo' || it.zone === 'tubes') ? info.image : '';
   return '<div class="mp mp-' + esc(it.zone) + '" style="--rot:' + (((i * 37) % 5) - 2) + 'deg" title="' + esc((ZONE_NAMES[it.zone] || '') + ': ' + (it.label || '')) + '">' +
-    (isStoragePath(pic) ? '<span class="pic" data-path="' + esc(pic) + '"></span>' : '') + '<b>' + esc(it.label) + '</b></div>';
+    (hasImage(pic) ? '<span class="pic" data-path="' + esc(pic) + '"></span>' : '') + '<b>' + esc(it.label) + '</b></div>';
 }
 function clueHtml(it, i) {
   const info = it.info || {}; const scope = it.scope || {};
   const thumbs = [];
-  if (isStoragePath(scope.image)) thumbs.push('<img class="scope" alt="Microscope view for clue ' + (i + 1) + '" data-path="' + esc(scope.image) + '">');
-  if (isStoragePath(info.image)) thumbs.push('<img alt="Image for clue ' + (i + 1) + '" data-path="' + esc(info.image) + '">');
+  if (hasImage(scope.image)) thumbs.push('<img class="scope" alt="Microscope view for clue ' + (i + 1) + '" data-path="' + esc(scope.image) + '">');
+  if (hasImage(info.image)) thumbs.push('<img alt="Image for clue ' + (i + 1) + '" data-path="' + esc(info.image) + '">');
   if (!thumbs.length) thumbs.push('<div class="none">' + (['photo', 'tubes', 'rack'].includes(it.zone) ? 'No image sent' : 'Text clue') + '</div>');
   return '<div class="clue-row"><div class="thumbs">' + thumbs.join('') + '</div><div class="stack" style="--gap:5px">' +
     '<div class="row" style="--gap:8px"><span class="clue-num">Clue ' + (i + 1) + '</span><span class="badge">' + esc(ZONE_NAMES[it.zone] || it.zone) + '</span></div>' +

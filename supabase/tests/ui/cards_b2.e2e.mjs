@@ -19,6 +19,11 @@ if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 await resetDb();
 // One clue with an image (storage path), for the thumbnail.
 await sql(`update public.submissions set payload = jsonb_set(payload, '{items,1}', '{"label":"Clubbed fingers","zone":"photo","info":{"title":"Clubbed fingers","image":"cmsru/test/clubbed.png"}}') where id = $1`, [C.clubbing]);
+// Imported published groups keep the site's own picture paths (puzzles/<id>/<file>.webp) or inline data: images.
+const PUB_IMG = 'puzzles/holes-haze-and-old-paint-2026-10-08/brain-mri-info.webp';
+const DOT = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+await sql(`update public.submissions set payload = jsonb_set(jsonb_set(payload, '{items,0,scope}', $2::jsonb), '{items,2}', $3::jsonb) where id = $1`,
+  [C.imported, JSON.stringify({ image: DOT }), JSON.stringify({ label: 'Cleft palate', zone: 'photo', info: { title: 'Cleft palate', image: PUB_IMG } })]);
 
 const P = await page({ width: 1366, height: 900 });
 const card = (id) => '#sug-list .sug-card[data-id="' + id + '"]';
@@ -55,7 +60,14 @@ await P.click('#tg-' + C.imported); await P.waitFor(`!!document.querySelector(${
 await P.js(`document.querySelectorAll(${q('#sd-' + C.imported + ' details')}).forEach((d) => { d.open = true; })`);
 const imp = await P.text(card(C.imported));
 check('C1 …nor in the opened category (imported, credit "Puzzle group")', !/Puzzle group|From published puzzle/.test(imp) && /Submitted byNot recorded/.test(imp), imp.slice(0, 300));
+await P.sleep(400);
+const impImgs = await P.js(`[...document.querySelectorAll(${q(card(C.imported) + ' img')})].map((i) => [i.getAttribute('src') || '', i.complete && i.naturalWidth > 0])`);
+check('C1 imported category: site-path and data: images draw (no "Image missing")', !/Image missing|No image sent/.test(await P.text(card(C.imported))) &&
+  impImgs.some(([s, ok]) => /\/puzzles\/holes-haze-and-old-paint-2026-10-08\/brain-mri-info\.webp$/.test(s) && ok) && impImgs.some(([s, ok]) => /^data:image\/png/.test(s) && ok), impImgs.map(([s, ok]) => s.slice(0, 80) + ' ' + ok));
 await P.click('#tg-' + C.imported); await P.sleep(150);
+await P.sleep(300);
+const impThumbs = await P.js(`[...document.querySelectorAll(${q(card(C.imported) + ' .thumb')})].map((t) => t.style.backgroundImage.slice(0, 90))`);
+check('C1 imported card thumbnails use the site path / data: image', impThumbs.length === 2 && impThumbs.some((b) => /\/puzzles\/holes-haze/.test(b) && !/\/inbox\/puzzles/.test(b)) && impThumbs.some((b) => /data:image/.test(b)), impThumbs);
 await P.js('document.activeElement.blur()');
 await shot('07-database-b2-cards');
 

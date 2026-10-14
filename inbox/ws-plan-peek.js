@@ -3,7 +3,7 @@
    clues (image clues with a thumbnail), the explanation, the usage line and 👍.
    "👁 View" opens the same content in a dialog with "Add to draft…" and Close,
    which also works on touch screens. Neither changes the draft. */
-import { $, esc, openModal, fillImages, isStoragePath, schName, TIER_WORDS, ZONES } from './ws-core.js';
+import { $, esc, openModal, fillImages, hasImage, schName, TIER_WORDS, ZONES } from './ws-core.js';
 import { itemByKey, tierOfKey, votesFor } from './ws-plan-data.js';
 import { LIB, TOUCH, useOfItem, ST_LABEL, alsoFlags, DND } from './ws-plan-lib.js';
 
@@ -22,7 +22,7 @@ export function peekHtml(it, big) {
   const t = LIB.draft ? tierOfKey(LIB.draft.id, it.key) : 0;
   const clues = it.items.map((c) => {
     const z = ZONES[c.zone] || ['Clue', '•'], p = picOf(c);
-    const th = isStoragePath(p) ? '<img class="pk-th" alt="' + esc(z[0] + ' for ' + c.label) + '" data-path="' + esc(p) + '">' : '<span class="pk-th none" title="' + esc(z[0]) + '" aria-hidden="true">' + z[1] + '</span>';
+    const th = hasImage(p) ? '<img class="pk-th" alt="' + esc(z[0] + ' for ' + c.label) + '" data-path="' + esc(p) + '">' : '<span class="pk-th none" title="' + esc(z[0]) + '" aria-hidden="true">' + z[1] + '</span>';
     return '<li>' + th + '<span class="pk-l"><span class="sr">' + esc(z[0]) + ': </span>' + esc(c.label) + '</span></li>';
   }).join('');
   return '<div class="pk' + (big ? ' big' : '') + '"><p class="pk-tier"><span class="tierdot t' + (it.tier || 0) + '"></span>Suggested ' + esc(TIER_WORDS[it.tier] || 'tier not set') +

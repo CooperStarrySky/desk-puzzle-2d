@@ -4,7 +4,7 @@
    exactly like the real game. The draft is turned into puzzle JSON here and
    posted to the frame after every change. Also: "Preview as player" (big) and
    "Export puzzle spec" (the YAML that tools/build_puzzle.py reads). */
-import { $, $$, esc, toast, openModal, isStoragePath, signedUrl } from './ws-core.js';
+import { $, $$, esc, toast, openModal, signedUrl } from './ws-core.js';
 import { PL, slotsOf } from './ws-plan-data.js';
 import { draftSpec, specToYaml } from './ws-publish-spec.js';
 import { addPart, current } from './ws-plan-editor.js';
@@ -15,7 +15,7 @@ const frames = new Set(); // { el, view, ready }
 let view = 'desk';
 
 /* The draft as the game would load it (filled slots only). Images get short-lived signed links. */
-async function urlFor(p) { return isStoragePath(p) ? signedUrl(p) : p || ''; }
+async function urlFor(p) { return signedUrl(p); }
 export async function puzzleOf(d) {
   const sl = slotsOf(d.id), groups = [], items = [];
   for (const t of [1, 2, 3, 4]) {
