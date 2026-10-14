@@ -523,3 +523,40 @@ site owner changes it in the workspace under Settings, which calls
 read the schools table, and `active_schools()` still returns only slug and name.
 Apply it before or together with the workspace update that draws the pills; the
 workspace falls back to grey pills if the column isn't there yet.
+
+## Live syncing and "who's here"
+
+`supabase/migrations/20261015120000_live_sync.sql` makes the workspace update itself
+when someone else changes something (drafts, slots, comments, votes, Trash, activity)
+and shows who else has the same draft or category open ("John D. is viewing",
+"Marcus T. is editing Tier 2").
+
+How it works: after a change, a database trigger sends a short note through Supabase
+Realtime ("drafts changed: this id, by this person"). The note never carries titles,
+clues or comment text; the page fetches the rows again through the normal row rules.
+Notes go to **private** channels: `ws:bank` (the shared category database, any member)
+and `ws:school:<slug>` (one school's drafts and who's online there; that school's
+members and the site owner only). Rules on `realtime.messages` decide who may join.
+Nobody can broadcast from the page; only the triggers send. If Realtime is down or
+off, saves still work and the workspace behaves as before (Refresh buttons).
+
+Release steps, in this order:
+
+1. Apply the migration (SQL editor or `npx supabase db push`). It only adds functions,
+   triggers and three policies on `realtime.messages`; no table changes. Supabase
+   manages RLS on that table, so the file does not (and must not) turn it on.
+2. Dashboard: **Realtime -> Settings -> turn OFF "Allow public access"**, so only
+   private, rule-checked channels exist.
+3. Check for older policies on `realtime.messages` that might let anyone listen:
+   `select policyname, cmd, roles, qual from pg_policies where schemaname = 'realtime';`
+   Only the three "Workspace members / School members ..." policies should be there.
+4. Deploy the website (the workspace files).
+5. Run `node tools/leak_test.mjs`: the new "Live syncing" lines must say PASS (the
+   public-channel line fails until step 2 is done).
+6. Quick look: open the same draft in two browsers signed in as two people from the
+   same school; each should see the other's name under the draft title, and a rename
+   in one shows up in the other within a second or two.
+
+Limits on the free plan (200 connections, 100 messages a second) are far above what
+3-6 people per school use. To undo: drop the `rt_live_*` triggers, or simply turn
+Realtime off; the workspace keeps working without it.

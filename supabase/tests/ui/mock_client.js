@@ -35,10 +35,65 @@
     };
     return api;
   }
+  /* Realtime: private channels through pg_server.mjs's /__rt stand-in (real row
+     rules decide who may join and track). ?nort in the address = a client with
+     no Realtime at all, like an old library or a blocked socket. */
+  const rt = st.rt = { cid: Math.random().toString(36).slice(2), chans: [], polling: false, log: [] };
+  const rtPost = (b) => fetch('/__rt', { method: 'POST', body: JSON.stringify(Object.assign({ cid: rt.cid, who: me() || 'anon' }, b)) }).then((r) => r.json()).catch((e) => ({ ok: false, error: String(e) }));
+  function rtDispatch(ev) {
+    rt.log.push(ev);
+    rt.chans.filter((c) => c.topic === ev.topic).forEach((c) => {
+      if (ev.type === 'status') { c.joined = false; if (c.statusCb) c.statusCb(ev.status); return; }
+      if (ev.type === 'presence') c.state = ev.state || {};
+      c.handlers.forEach((h) => {
+        if (ev.type === 'broadcast' && h.type === 'broadcast' && (!h.filter || h.filter.event === ev.event)) h.cb({ type: 'broadcast', event: ev.event, payload: ev.payload });
+        if (ev.type === 'presence' && h.type === 'presence' && (!h.filter || h.filter.event === 'sync')) h.cb();
+      });
+    });
+  }
+  async function rtPoll() {
+    if (rt.polling) return; rt.polling = true;
+    while (rt.chans.length) {
+      const r = await rtPost({ op: 'poll' });
+      if (!r || !r.events) { await new Promise((res) => setTimeout(res, 1000)); continue; }
+      r.events.forEach(rtDispatch);
+    }
+    rt.polling = false;
+  }
+  function channel(topic, opts) {
+    const cfg = (opts && opts.config) || {}, key = cfg.presence && cfg.presence.key;
+    const ch = { topic, cfg, handlers: [], state: {}, joined: false, statusCb: null,
+      on(type, filter, cb) { ch.handlers.push({ type, filter, cb }); return ch; },
+      subscribe(cb) {
+        ch.statusCb = cb || null;
+        if (!cfg.private) { if (cb) setTimeout(() => cb('CHANNEL_ERROR', new Error('Public channels are off')), 0); return ch; }
+        rtPost({ op: 'join', topic, key }).then((r) => {
+          if (!rt.chans.includes(ch)) return;
+          ch.joined = !!r.ok; ch.error = r.ok ? null : r.error;
+          if (cb) cb(r.ok ? 'SUBSCRIBED' : 'CHANNEL_ERROR', r.ok ? undefined : new Error(r.error));
+          if (r.ok) rtPoll();
+        });
+        return ch;
+      },
+      track: (state) => rtPost({ op: 'track', topic, key, state }).then((r) => (r.ok ? 'ok' : 'error')),
+      untrack: () => rtPost({ op: 'untrack', topic, key }).then(() => 'ok'),
+      presenceState: () => ch.state,
+    };
+    rt.chans.push(ch);
+    return ch;
+  }
+  function removeChannel(ch) {
+    rt.chans = rt.chans.filter((c) => c !== ch);
+    rtPost({ op: 'leave', topic: ch.topic });
+    if (ch.statusCb) ch.statusCb('CLOSED');
+    return Promise.resolve('ok');
+  }
   const PIX = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30"><rect width="40" height="30" fill="#b2456e"/></svg>');
   const err = (message) => ({ data: { user: null, session: null }, error: { message, status: 400 } });
+  const noRt = new URLSearchParams(location.search).has('nort');
   window.__inboxMockClient = {
     from,
+    ...(noRt ? {} : { channel, removeChannel, realtime: { setAuth: async () => {} } }),
     rpc: (name, args) => post({ rpc: name, args: args || {} }),
     storage: { from: (bucket) => ({
       // Uploads go through the real storage.objects row rules (pg_server.mjs); the bytes are kept nowhere.

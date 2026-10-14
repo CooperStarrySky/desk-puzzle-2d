@@ -11,10 +11,12 @@ import { PL, DSTATUS, loadPlanner, draftById, eventsOf, patchDraft } from './ws-
 import { LIB, wireLib, renderLib, TOUCH, libHtml, resetLib } from './ws-plan-lib.js';
 import { mountRails, closeSheets } from './ws-plan-rails.js';
 import { renderDraftList } from './ws-plan-list.js';
+import { presenceChanged, typingIn, dirtyIn, whenIdle, keepFocus, flash } from './ws-live.js';
+import { editing } from './ws-plan-adapt.js';
 
 /* parts: { mount(d), update(d) } — mount once per draw, update after every change. */
 const parts = [];
-export const ED = { id: null, cmSeq: 0 };
+export const ED = { id: null, cmSeq: 0, live: false };
 export function addPart(p) { parts.push(p); }
 export const current = () => (ED.id ? draftById(ED.id) : null);
 /* Published drafts are frozen; faculty read, comment and approve but never plan. */
@@ -48,7 +50,7 @@ function shellHtml(d) {
     : tipHtml('plan-drag', 'Drag a card onto a tier by its ⠿ handle, or open 👁 View and use “Add to draft…”. Hover a card to see inside it. Drag a tier back here to take it out.');
   return '<p class="back"><a href="#/planner">← All drafts</a></p>' +
     '<div class="view-head ed-head"><div class="stack" style="--gap:4px"><p class="eyebrow">Draft' + (S.owner ? ' · ' + esc(schFull(d.school)) : '') + ' · owner <span id="ed-ownername">' + esc(person(d.owner_email).name) + '</span></p><h1 id="ed-h">' + esc(d.title) + '</h1>' +
-    '<p class="ed-meta" id="ed-meta">' + metaHtml(d) + '</p></div>' +
+    '<p class="ed-meta" id="ed-meta">' + metaHtml(d) + '</p><p class="ed-pres" id="ed-pres" aria-live="polite" hidden></p></div>' +
     '<div class="ed-pills" id="ed-pills"><div class="pw" id="ck-wrap"><button type="button" class="pill" id="ck-pill" aria-expanded="false" aria-controls="ck-panel">Checks</button>' +
     '<div class="pop ck-pop panel" id="ck-panel" role="dialog" aria-label="Checks" tabindex="-1" hidden></div></div>' +
     '<div class="pw" id="appr-wrap" hidden><button type="button" class="pill appr" id="appr-pill" aria-expanded="false" aria-controls="appr">Faculty approval</button>' +
@@ -129,6 +131,7 @@ function renderEditor(d) {
   mountRails(!PL.slots.some((s) => s.draft_id === d.id));
   update(d);
   loadComments(d);
+  presenceChanged();
 }
 /* Called by ws-main: #/planner (list) or #/planner/<id> (one draft). */
 export async function showPlanner(id) {
@@ -142,4 +145,51 @@ export async function showPlanner(id) {
   }
   if (fresh || ED.id !== id) renderEditor(d); else update(d);
 }
+/* ===== Live updates (notes routed by ws-main) =====
+   Same as Refresh, but: a slot you are editing keeps your typing (ws-plan-slots
+   leaves it in place and shows "X changed this slot" if theirs changed), and
+   draft comments wait while you are writing one. */
+const cmBusy = () => typingIn($('#ed-cm')) || dirtyIn($('#ed-cm'));
+export async function livePlanner(notes) {
+  if (!$('#editor')) {
+    if (ED.id || !$('#draft-list, #ws-main .empty')) return;
+    const busyList = () => typingIn($('#ws-main'));
+    if (busyList()) { whenIdle('plist', busyList, () => livePlanner([])); return; }
+    await loadPlanner();
+    await keepFocus(() => { if (!ED.id && !$('#editor')) renderDraftList(); });
+    notes.forEach((n) => (n.t === 'drafts' ? n.items || [] : []).forEach((i) => flash(document.querySelector('[data-did="' + CSS.escape(i.id) + '"]'), n.by)));
+    return;
+  }
+  const id = ED.id;
+  ED.live = true;
+  try {
+    await keepFocus(async () => {
+      await loadPlanner();
+      const d = current();
+      if (!d || ED.id !== id) {
+        if (!d && ED.id === id && !PL.err) { const by = (notes.find((n) => n.t === 'drafts' && n.op === 'delete') || {}).by;
+          toast((by ? person(by).name + ' deleted this draft.' : 'That draft is gone (someone deleted it).'), 6000); location.hash = '#/planner'; }
+        return;
+      }
+      update(d);
+    });
+  } finally { ED.live = false; }
+  const d = current(); if (!d || !$('#editor')) return;
+  const mine = (n) => (n.items || []).some((i) => i.d === d.id || i.id === d.id || i.target === d.id);
+  if (notes.some((n) => n.t === '*' || (n.t === 'comments' && mine(n)))) {
+    if (cmBusy()) whenIdle('dcm', cmBusy, () => { const x = current(); if (x) loadComments(x); });
+    else await loadComments(d);
+  }
+  notes.forEach((n) => {
+    if (n.t === 'draft_slots') (n.items || []).filter((i) => i.d === d.id).forEach((i) => {
+      if (editing(d, i.t)) SLOT_HOOKS.conflict(i.t, n.by);
+      else flash(document.querySelector('#slots .slot[data-t="' + Number(i.t) + '"]'), n.by, 'Changed');
+    });
+    if (n.t === 'drafts' && mine(n)) flash($('.ed-head'), n.by);
+    if (n.t === 'comments' && mine(n)) flash($('#ed-cm'), n.by, 'New comment');
+  });
+  presenceChanged();
+}
+/* ws-plan-slots fills this in (it owns the slot editor's DOM). */
+export const SLOT_HOOKS = { conflict: () => {} };
 export function resetPlanner() { ED.id = null; LIB.draft = null; PL.loaded = false; resetLib(); }

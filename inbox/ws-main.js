@@ -8,9 +8,11 @@
 import { S, $, lc, toast, plainError, makeClient, modalOpen, initMenus, schName } from './ws-core.js';
 import { initAuth, isHolding, changePassword, signOut } from './ws-auth.js';
 import { loadPeople, needsProfile, renderMe, openProfile, initMenu } from './ws-profile.js';
-import { initSuggest, showSuggestions, resetSuggest, newCount } from './ws-suggest.js';
-import { initActivity, showActivity, resetActivity, loadActivity, activityCount } from './ws-activity.js';
-import { showPlanner, resetPlanner } from './ws-plan-editor.js';
+import { initSuggest, showSuggestions, resetSuggest, newCount, liveCats, V as CATS } from './ws-suggest.js';
+import { initActivity, showActivity, resetActivity, loadActivity, activityCount, liveActivity } from './ws-activity.js';
+import { showPlanner, resetPlanner, livePlanner, ED, current } from './ws-plan-editor.js';
+import { AD } from './ws-plan-adapt.js';
+import { startLive, stopLive, presenceChanged, keepFocus, typingIn } from './ws-live.js';
 import './ws-plan-slots.js';
 import './ws-plan-checks.js';
 import './ws-plan-preview.js';
@@ -75,6 +77,32 @@ async function go() {
     window.scrollTo(0, 0);
     if (document.activeElement === document.body) $('#ws-root').focus({ preventScroll: true });
   }
+  presenceChanged();
+}
+
+/* ===== Live syncing (ws-live.js) =====
+   What I have open, for presence: a draft (and the tier I'm editing) or a category. */
+function where() {
+  if (tab === 'planner' && ED.id) {
+    const d = current(), t = AD.w && AD.edit && AD.edit.startsWith(ED.id + ':') ? Number(AD.edit.split(':')[1]) : null;
+    return d ? { view: 'draft', id: ED.id, school: d.school, tier: t } : null;
+  }
+  if (tab === 'categories' && CATS.open) return { view: 'cat', id: CATS.open, school: S.school };
+  return null;
+}
+/* Notes from other people: refresh only what they touch, in place. '*' = check everything. */
+async function onLive(notes) {
+  if (!readyFor || $('#v-ws').hidden) return;
+  const all = notes.some((n) => n.t === '*');
+  const has = (...ts) => all || notes.some((n) => ts.includes(n.t));
+  const cmt = (type) => notes.some((n) => n.t === 'comments' && (!n.items || n.items.some((i) => i.type === type)));
+  const jobs = [];
+  if (has('review_events', 'draft_events', 'member_events', 'comments', 'submissions', 'votes')) jobs.push(liveActivity());
+  if (has('submissions', 'votes', 'review_events') || cmt('submission')) jobs.push(liveCats(notes));
+  if (tab === 'planner' && (has('drafts', 'draft_slots', 'draft_events', 'publish_jobs', 'review_events', 'submissions', 'votes') || cmt('draft'))) jobs.push(livePlanner(notes));
+  if (tab === 'calendar' && has('drafts') && !typingIn($('#ws-main'))) jobs.push(keepFocus(() => showCalendar()));
+  await Promise.allSettled(jobs);
+  if (readyFor) keepFocus(renderTabs);
 }
 
 /* Who is this, and what do they get to see. */
@@ -93,6 +121,7 @@ async function route() {
       if (!(await loadPeople())) { $('#notadmin-email').textContent = S.me; show('v-notadmin'); return; }
       readyFor = S.me;
       loadActivity().then(renderTabs);
+      startLive(onLive, where); // quietly does nothing when Realtime isn't available
     }
     renderMe(); show('v-ws');
     $('#brand-sub').textContent = 'Desk Puzzle · ' + (S.owner ? 'All schools' : schName(S.school));
@@ -106,7 +135,7 @@ async function route() {
     if (again) { again = false; setTimeout(route, 0); }
   }
 }
-function resetAll() { resetSuggest(); resetActivity(); resetPlanner(); resetArchive(); resetAdmin(); readyFor = null; prompted = false; tab = ''; view = ''; $('#ws-main').innerHTML = ''; }
+function resetAll() { stopLive(); resetSuggest(); resetActivity(); resetPlanner(); resetArchive(); resetAdmin(); readyFor = null; prompted = false; tab = ''; view = ''; $('#ws-main').innerHTML = ''; }
 
 const darkMq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 function applyTheme(t) {

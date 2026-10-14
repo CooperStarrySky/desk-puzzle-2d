@@ -226,6 +226,39 @@ r = await call('POST', '/rest/v1/rpc/active_schools', {});
   if (r.status === 404) console.log('     active_schools is missing: the multischool migration is not applied yet.');
 }
 
+// ── Live syncing (20261015120000_live_sync.sql): private channels only ──
+// The public key must not join the workspace's Realtime channels (the shared
+// bank or a school's drafts + who is online), as private or as public channels.
+// "public channel accepted" means the dashboard setting Realtime Settings ->
+// "Allow public access" is still on: turn it off (supabase/SETUP.md).
+r = await call('GET', '/rest/v1/messages?select=*&limit=5', undefined, { 'Accept-Profile': 'realtime' });
+result(nothing(r), `can't read Realtime messages over the API (${how(r)})`);
+r = await call('POST', '/rest/v1/rpc/rt_emit', { p_topic: 'ws:bank', p_table: 'drafts', p_op: 'update', p_items: [{ id: 1 }] }, { 'Content-Profile': 'private' });
+result(r.status >= 400 || nothing(r), `can't send live notes by hand (${how(r)})`);
+async function rtJoin(topic, isPrivate) {
+  if (typeof WebSocket !== 'function') return 'skip';
+  const ws = new WebSocket(URL_.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(KEY) + '&vsn=1.0.0');
+  return new Promise((res) => {
+    const done = (v) => { clearTimeout(t); try { ws.close(); } catch (e) { /* closed */ } res(v); };
+    const t = setTimeout(() => done('timeout'), 8000);
+    ws.addEventListener('open', () => ws.send(JSON.stringify({ topic: 'realtime:' + topic, event: 'phx_join', ref: '1', join_ref: '1',
+      payload: { config: { private: isPrivate, broadcast: { self: false }, presence: { key: '' } }, access_token: KEY } })));
+    ws.addEventListener('message', (e) => {
+      let m = null; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m && m.event === 'phx_reply' && m.ref === '1') done(m.payload && m.payload.status === 'ok' ? 'joined' : 'refused');
+      if (m && (m.event === 'phx_error' || m.event === 'system') && m.payload && m.payload.status === 'error') done('refused');
+    });
+    ws.addEventListener('error', () => done('refused'));
+    ws.addEventListener('close', () => done('refused'));
+  });
+}
+for (const [topic, isPrivate] of [['ws:bank', true], ['ws:school:cmsru', true], ['ws:school:cmsru', false]]) {
+  const v = await rtJoin(topic, isPrivate);
+  if (v === 'skip') { console.log('     (Realtime join checks skipped: this node has no WebSocket; use node 22+)'); break; }
+  if (v === 'timeout') { console.log(`     (no answer from Realtime for ${topic} in 8 s; check by hand)`); continue; }
+  result(v === 'refused', `can't join ${isPrivate ? 'private' : 'public'} channel ${topic} (${v === 'joined' ? (isPrivate ? 'joined!' : 'public channel accepted') : 'refused'})`);
+}
+
 // ── Optional: send one sample through the real function ──
 if (SEND) {
   const { goodSample, goodPuzzleSample } = await import(pathToFileURL(path.join(ROOT, 'supabase', 'tests', 'samples.mjs')).href);
