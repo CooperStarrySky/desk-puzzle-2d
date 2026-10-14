@@ -6,9 +6,11 @@
  *   1. Finds work: "Publish now" requests (publish_jobs, state queued) and
  *      Scheduled drafts whose release time has passed (it files a 'scheduled'
  *      job for those, so every run shows up on the draft). Oldest first.
- *   2. Marks the job running, loads the draft, its 4 slots and suggestions,
- *      and downloads the pictures from the private bucket into a temp folder
- *      OUTSIDE the repo.
+ *   2. Marks the job running, loads the draft, its 4 slots and categories
+ *      (a slot's adapted copy from "Edit for this puzzle" wins over the
+ *      original), and downloads the pictures from the private bucket (the
+ *      copy's own uploads under drafts/<draft id>/ and clues swapped in from
+ *      other categories included) into a temp folder OUTSIDE the repo.
  *   3. Writes the spec and runs the normal pipeline: build_puzzle.py --apply
  *      --set-current, make_thumbnails.mjs --apply, adds "school" to the
  *      index.json entry, publish.py --apply, then validate_puzzle.
@@ -40,7 +42,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { draftSpec, specToYaml, puzzleIdFor, releaseDate } from '../inbox/ws-publish-spec.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -226,6 +228,46 @@ const VALIDATE = [
   'for w in warnings: print("[WARN] " + w)', 'for e in errors: print("[ERR] " + e)',
   'print("[OK]   validate_puzzle passed" if not errors else "[FAIL] %d error(s)" % len(errors))', 'sys.exit(1 if errors else 0)'].join('\n');
 
+/* ── Reading a draft and its pictures (exported for tools/publish_drafts_test.mjs) ── */
+/* The draft's 4 slots (with any adapted copy made by "Edit for this puzzle"),
+   their categories, and the build spec. An adapted slot publishes its copy:
+   its own name, explanation and clues, pictures uploaded for this draft
+   (drafts/<draft id>/...) and clues swapped in from other categories. */
+export async function readDraft(draft, kind) {
+  const cols = 'draft_id,tier,submission_id,group_index,custom_group';
+  let slots;
+  try { slots = (await api('GET', 'draft_slots?draft_id=eq.' + draft.id + '&select=' + cols + ',adapted')) || []; } catch (e) {
+    if (!/adapted/.test(String(e.body || e.message))) throw e; // before the multischool migration: no copies yet
+    slots = (await api('GET', 'draft_slots?draft_id=eq.' + draft.id + '&select=' + cols)) || [];
+  }
+  const sids = [...new Set(slots.map((s) => s.submission_id).filter(Boolean))];
+  const subs = sids.length ? await api('GET', 'submissions?id=' + inList(sids) + '&select=id,kind,group_name,payload,credit_mode,credit_name,credit_line') : [];
+  const date = releaseDate(kind, draft.target_release, Date.now()), id = puzzleIdFor(draft.title, date);
+  if (!ID_RE.test(id) || id.length > 120) fail('Could not make a puzzle id from the title "' + draft.title + '". Rename the draft.');
+  const built = draftSpec(draft, slots, new Map(subs.map((r) => [r.id, r])), { date, id });
+  if (built.problems.length) fail('The draft is not ready to publish. ' + built.problems.join(' '));
+  return { slots, subs, built, date, id };
+}
+/* Every picture the spec names, saved into imgDir under the spec's file names. */
+export async function fetchImages(built, imgDir) {
+  for (const im of built.images) {
+    const what = 'the picture for clue "' + (im.label || im.item) + '" (tier ' + im.tier + ')';
+    let buf = null;
+    if (im.ref.kind === 'storage') buf = await download(im.ref.path);
+    else if (im.ref.kind === 'data') {
+      const m = /^data:[^,]*;base64,(.*)$/s.exec(im.ref.value);
+      if (!m) fail('Could not read ' + what + ' (not base64 data).');
+      buf = Buffer.from(m[1], 'base64');
+    } else if (im.ref.kind === 'site') {
+      const p = path.resolve(ROOT, im.ref.path);
+      if (path.relative(abs('puzzles'), p).startsWith('..') || !fs.existsSync(p)) fail(what + ' points at "' + im.ref.path + '", which is not on the site.');
+      buf = fs.readFileSync(p);
+    } else fail(what + ' is a link to another website. Upload the picture instead.');
+    if (!isPicture(buf)) fail(what[0].toUpperCase() + what.slice(1) + ' is not a JPEG, PNG, WebP or GIF file.');
+    fs.writeFileSync(path.join(imgDir, im.file), buf);
+  }
+}
+
 /* ── One draft, start to finish ── */
 async function markPublished(draft, id) {
   await step('Marking the draft published');
@@ -271,13 +313,7 @@ async function publish({ draft, job, kind }) {
     }
 
     await step('Reading the draft');
-    const slots = (await api('GET', 'draft_slots?draft_id=eq.' + draft.id + '&select=draft_id,tier,submission_id,group_index,custom_group')) || [];
-    const sids = [...new Set(slots.map((s) => s.submission_id).filter(Boolean))];
-    const subs = sids.length ? await api('GET', 'submissions?id=' + inList(sids) + '&select=id,kind,group_name,payload,credit_mode,credit_name,credit_line') : [];
-    const date = releaseDate(kind, draft.target_release, Date.now()), id = puzzleIdFor(draft.title, date);
-    if (!ID_RE.test(id) || id.length > 120) fail('Could not make a puzzle id from the title "' + draft.title + '". Rename the draft.');
-    const built = draftSpec(draft, slots, new Map(subs.map((r) => [r.id, r])), { date, id });
-    if (built.problems.length) fail('The draft is not ready to publish. ' + built.problems.join(' '));
+    const { built, date, id } = await readDraft(draft, kind);
     const rel = { json: 'puzzles/' + id + '.json', dir: 'puzzles/' + id, spec: 'puzzles/_spec/' + id + '.yaml', thumb: 'puzzles/thumbs/' + id + '.webp' };
     if (fs.existsSync(abs(rel.json)) || fs.existsSync(abs(rel.spec)) || (readJson('puzzles/index.json').puzzles || []).some((p) => p.id === id)) {
       fail('A puzzle with the id "' + id + '" is already on the site. Rename the draft (or publish on another day) and try again.');
@@ -289,22 +325,7 @@ async function publish({ draft, job, kind }) {
     if (!path.relative(ROOT, tmp).startsWith('..')) fail('The temp folder is inside the site folder; refusing to continue.');
     const imgDir = path.join(tmp, 'img');
     fs.mkdirSync(imgDir);
-    for (const im of built.images) {
-      const what = 'the picture for clue "' + (im.label || im.item) + '" (tier ' + im.tier + ')';
-      let buf = null;
-      if (im.ref.kind === 'storage') buf = await download(im.ref.path);
-      else if (im.ref.kind === 'data') {
-        const m = /^data:[^,]*;base64,(.*)$/s.exec(im.ref.value);
-        if (!m) fail('Could not read ' + what + ' (not base64 data).');
-        buf = Buffer.from(m[1], 'base64');
-      } else if (im.ref.kind === 'site') {
-        const p = path.resolve(ROOT, im.ref.path);
-        if (path.relative(abs('puzzles'), p).startsWith('..') || !fs.existsSync(p)) fail(what + ' points at "' + im.ref.path + '", which is not on the site.');
-        buf = fs.readFileSync(p);
-      } else fail(what + ' is a link to another website. Upload the picture instead.');
-      if (!isPicture(buf)) fail(what[0].toUpperCase() + what.slice(1) + ' is not a JPEG, PNG, WebP or GIF file.');
-      fs.writeFileSync(path.join(imgDir, im.file), buf);
-    }
+    await fetchImages(built, imgDir);
 
     await step('Writing the puzzle spec');
     const title = String(draft.title).replace(/\s+/g, ' ').trim();
@@ -389,4 +410,7 @@ async function main() {
   log('Draft "' + work.draft.title + '" (' + work.kind + (work.job ? ', job ' + work.job.id : '') + ')');
   return publish(work);
 }
-main().then((code) => process.exit(code), (e) => { console.error(e); process.exit(1); });
+// Run only when started as a program (the test imports readDraft/fetchImages).
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  main().then((code) => process.exit(code), (e) => { console.error(e); process.exit(1); });
+}

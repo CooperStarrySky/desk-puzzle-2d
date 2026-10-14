@@ -6,7 +6,7 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { validateSubmission, decodeImage, itemIds, receiptCode, LIMITS } from '../functions/submit/validate.js';
+import { validateSubmission, decodeImage, itemIds, receiptCode, LIMITS, schoolOf } from '../functions/submit/validate.js';
 import { goodSample, goodSampleV2, goodPuzzleSample, PNG_1x1, WEBP_1x1, clone } from './samples.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -114,6 +114,13 @@ ok(decodeImage(WEBP_1x1).ext === 'webp' && decodeImage(PNG_1x1).ext === 'png', '
 ok(JSON.stringify(itemIds([{ label: 'Blood smear' }, { label: 'Blood smear' }, { label: '!!' }, {}])) === '["blood-smear","blood-smear-2","clue","clue-2"]', 'itemIds dedupe like import_submission.py');
 const code = receiptCode((n) => new Uint8Array(n).map((_, i) => i * 7));
 ok(/^DP-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(code), 'receipt format ' + code);
+
+// ── School (the submit function needs one; old files without it still validate) ──
+ok(validateSubmission(goodSample()).problems.length === 0 && schoolOf(goodSample()).problem !== '', 'a file with no school still validates; schoolOf asks for one');
+ok(schoolOf(Object.assign(goodSample(), { school: ' CMSRU ' })).school === 'cmsru', 'schoolOf tidies case and spaces');
+ok(/recognize/.test(schoolOf(Object.assign(goodSample(), { school: 'not/a school' })).problem), 'schoolOf refuses a malformed code');
+ok(/pick your school/i.test(schoolOf(Object.assign(goodSample(), { school: 42 })).problem), 'schoolOf refuses a non-text school');
+samples.push(['v2 with school', Object.assign(goodSampleV2(), { school: 'cmsru' }), null, false]);
 
 // ── Same samples through import_submission.py ──
 const py = `

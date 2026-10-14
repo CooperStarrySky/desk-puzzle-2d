@@ -5,7 +5,7 @@
    or a clue swapped in from another category. The slot then shows
    "Adapted · N changes"; tapping it lists original vs copy with Reset per
    change and Reset all. Pickers (image, swap) are in ws-plan-adapt-pick.js. */
-import { esc, isStoragePath, ZONES, ZONE_NAMES } from './ws-core.js';
+import { S, BUCKET, esc, isStoragePath, ZONES, ZONE_NAMES } from './ws-core.js';
 import { slotsOf, saveAdapted } from './ws-plan-data.js';
 
 export const IMG_ZONES = ['rack', 'tubes', 'photo'];
@@ -13,8 +13,9 @@ export const isImg = (z) => IMG_ZONES.includes(z);
 const TYPE_GROUPS = [['Image', ['rack', 'tubes', 'photo']], ['Text', ['corkboard', 'folder', 'rx']]];
 const short = (z) => (ZONES[z] || [z || '?'])[0];
 export const clone = (x) => JSON.parse(JSON.stringify(x == null ? null : x));
-/* AD.edit = "<draft id>:<tier>" being edited, AD.w = the work copy, AD.diff = the open "what changed" panel. */
-export const AD = { edit: null, w: null, diff: null };
+/* AD.edit = "<draft id>:<tier>" being edited, AD.w = the work copy, AD.diff = the open "what changed" panel,
+   AD.up = pictures uploaded during this edit (tidied away if the edit is cancelled). */
+export const AD = { edit: null, w: null, diff: null, up: [] };
 
 export function picOf(c) {
   if (!c || !isImg(c.zone)) return '';
@@ -114,9 +115,28 @@ export function editorHtml(d, t, it) {
 export const editing = (d, t) => !!AD.w && AD.edit === d.id + ':' + t;
 export function startEdit(d, t) {
   const s = slotsOf(d.id)[t]; if (!s || !s.item || !s.item.sid) return false;
-  AD.edit = d.id + ':' + t; AD.w = workFrom(s.item); AD.diff = null; return true;
+  if (AD.w) stopEdit(); // another slot's edit was still open: it counts as cancelled
+  AD.edit = d.id + ':' + t; AD.w = workFrom(s.item); AD.diff = null; AD.up = []; return true;
 }
-export function stopEdit() { AD.edit = null; AD.w = null; }
+/* Ends the edit. saved = the copy that was saved (null when cancelled or reset).
+   Pictures uploaded during this edit that the saved copy does not use are
+   deleted again (best effort; the database only lets you delete your own). */
+export function stopEdit(saved) {
+  const draftId = AD.edit ? AD.edit.split(':')[0] : '';
+  const keep = new Set(saved ? imagesOf(saved) : []);
+  const drop = (AD.up || []).filter((p) => !keep.has(p));
+  AD.edit = null; AD.w = null; AD.up = [];
+  if (drop.length && draftId) dropUploads(draftId, drop);
+}
+const imagesOf = (a) => ((a && a.items) || []).reduce((l, c) => l.concat([c && c.info && c.info.image, c && c.scope && c.scope.image]), []).filter(Boolean);
+async function dropUploads(draftId, paths) {
+  // Never delete a picture some saved copy in this draft still points at.
+  const used = new Set();
+  slotsOf(draftId).forEach((s) => { if (s && s.item && s.item.adapted) imagesOf(s.item.adapted).forEach((p) => used.add(p)); });
+  const mine = paths.filter((p) => p.startsWith('drafts/' + draftId + '/') && !used.has(p));
+  if (!mine.length) return;
+  try { await S.sb.storage.from(BUCKET).remove(mine); } catch (e) { /* best effort: an unused file costs nothing */ }
+}
 /* Save (or reset, when nothing differs) the copy in one slot. Returns a toast message or '' on failure. */
 export async function commit(d, t, a) {
   const s = slotsOf(d.id)[t]; if (!s) return '';

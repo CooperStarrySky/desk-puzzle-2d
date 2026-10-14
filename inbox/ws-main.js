@@ -1,10 +1,11 @@
 /* Puzzle workspace: start-up, who gets in, the tabs and the address bar.
    Routes: #/categories (the Category database, tab "Categories"), #/categories/trash,
    #/categories/<id> (a category opened in place), #/planner, #/planner/<draft id>,
-   #/calendar, #/archive, #/archive/categories, #/activity. Old links still work:
+   #/calendar, #/archive, #/archive/categories, #/activity, #/admin (site owner
+   and school leads only). Old links still work:
    #/suggestions -> #/categories and #s=<id> -> #/categories/<id>.
    WS_TABS turns a tab off without touching the rest. */
-import { S, $, lc, toast, plainError, makeClient, modalOpen, initMenus } from './ws-core.js';
+import { S, $, lc, toast, plainError, makeClient, modalOpen, initMenus, schName } from './ws-core.js';
 import { initAuth, isHolding, changePassword, signOut } from './ws-auth.js';
 import { loadPeople, needsProfile, renderMe, openProfile, initMenu } from './ws-profile.js';
 import { initSuggest, showSuggestions, resetSuggest, newCount } from './ws-suggest.js';
@@ -17,23 +18,27 @@ import './ws-plan-flow.js';
 import './ws-plan-appr.js';
 import { showCalendar } from './ws-calendar.js';
 import { showArchive, resetArchive } from './ws-arch-view.js';
+import { showAdmin, resetAdmin, canConsole } from './ws-admin.js';
+import { initSettings, renderWhatsNew } from './ws-settings.js';
 
-export const WS_TABS = { categories: true, planner: true, calendar: true, archive: true, activity: true };
-const TAB_WORDS = { categories: 'Categories', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity' };
+export const WS_TABS = { categories: true, planner: true, calendar: true, archive: true, activity: true, admin: true };
+const TAB_WORDS = { categories: 'Categories', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity', admin: 'Admin' };
+// The Admin tab only shows for the site owner and school leads.
+const tabOn = (k) => WS_TABS[k] && (k !== 'admin' || canConsole());
 const VIEWS = ['loading', 'v-setup', 'v-noscript', 'v-signin', 'v-notadmin', 'v-ws'];
 let routing = false, again = false, readyFor = null, prompted = false, tab = '', view = '';
 
 function show(id) {
   VIEWS.forEach((v) => { $('#' + v).hidden = v !== id; });
   const inWs = id === 'v-ws';
-  $('#ws-tabs').hidden = !inWs; $('#me-wrap').hidden = !inWs;
+  $('#ws-tabs').hidden = !inWs; $('#me-wrap').hidden = !inWs; $('#gear-btn').hidden = !inWs;
 }
 function counts() {
   return { categories: newCount(), activity: activityCount() };
 }
 function renderTabs() {
   const n = counts();
-  $('#ws-tabs').innerHTML = Object.keys(WS_TABS).filter((k) => WS_TABS[k]).map((k) =>
+  $('#ws-tabs').innerHTML = Object.keys(WS_TABS).filter(tabOn).map((k) =>
     '<a href="#/' + k + '"' + (k === tab ? ' aria-current="page"' : '') + '>' + TAB_WORDS[k] +
     (n[k] ? ' <span class="n">' + n[k] + '<span class="sr">' + (k === 'categories' ? ' new' : ' new since your last visit') + '</span></span>' : '') + '</a>').join('');
   // On a phone the strip scrolls sideways: keep the current tab in view.
@@ -52,7 +57,7 @@ function parseHash() {
   if (t === 'categories') return sub === 'trash' ? { tab: t, id: null, sub } : { tab: t, id: sub ? decodeURIComponent(sub) : null };
   if (t === 'planner' && WS_TABS.planner) return { tab: 'planner', id: null, draft: sub ? decodeURIComponent(sub) : null };
   if (t === 'archive' && WS_TABS.archive) return { tab: 'archive', id: null, sub: sub === 'categories' ? sub : '' };
-  return { tab: WS_TABS[t] ? t : 'categories', id: null };
+  return { tab: tabOn(t) ? t : 'categories', id: null };
 }
 async function go() {
   const p = parseHash();
@@ -64,7 +69,8 @@ async function go() {
   else if (tab === 'planner') await showPlanner(p.draft);
   else if (tab === 'calendar') await showCalendar();
   else if (tab === 'archive') await showArchive(p.sub);
-  else await showSuggestions(p.sub, p.id);
+  else if (tab === 'admin') await showAdmin();
+  else { await showSuggestions(p.sub, p.id); if (p.sub !== 'trash') renderWhatsNew(); }
   if (changedTab && !p.id) {
     window.scrollTo(0, 0);
     if (document.activeElement === document.body) $('#ws-root').focus({ preventScroll: true });
@@ -89,6 +95,7 @@ async function route() {
       loadActivity().then(renderTabs);
     }
     renderMe(); show('v-ws');
+    $('#brand-sub').textContent = 'Desk Puzzle · ' + (S.owner ? 'All schools' : schName(S.school));
     await go();
     if (needsProfile() && !prompted && !modalOpen()) { prompted = true; openProfile(true, () => go()); }
   } catch (e) {
@@ -99,7 +106,7 @@ async function route() {
     if (again) { again = false; setTimeout(route, 0); }
   }
 }
-function resetAll() { resetSuggest(); resetActivity(); resetPlanner(); resetArchive(); readyFor = null; prompted = false; tab = ''; view = ''; $('#ws-main').innerHTML = ''; }
+function resetAll() { resetSuggest(); resetActivity(); resetPlanner(); resetArchive(); resetAdmin(); readyFor = null; prompted = false; tab = ''; view = ''; $('#ws-main').innerHTML = ''; }
 
 const darkMq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 function applyTheme(t) {
@@ -124,6 +131,7 @@ function boot() {
   initAuth(route);
   initMenu();
   initMenus();
+  initSettings();
   initSuggest(() => { if (readyFor) renderTabs(); });
   initActivity(() => { if (readyFor) renderTabs(); });
   $('#mi-profile').addEventListener('click', () => openProfile(false, () => go()));

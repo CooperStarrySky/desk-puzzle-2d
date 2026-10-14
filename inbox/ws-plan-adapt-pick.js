@@ -11,11 +11,15 @@ import { AD, isImg, picOf, setPic, origOf, clone, changes, revertPart, tidy, edi
 import { cropImage } from './ws-plan-crop.js';
 
 async function upload(d, label, blob) {
+  const session = AD.edit;
   const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
   const path = 'drafts/' + d.id + '/' + (slug(label).slice(0, 40) || 'clue') + '-' + Date.now().toString(36) + '.' + ext;
   const { error } = await S.sb.storage.from(BUCKET).upload(path, blob, { contentType: blob.type, upsert: false });
   if (error) { toast('Could not upload the image: ' + plainError(error), 6000); return ''; }
-  return path;
+  if (AD.w && AD.edit === session) { AD.up.push(path); return path; } // removed again if this edit is cancelled
+  // The edit ended while the picture was uploading: tidy it away at once.
+  S.sb.storage.from(BUCKET).remove([path]).catch(() => {});
+  return '';
 }
 async function cropAndUse(d, i, src, again) {
   const c = AD.w && AD.w.items[i]; if (!c) return;
@@ -103,8 +107,8 @@ export function wireAdapt(el, rerender) {
     if (ds.adsave) {
       const t = Number(ds.adsave), o = orig(); if (!o || !editing(d, t)) return;
       busy(b, 'Saving…', async () => {
-        const msg = await commit(d, t, tidy(AD.w, o)); if (!msg) return;
-        stopEdit(); toast(msg, 4000); await refresh(); const f = $('[data-diff="' + t + '"]') || $('[data-adapt="' + t + '"]'); if (f) f.focus();
+        const a = tidy(AD.w, o), msg = await commit(d, t, a); if (!msg) return;
+        stopEdit(changes(o, a).length ? a : null); toast(msg, 4000); await refresh(); const f = $('[data-diff="' + t + '"]') || $('[data-adapt="' + t + '"]'); if (f) f.focus();
       });
       return;
     }

@@ -2,15 +2,18 @@
 // drive it with a fake database. index.ts only wires it to Deno.serve.
 //
 // A request is: POST JSON { submission, turnstileToken, website }
-//   submission      the same object the Studio downloads (desk-puzzle-submission
-//                   v1 or v2, kind "category" or "puzzle"; see ../../SUBMISSION_FORMAT.md)
+//   submission      a desk-puzzle-submission (v1 or v2) of kind "category" with
+//                   submission.school = the short code of an active school
+//                   (see ../../SUBMISSION_FORMAT.md). Full puzzles (kind
+//                   "puzzle") are refused with a plain message since the
+//                   multischool release; old ones already stored stay as they are.
 //   turnstileToken  Cloudflare's "are you human" token (only checked if TURNSTILE_SECRET is set)
 //   website         honeypot: a hidden field people never fill in; bots often do
 //   clientId        optional random id the Studio keeps per browser (letters,
 //                   digits, hyphens, 8-64 long); adds the per-browser limit
 // Reply: { ok: true, receipt: "DP-XXXX-XXXX" } or { ok: false, error: "plain English" }.
 
-import { LIMITS, validateSubmission, itemIds, receiptCode } from './validate.js';
+import { LIMITS, validateSubmission, itemIds, receiptCode, schoolOf } from './validate.js';
 
 export const DEFAULT_ORIGINS = 'https://pathologyconnections.org,https://www.pathologyconnections.org,https://cooperstarrysky.github.io,http://localhost:4607';
 export const BUCKET = 'submissions';
@@ -61,7 +64,9 @@ export function createHandler(deps) {
 
     // ── Size and shape ──
     const declared = Number(req.headers.get('content-length') || 0);
-    // The largest allowed body (a full puzzle) first; a category's smaller cap after parsing.
+    // Read up to the old full-puzzle size, so an old copy of the Studio that
+    // still sends a whole puzzle gets the plain "one category" answer below
+    // instead of "too big"; a category's own cap is checked after parsing.
     if (declared > LIMITS.maxPuzzleBodyBytes) return fail(413, tooBig(declared, LIMITS.maxPuzzleBodyBytes));
     let raw;
     try { raw = await req.text(); } catch (e) { return fail(400, 'We could not read what was sent. Please try again.'); }
@@ -70,8 +75,8 @@ export function createHandler(deps) {
     let body;
     try { body = JSON.parse(raw); } catch (e) { return fail(400, 'That did not look like a Desk Puzzle submission.'); }
     if (!body || typeof body !== 'object' || Array.isArray(body)) return fail(400, 'That did not look like a Desk Puzzle submission.');
-    const isPuzzle = !!(body.submission && body.submission.kind === 'puzzle');
-    if (!isPuzzle && bytes > LIMITS.maxBodyBytes) return fail(413, tooBig(bytes, LIMITS.maxBodyBytes));
+    if (body.submission && body.submission.kind === 'puzzle') return fail(400, PUZZLE_GONE);
+    if (bytes > LIMITS.maxBodyBytes) return fail(413, tooBig(bytes, LIMITS.maxBodyBytes));
 
     // ── Honeypot ──
     if (typeof body.website === 'string' && body.website.trim()) {
@@ -133,29 +138,40 @@ export function createHandler(deps) {
       return fail(400, 'Please fix this and send again: ' + first + (problems.length > 3 ? ` (and ${problems.length - 3} more)` : '') + '.', { problems });
     }
 
+    // ── School: must be one of the active schools (the Studio's list) ──
+    const { school, problem } = schoolOf(sub);
+    if (problem) return fail(400, problem);
+    let known = false;
+    try {
+      const { data, error } = await db.from('schools').select('slug').eq('slug', school).eq('status', 'active');
+      if (error) throw error;
+      known = Array.isArray(data) && data.length > 0;
+    } catch (e) {
+      return fail(503, 'The submission box is not answering right now. Please try again in a few minutes.');
+    }
+    if (!known) return fail(400, 'We don’t recognize that school. Reload the Studio page and pick your school from the list.');
+
     // ── Store images, then the row; undo the images if anything fails ──
-    // payload: the category (group) or { title, groups } for a puzzle, plus
-    // submissionVersion so the inbox can rebuild the original file.
+    // payload: the category (group) plus submissionVersion so the inbox can
+    // rebuild the original file.
     const id = uuid();
     const payload = buildPayload(sub);
-    const groups = isPuzzle ? payload.groups : [payload];
-    const ids = groups.map((g) => itemIds(g.items));
+    const ids = itemIds(payload.items);
     const uploaded = [];
     try {
       for (const im of images) {
-        const stem = (isPuzzle ? `${im.group + 1}-` : '') + `${ids[im.group][im.item]}-${im.field}`;
-        const path = `${id}/${stem}.${im.ext}`;
+        const path = `${id}/${ids[im.item]}-${im.field}.${im.ext}`;
         const { error } = await db.storage.from(BUCKET).upload(path, im.bytes, { contentType: im.mime, upsert: false });
         if (error) throw new Error('upload: ' + (error.message || error));
         uploaded.push(path);
-        groups[im.group].items[im.item][im.field].image = path;
+        payload.items[im.item][im.field].image = path;
       }
       const credit = sub.credit;
       const email = sub.contact && typeof sub.contact.email === 'string' ? sub.contact.email.trim() : '';
       const row = {
-        id, kind: isPuzzle ? 'puzzle' : 'category',
-        suggested_tier: isPuzzle ? null : sub.suggestedTier,
-        group_name: (isPuzzle ? payload.title : payload.name).trim(), payload,
+        id, kind: 'category', school,
+        suggested_tier: sub.suggestedTier,
+        group_name: payload.name.trim(), payload,
         credit_mode: credit.mode,
         credit_name: credit.mode === 'named' ? credit.name.trim() : null,
         credit_line: credit.mode === 'named' && typeof credit.line === 'string' && credit.line.trim() ? credit.line.trim() : null,
@@ -180,6 +196,8 @@ export function createHandler(deps) {
   };
 }
 
+export const PUZZLE_GONE = 'Full puzzles can’t be sent any more. Please send one category at a time from the Studio (reload the page to get the new version).';
+
 function tooBig(n, max) {
   return `This submission is too big (${(n / 1048576).toFixed(1)} MB; ${max / 1048576} MB max). Use fewer or smaller images.`;
 }
@@ -187,8 +205,7 @@ function tooBig(n, max) {
 /**
  * What goes in the row's payload (images are still data URIs here; the caller
  * swaps them for storage paths). Version 2 clues get info.title = label, the
- * rule of the v2 format. Only the known puzzle fields are kept (no date: the
- * puzzle group sets it when publishing).
+ * rule of the v2 format. Categories only.
  */
 export function buildPayload(sub) {
   const copy = (o) => JSON.parse(JSON.stringify(o));
@@ -198,9 +215,6 @@ export function buildPayload(sub) {
     }
     return g;
   };
-  if (sub.kind === 'puzzle') {
-    return { submissionVersion: 2, title: String(sub.puzzle.title).trim(), groups: copy(sub.puzzle.groups).map(fixItems) };
-  }
   return Object.assign(fixItems(copy(sub.group)), { submissionVersion: sub.version });
 }
 

@@ -321,6 +321,62 @@ grant execute on function public.add_member(text, text, text, text), public.chan
   public.move_school(text, text, text), public.set_member_active(text, text, boolean),
   public.set_my_profile(text, text) to authenticated;
 
+-- ── Adding a school (site owner only) ──────────────────────────────────────
+-- One step for the "Add school" wizard: the school (in 'setup', so it is not
+-- in the Studio's school list yet) and its first lead. The lead then signs up
+-- with the emailed code like everyone else; nobody sets a password here.
+create or replace function public.add_school(p_slug text, p_name text, p_lead_email text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  me text := private.need_email();
+  s  text := lower(btrim(coalesce(p_slug, '')));
+  n  text := btrim(coalesce(p_name, ''));
+  e  text := private.clean_email(p_lead_email);
+begin
+  if not private.is_site_owner() then
+    raise exception 'Only the site owner can add a school.' using errcode = '42501';
+  end if;
+  if s !~ '^[a-z0-9-]{2,24}$' then
+    raise exception 'Short code: 2-24 lowercase letters, numbers, and dashes.' using errcode = '22023';
+  end if;
+  if char_length(n) not between 2 and 120 then
+    raise exception 'The school name needs 2-120 characters.' using errcode = '22023';
+  end if;
+  if exists (select 1 from public.schools x where x.slug = s) then
+    raise exception 'The short code % is already taken.', s using errcode = '23505';
+  end if;
+  insert into public.schools (slug, name, status) values (s, n, 'setup');
+  insert into public.members (email, school, role, added_by) values (e, s, 'lead', me);
+  insert into public.member_events (school, actor_email, target_email, action, note)
+  values (s, me, e, 'member_add', 'as lead (new school)');
+end;
+$$;
+
+-- When each person last signed in, for the people I manage (the site owner:
+-- everyone; a school lead: their own school). Never returns anything else
+-- from the sign-in system. null = has not signed up yet.
+create or replace function public.people_sign_ins()
+returns table (email text, last_sign_in_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select m.email, max(u.last_sign_in_at)
+  from public.members m
+  left join auth.users u on lower(u.email) = m.email
+  where private.can_manage_people(m.school)
+  group by m.email;
+$$;
+
+-- The Studio's "Your school" list: the public key may read active schools'
+-- short code and name, nothing else (not schools still in setup).
+create or replace function public.active_schools()
+returns table (slug text, name text)
+language sql stable security definer set search_path = '' as $$
+  select s.slug, s.name from public.schools s where s.status = 'active' order by s.name;
+$$;
+
+revoke all on function public.add_school(text, text, text), public.people_sign_ins(), public.active_schools() from public, anon;
+grant execute on function public.add_school(text, text, text), public.people_sign_ins() to authenticated;
+grant execute on function public.active_schools() to anon, authenticated;
+
 -- ── Sign-up hook: on the members list (active, any school) or a site owner ─
 -- Same function name, so the dashboard hook setting does not need to change.
 create or replace function private.hook_signup_admins_only(event jsonb)
@@ -1556,9 +1612,12 @@ create policy "School planners replace draft images" on storage.objects
   for update to authenticated
   using (bucket_id = 'submissions' and private.can_edit_draft(private.path_draft(name)))
   with check (bucket_id = 'submissions' and private.can_edit_draft(private.path_draft(name)));
-create policy "School planners delete draft images" on storage.objects
+-- Deleting is only for tidying up: the Planner removes images a person
+-- uploaded during an edit they then cancelled. Only your own uploads.
+create policy "School planners delete their own draft uploads" on storage.objects
   for delete to authenticated
-  using (bucket_id = 'submissions' and private.can_edit_draft(private.path_draft(name)));
+  using (bucket_id = 'submissions' and owner = (select auth.uid())
+         and private.can_edit_draft(private.path_draft(name)));
 
 -- Nobody calls the new trigger helpers directly.
 revoke all on function private.draft_before(), private.slot_before(), private.slot_logged(),

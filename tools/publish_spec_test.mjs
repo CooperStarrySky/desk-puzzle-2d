@@ -130,4 +130,17 @@ t('adapted copy (S3 "Edit for this puzzle") replaces name, explanation and clues
   const plain = draftSpec(draft, [slot(1, 'a'), slot(2, 'b'), slot(3, 'c'), slot(4, 'e')], subs, { date: '2026-10-22' });
   assert.equal(plain.spec.groups[0].name, 'Alpha');
 });
+t('adapted copy with a swapped-in clue that has its own picture (from another category)', () => {
+  const subs = { a: cat('a', 'Alpha'), b: cat('b', 'Beta'), c: cat('c', 'Gamma'), e: cat('e', 'Delta') };
+  const copy = JSON.parse(JSON.stringify(subs.a.payload));
+  copy.items[0] = clue('Slide from Beta', 'rack', { scope: { image: 'b/slide-scope.webp' }, swap: { sid: 'b', name: 'Beta' }, source: 'own' });
+  copy.items[2] = clue('Replaced photo', 'photo', { info: { title: 'Replaced photo', image: 'drafts/d1/replaced.webp' }, source: 'own' });
+  const r = draftSpec(draft, [Object.assign(slot(1, 'a'), { adapted: copy }), slot(2, 'b'), slot(3, 'c'), slot(4, 'e')], subs, { date: '2026-10-22' });
+  const paths = r.images.filter((im) => im.tier === 1).map((im) => im.ref.kind + ':' + im.ref.path).sort();
+  assert.deepEqual(paths, ['storage:b/slide-scope.webp', 'storage:drafts/d1/replaced.webp']);
+  const g = r.spec.groups.find((x) => x.tier === 1);
+  assert.equal(g.items[0].scope_image, 'slide-from-beta-scope.webp');
+  assert.ok(!('swap' in g.items[0]), 'the swap note is workspace-only, not in the spec');
+  assert.deepEqual(r.problems, []);
+});
 console.log(n + ' tests passed');

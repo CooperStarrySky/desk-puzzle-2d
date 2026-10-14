@@ -1,4 +1,5 @@
-// Checks one submission (a category, or a whole puzzle) before it is stored.
+// Checks one submission file (a category; old whole-puzzle files too, which
+// tools/import_submission.py still reads; the submit function refuses them).
 // The file format is described in supabase/SUBMISSION_FORMAT.md.
 //
 // Plain JavaScript (ES module) so the same file runs in the Supabase "submit"
@@ -164,6 +165,20 @@ export function validateSubmission(sub) {
   }
   if (images.length > LIMITS.maxPuzzleImages) p.push(`too many images (${images.length}; max ${LIMITS.maxPuzzleImages})`);
   return { problems: p, images };
+}
+
+/**
+ * The school a category is sent to (submission.school, a short code like
+ * "cmsru"). Only the submit function needs it; files made before schools
+ * existed have none, which the import tool accepts. The function then checks
+ * it against the active schools. Returns { school, problem }.
+ */
+export const SCHOOL_RE = /^[a-z0-9-]{2,24}$/;
+export function schoolOf(sub) {
+  const school = isObj(sub) && typeof sub.school === 'string' ? sub.school.trim().toLowerCase() : '';
+  if (!school) return { school: '', problem: 'Please pick your school from the list, then send again. (No list? Reload the Studio page.)' };
+  if (!SCHOOL_RE.test(school)) return { school: '', problem: 'We don’t recognize that school. Reload the Studio page and pick your school from the list.' };
+  return { school, problem: '' };
 }
 
 function checkCredit(sub, p) {

@@ -46,6 +46,10 @@
         st.uploads = (st.uploads || []).concat({ path, type: blob && blob.type, size: blob && blob.size });
         return post({ storage: 'upload', bucket, path, upsert: !!(opts && opts.upsert) });
       },
+      remove: async (paths) => {
+        st.removed = (st.removed || []).concat(paths);
+        return post({ storage: 'remove', bucket, paths });
+      },
       createSignedUrl: async (p) => ({ data: { signedUrl: PIX + '#' + encodeURIComponent(p) }, error: null }),
       download: async () => ({ data: new Blob([new Uint8Array([82, 73, 70, 70, 1, 2, 3])], { type: 'image/webp' }), error: null }),
     }) },

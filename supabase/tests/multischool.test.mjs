@@ -103,6 +103,8 @@ async function main() {
   await c3.checkCommentsVotes(db, ok, ID, P);
   await c3.checkPublishUsage(db, ok, ID, P, testSub);
   await c3.checkPurgeAndAnon(db, ok, ID, P);
+  const c4 = await import('./multischool_checks4.mjs');
+  await c4.checkS4(db, ok, P);
 }
 
 await main();

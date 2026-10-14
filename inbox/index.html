@@ -25,15 +25,17 @@ try { var t = localStorage.getItem('dp2d:studio-theme'); if (t !== 'light' && t 
 <link rel="stylesheet" href="ws-arch.css">
 <link rel="stylesheet" href="ws-cat.css">
 <link rel="stylesheet" href="ws-plan2.css">
+<link rel="stylesheet" href="ws-admin.css">
 <script type="module" src="ws-main.js"></script>
 </head>
 <body>
 <header class="site-head">
   <div class="wrap ws-head">
     <a class="brand" href="#/categories" aria-label="Puzzle workspace home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-      <span class="brand-name">Puzzle workspace<small>Desk Puzzle · CMSRU</small></span></a>
+      <span class="brand-name">Puzzle workspace<small id="brand-sub">Desk Puzzle</small></span></a>
     <div class="head-right">
       <a class="mode-link" href="../studio/">Puzzle Studio</a>
+      <button class="btn small ghost" id="gear-btn" type="button" hidden><span aria-hidden="true">⚙</span> Settings</button>
       <button class="btn small ghost" id="theme-btn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
       <div class="menu-wrap" id="me-wrap" hidden>
         <button class="me-btn" type="button" id="me-btn" aria-haspopup="true" aria-expanded="false" aria-controls="me-menu"></button>

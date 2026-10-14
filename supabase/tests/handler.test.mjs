@@ -2,7 +2,10 @@
 // Drives supabase/functions/submit/handler.js with a fake Supabase client and a
 // fake fetch (for Turnstile). No network. Exit 1 on any failure.
 import { createHandler, RATE_PER_HOUR, CLIENT_RATE_PER_HOUR, pickServerKey } from '../functions/submit/handler.js';
-import { goodSample, goodSampleV2, goodPuzzleSample } from './samples.mjs';
+import { goodSample as rawSample, goodSampleV2, goodPuzzleSample } from './samples.mjs';
+
+// The Studio sends the school with every category since the multischool release.
+const goodSample = () => Object.assign(rawSample(), { school: 'cmsru' });
 
 let fails = 0;
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
@@ -10,7 +13,8 @@ const ORIGIN = 'https://cooperstarrysky.github.io';
 
 /** Minimal stand-in for the supabase-js calls the handler makes. */
 function fakeDb(opts = {}) {
-  const st = { rate: [], rows: [], files: new Map(), removed: [], insertCalls: 0 };
+  const st = { rate: [], rows: [], files: new Map(), removed: [], insertCalls: 0,
+    schools: [{ slug: 'cmsru', status: 'active' }, { slug: 'pinebrook', status: 'setup' }], schoolReads: 0 };
   const table = (name) => {
     const q = { name, filters: [], op: 'select' };
     const api = {
@@ -28,6 +32,11 @@ function fakeDb(opts = {}) {
         return Promise.resolve({ error: null });
       },
       then(res, rej) {
+        if (name === 'schools') {
+          st.schoolReads++;
+          if (opts.schoolsError) return Promise.resolve({ data: null, error: { message: 'db down' } }).then(res, rej);
+          return Promise.resolve({ data: st.schools.filter((r) => q.filters.every((f) => f(r))), error: null }).then(res, rej);
+        }
         const src = name === 'submit_rate' ? st.rate : st.rows;
         const hit = src.filter((r) => q.filters.every((f) => f(r)));
         if (q.op === 'delete') { for (const r of hit) src.splice(src.indexOf(r), 1); return Promise.resolve({ error: null }).then(res, rej); }
@@ -102,7 +111,7 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   ok(r2.status === 413 && /7 MB max/.test(r2.body.error), 'category body over 7 MB -> 413 (category cap unchanged)');
   const s3 = setup();
   const r3 = await json(await s3.handle(post({ submission: goodPuzzleSample(), pad: 'x'.repeat(8 * 1024 * 1024) })));
-  ok(r3.status === 200 && r3.body.ok, 'full puzzle body of 8 MB passes the size gate');
+  ok(r3.status === 400 && /one category at a time/.test(r3.body.error) && s3.db.st.rows.length === 0, 'old Studio sending an 8 MB full puzzle gets the plain "one category" answer, not "too big"');
 }
 // Turnstile
 {
@@ -125,16 +134,7 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   const s = goodSample(); s.group.name = ''; s.kind = 'category';
   const r = await json(await handle(post({ submission: s })));
   ok(r.status === 400 && /the category has no name/.test(r.body.error) && Array.isArray(r.body.problems) && db.st.rows.length === 0, 'invalid category -> 400 with the problem');
-  const p = goodSample(); p.kind = 'puzzle';
-  const r2 = await json(await handle(post({ submission: p })));
-  ok(r2.status === 400 && /need a version 2 file/.test(r2.body.error), 'kind puzzle in a v1 file -> 400 asks for version 2');
-  const d = goodPuzzleSample(); d.puzzle.groups[0].tier = 2;
-  const r3 = await json(await handle(post({ submission: d })));
-  ok(r3.status === 400 && /each difficulty 1-4 must be used exactly once/.test(r3.body.error) && db.st.rows.length === 0, 'puzzle with duplicate tiers -> 400, nothing stored');
-  const w = goodPuzzleSample(); w.puzzle.groups[1].items.pop();
-  const r4 = await json(await handle(post({ submission: w })));
-  ok(r4.status === 400 && /category 2: expected 4 clues, found 3/.test(r4.body.error), 'puzzle with a 3-clue category -> 400');
-  const sl = goodPuzzleSample(); sl.puzzle.groups[0].items[3].info.image = sl.puzzle.groups[0].items[2].info.image;
+  const sl = Object.assign(goodSampleV2(), { school: 'cmsru' }); sl.group.items[3].info.image = sl.group.items[2].info.image;
   const r5 = await json(await handle(post({ submission: sl })));
   ok(r5.status === 400 && /microscope slide, so its picture goes under the microscope/.test(r5.body.error) && db.st.files.size === 0, 'v2 slide with info.image -> 400 (rejected, not stripped)');
 }
@@ -158,7 +158,7 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   ok(db.st.files.get(`submissions/${id}/lung-cancer-info.png`).type === 'image/png', 'upload content type set');
   const row = db.st.rows[0];
   ok(row && row.id === id && row.receipt_code === r.body.receipt && row.group_name === 'TEST: things that cause clubbing' && row.suggested_tier === 2, 'row: id, receipt, group name, tier');
-  ok(row.credit_mode === 'named' && row.credit_name === 'Test Student' && row.credit_line === 'MS2' && row.contact_email === 'test.student@rowan.edu' && row.consent === true && row.kind === 'category', 'row: credit, contact, consent, kind');
+  ok(row.credit_mode === 'named' && row.credit_name === 'Test Student' && row.credit_line === 'MS2' && row.contact_email === 'test.student@rowan.edu' && row.consent === true && row.kind === 'category' && row.school === 'cmsru', 'row: credit, contact, consent, kind, school');
   const its = row.payload.items;
   ok(its[2].info.image === `${id}/lung-cancer-info.png` && its[3].scope.image === `${id}/mesothelioma-scope.webp` && !JSON.stringify(row.payload).includes('data:'), 'payload images rewritten to storage paths, no data URIs left');
   ok(db.st.rate.length === 1 && /^[0-9a-f]{64}$/.test(db.st.rate[0].ip_hash) && !JSON.stringify(db.st.rate).includes('203.0.113.9'), 'rate row stores only a hash of the IP');
@@ -167,30 +167,42 @@ const json = async (r) => ({ status: r.status, body: await r.json(), r });
   const row2 = db.st.rows[1];
   ok(row2.credit_mode === 'anonymous' && row2.credit_name === null && row2.contact_email === null, 'anonymous with no email -> nulls');
 }
-// Full puzzle success path
+// Full puzzles are refused (categories only since the multischool release)
 {
   const { handle, db } = setup();
-  const r = await json(await handle(post({ submission: goodPuzzleSample() })));
-  ok(r.status === 200 && r.body.ok === true && /^DP-/.test(r.body.receipt), 'good full puzzle -> 200 with receipt');
-  const id = '11111111-2222-3333-4444-555555555550';
-  const files = [...db.st.files.keys()].sort();
-  ok(JSON.stringify(files) === JSON.stringify([`submissions/${id}/1-g1-photo-info.png`, `submissions/${id}/1-g1-slide-scope.webp`, `submissions/${id}/2-g2-photo-info.png`, `submissions/${id}/2-g2-slide-scope.webp`]),
-    'puzzle uploads go to <uuid>/<group 1-4>-<itemid>-info|scope.<ext>');
-  const row = db.st.rows[0];
-  ok(row.kind === 'puzzle' && row.suggested_tier === null && row.group_name === 'TEST: automated full puzzle', 'row: kind puzzle, no suggested tier, group_name = puzzle title');
-  ok(row.credit_name === 'Test Student' && row.contact_email === 'test.student@rowan.edu', 'row: credit and contact for the whole puzzle');
-  const pl = row.payload;
-  ok(pl.submissionVersion === 2 && pl.title === 'TEST: automated full puzzle' && pl.groups.length === 4 && !('date' in pl), 'payload: version, title, 4 groups, no date');
-  ok(pl.groups.map((g) => g.tier).join() === '3,1,4,2' && pl.groups[0].items[3].scope.image === `${id}/1-g1-slide-scope.webp` && pl.groups[1].items[2].info.image === `${id}/2-g2-photo-info.png`, 'payload: tiers kept, images rewritten to storage paths');
-  ok(!JSON.stringify(pl).includes('data:'), 'payload has no data URIs left');
-  ok(pl.groups.every((g) => g.items.every((it) => it.info.title === it.label)), 'v2: info.title set to the label');
+  const r = await json(await handle(post({ submission: Object.assign(goodPuzzleSample(), { school: 'cmsru' }) })));
+  ok(r.status === 400 && r.body.ok === false && /Full puzzles can’t be sent any more/.test(r.body.error) && /one category at a time/.test(r.body.error), 'full puzzle -> 400 with a plain "one category at a time" message');
+  ok(db.st.rows.length === 0 && db.st.files.size === 0 && db.st.rate.length === 0, 'full puzzle: nothing stored and no rate-limit slot used');
+  const bad = goodPuzzleSample(); bad.puzzle.groups.pop();
+  const r2 = await json(await handle(post({ submission: bad })));
+  ok(r2.status === 400 && /one category at a time/.test(r2.body.error), 'even a broken full puzzle gets the same plain answer (not a list of puzzle problems)');
+}
+// School: required, and must be an active school
+{
+  const s1 = setup();
+  const r1 = await json(await s1.handle(post({ submission: rawSample() })));
+  ok(r1.status === 400 && /pick your school/i.test(r1.body.error) && s1.db.st.rows.length === 0, 'no school -> 400 asks to pick one, nothing stored');
+  const r2 = await json(await s1.handle(post({ submission: Object.assign(rawSample(), { school: 'Not a school!' }) })));
+  ok(r2.status === 400 && /recognize that school/.test(r2.body.error) && s1.db.st.schoolReads === 0, 'malformed school -> 400 without asking the database');
+  const r3 = await json(await s1.handle(post({ submission: Object.assign(rawSample(), { school: 'harvard' }) })));
+  ok(r3.status === 400 && /recognize that school/.test(r3.body.error) && s1.db.st.rows.length === 0, 'unknown school -> 400, nothing stored');
+  const r4 = await json(await s1.handle(post({ submission: Object.assign(rawSample(), { school: 'pinebrook' }) })));
+  ok(r4.status === 400 && s1.db.st.rows.length === 0 && s1.db.st.files.size === 0, 'school still in setup -> 400 (not in the Studio list yet)');
+  const r5 = await json(await s1.handle(post({ submission: Object.assign(rawSample(), { school: ' CMSRU ' }) })));
+  ok(r5.status === 200 && s1.db.st.rows[0].school === 'cmsru', 'school code tidied (case, spaces) and stored on the row');
+  const s2 = setup({}, { schoolsError: true });
+  const r6 = await json(await s2.handle(post({ submission: goodSample() })));
+  ok(r6.status === 503 && s2.db.st.rows.length === 0 && s2.db.st.files.size === 0, 'school lookup fails -> 503, nothing stored');
+}
+// Category success (v2) and notes
+{
   const v2 = setup();
-  const r2 = await json(await v2.handle(post({ submission: goodSampleV2() })));
+  const r2 = await json(await v2.handle(post({ submission: Object.assign(goodSampleV2(), { school: 'cmsru' }) })));
   const row2 = v2.db.st.rows[0];
   ok(r2.status === 200 && row2.kind === 'category' && row2.suggested_tier === 2 && row2.payload.submissionVersion === 2 && row2.payload.items[3].scope.image === '11111111-2222-3333-4444-555555555550/clubbing-slide-scope.webp',
     'v2 category -> stored like v1 (no group prefix in paths)');
   const vn = setup();
-  const noted = goodSampleV2(); noted.group.items[0].note = 'Chronic airway dilation.';
+  const noted = Object.assign(goodSampleV2(), { school: 'cmsru' }); noted.group.items[0].note = 'Chronic airway dilation.';
   const rn = await json(await vn.handle(post({ submission: noted })));
   ok(rn.status === 200 && vn.db.st.rows[0].payload.items[0].note === 'Chronic airway dilation.' && !('note' in vn.db.st.rows[0].payload.items[1]), 'v2 clue results note stored in the payload as sent');
   const v1 = setup();

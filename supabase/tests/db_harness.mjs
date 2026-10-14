@@ -42,6 +42,11 @@ create function auth.uid() returns uuid language sql stable as $$
   select nullif(auth.jwt() ->> 'sub', '')::uuid;
 $$;
 
+-- Supabase Auth's user list (only the columns our functions read).
+create table auth.users (
+  id uuid primary key default gen_random_uuid(), email text, last_sign_in_at timestamptz
+);
+
 create schema storage;
 grant usage on schema storage to anon, authenticated, service_role;
 create table storage.buckets (
@@ -51,7 +56,7 @@ create table storage.buckets (
 create table storage.objects (
   id uuid primary key default gen_random_uuid(),
   bucket_id text references storage.buckets (id),
-  name text not null, owner uuid, created_at timestamptz default now(),
+  name text not null, owner uuid default auth.uid(), created_at timestamptz default now(),
   unique (bucket_id, name)
 );
 alter table storage.objects enable row level security;
@@ -97,7 +102,7 @@ export async function as(db, who, sql, params = []) {
       if (who !== 'postgres') {
         const role = who === 'anon' ? 'anon' : who === 'service' ? 'service_role'
           : who === 'auth' ? 'supabase_auth_admin' : 'authenticated';
-        const claims = role === 'authenticated' ? { email: who, role } : { role };
+        const claims = role === 'authenticated' ? { email: who, role, sub: userId(who) } : { role };
         await tx.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify(claims)]);
         await tx.exec(`set local role ${role}`);
       }
@@ -108,6 +113,18 @@ export async function as(db, who, sql, params = []) {
   } catch (e) {
     return { rows: [], error: e.message || String(e) };
   }
+}
+
+/** A stable fake user id per email (the JWT "sub"), so storage owners work. */
+export function userId(email) {
+  let h = 0x811c9dc5;
+  const hex = [];
+  for (let k = 0; k < 4; k++) {
+    for (const ch of String(email) + k) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; }
+    hex.push(h.toString(16).padStart(8, '0'));
+  }
+  const x = hex.join('');
+  return `${x.slice(0, 8)}-${x.slice(8, 12)}-4${x.slice(13, 16)}-8${x.slice(17, 20)}-${x.slice(20, 32)}`;
 }
 
 export function counter() {

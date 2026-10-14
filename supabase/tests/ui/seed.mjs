@@ -68,4 +68,7 @@ export async function seed(db) {
     ('submission', $1, $2, 'CMSRU-only note about clubbing', 'cmsru', 'school'),
     ('submission', $1, $3, 'From RV: love this one', 'rvsom', 'all'),
     ('submission', $1, $3, 'RV private aside', 'rvsom', 'school')`, [C.clubbing, U.ADMIN, U.OTHER]);
+  // Sign-in records for the Admin console's "Last sign-in" (Dr. Lee has never signed up).
+  await x(`insert into auth.users (email, last_sign_in_at) values ($1, $4), ($2, $5), ($3, $6)`,
+    [U.OWNER, U.LEAD, U.ADMIN, ago(0.1), ago(1), ago(3)]);
 }
