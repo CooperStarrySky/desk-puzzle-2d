@@ -34,7 +34,8 @@ export const voteSchools = (id) => new Set((V.votes.get(id) || []).map((v) => v.
 export const voteN = (id) => (cf().vfrom === 'mine' ? votesMine(id) : votesOf(id).length);
 export const isUsed = (r) => useOf(r.id).times_used > 0 || r.status === 'used';
 /* new | draft | used, worked out from usage (the database stores new/used/trashed). */
-export const stOf = (r) => (r.status === 'trashed' ? 'trashed' : useOf(r.id).drafts_count ? 'draft' : isUsed(r) ? 'used' : 'new');
+export const stFrom = (r, u) => (r.status === 'trashed' ? 'trashed' : (u || NO_USE).drafts_count ? 'draft' : (u || NO_USE).times_used > 0 || r.status === 'used' ? 'used' : 'new');
+export const stOf = (r) => stFrom(r, useOf(r.id));
 export const newCount = () => V.rows.filter((r) => stOf(r) === 'new').length;
 export const inTrash = () => V.rows.filter((r) => r.status === 'trashed').length;
 
@@ -56,15 +57,20 @@ async function fetchAll() {
   V.cmts = new Map(); cmts.forEach((c) => V.cmts.set(c.target_id, (V.cmts.get(c.target_id) || 0) + 1));
 }
 /* The word search, on the server. Called when the words change. */
+/* The server's word search: a Set of submission ids (also used by the Planner's Database rail). */
+export async function searchIds(words) {
+  const { data, error } = await S.sb.from('submissions').select('id').textSearch('search', words, { type: 'websearch', config: 'english' }).limit(5000);
+  if (error) throw error;
+  return new Set((data || []).map((r) => r.id));
+}
 export async function search() {
   const words = cf().q.trim();
   if (!words) { V.hits = null; V.hitQ = ''; return; }
   if (words === V.hitQ && V.hits) return;
   const seq = ++V.sseq;
-  const { data, error } = await S.sb.from('submissions').select('id').textSearch('search', words, { type: 'websearch', config: 'english' }).limit(5000);
+  let hits; try { hits = await searchIds(words); } catch (e) { if (seq === V.sseq) V.err = plainError(e); return; }
   if (seq !== V.sseq) return;
-  if (error) { V.err = plainError(error); return; }
-  V.hits = new Set((data || []).map((r) => r.id)); V.hitQ = words; V.err = '';
+  V.hits = hits; V.hitQ = words; V.err = '';
 }
 export async function reload() {
   const seq = ++V.seq;
@@ -79,23 +85,28 @@ export async function reload() {
 /* ===== Matching (skip = leave one filter out, for the counts next to its options) ===== */
 const clueKinds = (r) => new Set(allItems(r).map((it) => (ZONES[it.zone] || [])[2]).filter(Boolean));
 const day = (iso) => String(iso || '').slice(0, 10);
-export function match(r, skip, F) {
-  F = F || cf();
+export const match = (r, skip, F) => matchRow(r, skip, F || cf(), {});
+/* The shared rules. o (Planner): u = usage row, tier = the group's tier, kinds = clue kinds,
+   hits = word-search ids, text = local text to search too, votes = 👍 count. */
+export function matchRow(r, skip, F, o) {
   if ((F.view === 'trash') !== (r.status === 'trashed')) return false;
-  const u = useOf(r.id);
+  const u = o.u || useOf(r.id), isU = u.times_used > 0 || r.status === 'used', st = stFrom(r, u);
   if (skip !== 'school' && F.school.length && !F.school.includes(r.school)) return false;
   if (skip !== 'block' && F.block.length && !(r.tags || []).some((t) => F.block.includes(t))) return false;
-  if (skip !== 'used' && ((F.used === 'never' && isUsed(r)) || (F.used === 'used' && !isUsed(r)) || (F.used === 'draft' && !u.drafts_count))) return false;
-  if (skip !== 'st' && F.st.length && !F.st.includes(stOf(r))) return false;
-  if (F.tier.length && !F.tier.includes(String(r.suggested_tier))) return false;
-  if (F.ct.length) { const k = clueKinds(r); if (!F.ct.some((c) => k.has(c))) return false; }
+  if (skip !== 'used' && ((F.used === 'never' && isU) || (F.used === 'used' && !isU) || (F.used === 'draft' && !u.drafts_count))) return false;
+  if (skip !== 'st' && F.st.length && !F.st.includes(st)) return false;
+  if (F.tier.length && !F.tier.includes(String(o.tier != null ? o.tier : r.suggested_tier))) return false;
+  if (F.ct.length) { const k = o.kinds || clueKinds(r); if (!F.ct.some((c) => k.has(c))) return false; }
   if (F.sub !== 'all' && (F.sub === 'named') !== (r.credit_mode === 'named')) return false;
   if (F.from && day(r.created_at) < F.from) return false;
   if (F.to && day(r.created_at) > F.to) return false;
   if (F.since && V.lastVisit && r.created_at <= V.lastVisit) return false;
   if (F.unusedMine && S.school && u.schools.includes(S.school)) return false;
   if (F.tby && r.trashed_by !== F.tby) return false;
-  if (F.q.trim() && V.hits && !V.hits.has(r.id)) {
+  if (o.text != null) {
+    const ws = F.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (ws.length && !(o.hits && o.hits.has(r.id)) && !ws.every((w) => o.text.includes(w))) return false;
+  } else if (F.q.trim() && V.hits && !V.hits.has(r.id)) {
     const w = F.q.trim().toLowerCase();
     if (F.view !== 'trash' || !((r.trash_reason || '') + ' ' + person(r.trashed_by).name).toLowerCase().includes(w)) return false;
   }

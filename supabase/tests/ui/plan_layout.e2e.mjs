@@ -1,6 +1,6 @@
 // node supabase/tests/ui/plan_layout.e2e.mjs  (needs pg_server.mjs running)
 // Phone (375 px), light and dark: Planner list, draft editor with the slots
-// first and the library as a bottom sheet, the per-clue editor and the
+// first and the Database as a bottom sheet (bottom bar), the per-clue editor and the
 // Adapted panel, approval panel, Calendar, Activity and Archive all fit with
 // no sideways scroll. Desktop: Archive links to the Category database (no
 // "Reuse as starting point"), Calendar "Start a draft for this week".
@@ -27,10 +27,10 @@ for (const dark of [false, true]) {
   await fits('P1 draft list');
   await P.js('location.hash = "#/planner/' + D.cmsru + '"'); await P.waitFor('!!document.querySelector("#slots .slot.filled")');
   const order = await P.js('(() => { const s = document.querySelector(".mid-a").getBoundingClientRect().top, l = document.getElementById("lib"); return [s, getComputedStyle(l).display]; })()');
-  check(`P2 ${tag}: slots first, library hidden until asked`, order[1] === 'none' && (await P.visible('#add-cat')), order);
+  check(`P2 ${tag}: slots first, Database hidden until asked (bottom bar)`, order[1] === 'none' && (await P.visible('#pb-db')) && (await P.visible('#pb-pv')) && (await P.visible('#pb-ck')), order);
   await fits('P2 editor');
-  await P.click('#add-cat'); await P.sleep(200);
-  check(`P3 ${tag}: "＋ Add category" opens a bottom sheet`, (await P.js('getComputedStyle(document.getElementById("lib")).position')) === 'fixed' && !!(await P.count('#sheet-scrim')) && (await P.attr('#add-cat', 'aria-expanded')) === 'true');
+  await P.click('#pb-db'); await P.sleep(200);
+  check(`P3 ${tag}: "🔍 Database" opens a bottom sheet`, (await P.js('getComputedStyle(document.getElementById("lib")).position')) === 'fixed' && !!(await P.count('#sheet-scrim')) && (await P.attr('#pb-db', 'aria-expanded')) === 'true');
   await fits('P3 library sheet');
   const tier = dark ? 2 : 1; // the light run already filled Easy
   await P.click('#lib-list .lib-card[data-key="' + (dark ? C.cheese : C.asthma) + '"] [data-add]'); await P.waitFor('!!document.querySelector("[data-pick]")');
@@ -46,7 +46,7 @@ for (const dark of [false, true]) {
   const pop = await P.js('(() => { const r = document.querySelector(".mnu-pop:not([hidden])").getBoundingClientRect(); return [r.left, r.right]; })()');
   check(`P6 ${tag}: slot ⋯ menu stays on screen`, pop[0] >= 0 && pop[1] <= 375, pop);
   await P.key('Escape', 'Escape', 27);
-  check(`P7 ${tag}: approval panel visible`, await P.visible('#appr'));
+  check(`P7 ${tag}: approval pill visible`, await P.visible('#appr-pill'));
   for (const [hash, ready, name] of [['#/calendar', '.cal-week', 'P8 calendar'], ['#/activity', '#feed li:not(.day)', 'P9 activity'], ['#/archive', '.arch-card', 'P10 archive']]) {
     await P.js('location.hash = "' + hash + '"'); await P.waitFor('!!document.querySelector("' + ready + '")'); await P.sleep(200);
     await fits(name);

@@ -75,20 +75,24 @@ export function draftChecks(d) {
 }
 export const blockers = (d) => draftChecks(d).filter((c) => c.lvl === 'block');
 
-const UI = { open: true, showDis: false };
+const UI = { showDis: false };
 function li(c, i, restore, ro) {
   return '<li class="' + (c.lvl === 'block' ? 'block' : 'warn') + (restore ? ' dim' : '') + '"><span>' + esc(c.msg) + '</span>' +
     (c.lvl === 'block' ? '<span class="tag">Blocks publishing</span>' : ro ? '' : '<button type="button" class="btn small ghost" data-ck="' + i + '" data-on="' + (restore ? 0 : 1) + '">' + (restore ? 'Restore' : 'Dismiss') + '</button>') + '</li>';
 }
 function render(d) {
   const el = $('#ck-panel'); if (!el) return;
-  el.hidden = false;
   const all = draftChecks(d), dis = Array.isArray(d.dismissed_warnings) ? d.dismissed_warnings : [], ro = readOnly(d);
   const act = all.filter((c) => !(c.lvl === 'warn' && dis.includes(c.k))).sort((a, b) => (a.lvl === 'block' ? 0 : 1) - (b.lvl === 'block' ? 0 : 1)), gone = all.filter((c) => c.lvl === 'warn' && dis.includes(c.k));
-  const nb = act.filter((c) => c.lvl === 'block').length;
-  el.innerHTML = '<div class="ck-head"><button type="button" class="ck-toggle" id="ck-toggle" aria-expanded="' + UI.open + '" aria-controls="ck-body">Checks <span class="chev" aria-hidden="true"></span></button>' +
-    '<span class="ck-n' + (nb ? ' block' : act.length ? '' : ' ok') + '" id="ck-n">' + (act.length ? act.length + (act.length === 1 ? ' issue' : ' issues') + (nb ? ' · ' + nb + ' blocking' : '') : 'All clear') + '</span></div>' +
-    '<div class="stack" id="ck-body" style="--gap:8px"' + (UI.open ? '' : ' hidden') + '><ul class="checks" id="checks" aria-live="polite">' +
+  const nb = act.filter((c) => c.lvl === 'block').length, cls = nb ? 'block' : act.length ? 'warn' : 'ok';
+  // The header pill (desktop) and the phone bottom-bar button say how many need a look.
+  const pill = $('#ck-pill');
+  if (pill) { pill.className = 'pill ck ' + cls; pill.innerHTML = esc(nb ? 'Checks · ' + nb + ' blocking' : act.length ? 'Checks · ' + act.length + ' to look at' : 'Checks ✓ all clear') + ' <span class="cv" aria-hidden="true">▾</span>'; }
+  const pb = $('#pb-ck'); if (pb) { pb.textContent = act.length ? 'Checks · ' + act.length : 'Checks ✓'; pb.classList.toggle('warn', !!act.length); }
+  el.innerHTML = '<div class="ck-head"><h3 class="pop-h" id="ck-h">Checks</h3>' +
+    '<span class="ck-n' + (nb ? ' block' : act.length ? '' : ' ok') + '" id="ck-n">' + (act.length ? act.length + (act.length === 1 ? ' issue' : ' issues') + (nb ? ' · ' + nb + ' blocking' : '') : 'All clear') + '</span>' +
+    '<button type="button" class="btn small primary sheet-done" data-sheet-x>Done</button></div>' +
+    '<div class="stack" id="ck-body" style="--gap:8px"><ul class="checks" id="checks" aria-live="polite">' +
     (act.length ? act.map((c) => li(c, all.indexOf(c), false, ro)).join('') : '<li class="ok"><span>No problems found. All four slots are filled and nothing clashes.</span></li>') + '</ul>' +
     (gone.length ? '<div class="stack" style="--gap:6px"><div><button type="button" class="btn small ghost" id="ck-dis" aria-expanded="' + UI.showDis + '">' + (UI.showDis ? 'Hide dismissed' : 'Show ' + gone.length + ' dismissed') + '</button></div>' +
       (UI.showDis ? '<ul class="checks">' + gone.map((c) => li(c, all.indexOf(c), true, ro)).join('') + '</ul>' : '') + '</div>' : '') +
@@ -98,7 +102,6 @@ function mount() {
   const el = $('#ck-panel'); if (!el) return;
   el.addEventListener('click', async (e) => {
     const d = current(); if (!d) return;
-    if (e.target.closest('#ck-toggle')) { UI.open = !UI.open; render(d); $('#ck-toggle').focus(); return; }
     if (e.target.id === 'ck-dis') { UI.showDis = !UI.showDis; render(d); $('#ck-dis').focus(); return; }
     const b = e.target.closest('[data-ck]'); if (!b) return;
     const c = draftChecks(d)[Number(b.dataset.ck)]; if (!c) return;
@@ -108,7 +111,7 @@ function mount() {
       if (!(await patchDraft(d.id, { dismissed_warnings: next }, 'Could not save that'))) return;
       toast(b.dataset.on === '1' ? 'Warning dismissed for this draft' : 'Warning restored');
       await refresh();
-      const f = $('#ck-panel [data-ck]') || $('#ck-dis') || $('#ck-toggle'); if (f) f.focus();
+      const f = $('#ck-panel [data-ck]') || $('#ck-dis') || $('#ck-panel'); if (f) f.focus();
     });
   });
   loadArchive().then(() => { const d = current(); if (d && $('#ck-panel')) render(d); });

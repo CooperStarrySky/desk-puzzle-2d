@@ -3,7 +3,9 @@
    on the draft list, the Calendar and the Archive. If the puzzle changes after
    that, the seal says "Edited since approval" and faculty can re-approve.
    Optional: it never blocks Ready, Schedule or Publish. Hidden entirely when
-   the school turned the badge off. */
+   the school turned the badge off. Layout A: a small pill in the draft header
+   ("✓ Faculty approved · Dr. Lee ▾" or "Faculty approval ▾") opens a popover
+   with the seal, the edited-since-approval note and the actions. */
 import { S, $, esc, busy, toast, person, when, roleIn } from './ws-core.js';
 import { setApproval, editedSinceApproval } from './ws-plan-data.js';
 import { addPart, refresh, current } from './ws-plan-editor.js';
@@ -11,15 +13,17 @@ import { badgeOn, sealHtml } from './ws-plan-seal.js';
 
 const canApprove = (d) => ['owner', 'faculty'].includes(roleIn(d.school));
 function render(d) {
-  const el = $('#appr'); if (!el) return;
-  if (!badgeOn(d.school)) { el.hidden = true; el.innerHTML = ''; return; }
-  el.hidden = false;
+  const el = $('#appr'), wrap = $('#appr-wrap'), pill = $('#appr-pill'); if (!el || !wrap) return;
+  if (!badgeOn(d.school)) { wrap.hidden = true; el.hidden = true; el.innerHTML = ''; return; }
+  wrap.hidden = false;
   const on = !!d.faculty_approved_at, edited = on && editedSinceApproval(d), can = canApprove(d) && d.status !== 'published';
+  pill.className = 'pill appr' + (on ? ' on' : '') + (edited ? ' edited' : '');
+  pill.innerHTML = (on ? '✓ <span class="long">Faculty </span>approved · ' + esc(person(d.faculty_approved_by).name) + (edited ? ' · edited' : '') : 'Faculty approval') + ' <span class="cv" aria-hidden="true">▾</span>';
   const head = on ? 'Faculty approved ✓ ' + person(d.faculty_approved_by).name : 'No faculty approval yet';
   const btns = !can ? '' : !on ? '<button type="button" class="btn primary" id="appr-go">Approve puzzle</button>'
     : (edited ? '<button type="button" class="btn primary" id="appr-go">Re-approve</button>' : '') +
       (d.faculty_approved_by === S.me || S.owner ? '<button type="button" class="btn small ghost" id="appr-x">' + (d.faculty_approved_by === S.me ? 'Remove my approval' : 'Remove approval') + '</button>' : '');
-  el.innerHTML = '<div class="appr-row">' + (on ? sealHtml(d, 'lg') : '<span class="seal seal-empty" aria-hidden="true"><span class="seal-top">Faculty</span><span class="seal-ck">?</span><span class="seal-bot">approval</span></span>') +
+  el.innerHTML = '<h3 class="pop-h">Faculty approval</h3><div class="appr-row">' + (on ? sealHtml(d, 'lg') : '<span class="seal seal-empty" aria-hidden="true"><span class="seal-top">Faculty</span><span class="seal-ck">?</span><span class="seal-bot">approval</span></span>') +
     '<div class="stack" style="--gap:6px"><b id="appr-h">' + esc(head) + '</b>' +
     (edited ? '<p class="appr-edited" id="appr-edited">Edited since approval. The puzzle changed after ' + esc(person(d.faculty_approved_by).name) + ' approved it.</p>' : '') +
     '<p class="muted appr-note">' + (on ? 'Approved ' + esc(when(d.faculty_approved_at)) + '. ' : '') + 'Optional. Scheduling and publishing never wait on it.</p>' +
@@ -35,7 +39,7 @@ function mount() {
       if (!(await setApproval(d.id, on))) return;
       toast(on ? (again ? 'Re-approved. The seal is up to date.' : 'Approved. The seal now shows on the draft, the Calendar and the Archive.') : 'Approval removed');
       await refresh();
-      const f = $('#appr-x') || $('#appr-go'); if (f) f.focus();
+      const f = $('#appr-x') || $('#appr-go') || $('#appr-pill'); if (f) f.focus();
     });
   });
 }

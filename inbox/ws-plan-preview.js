@@ -124,8 +124,10 @@ function exportDialog() {
 function mount() {
   const col = $('#pv-col'); if (!col) return;
   col.hidden = false;
-  col.innerHTML = '<div class="row spread"><h2 id="pv-h">Live preview</h2><span class="row" style="--gap:6px"><button type="button" class="btn small" id="pv-player">Preview as player</button>' +
-    '<button type="button" class="btn small" id="pv-export">Export puzzle spec</button></span></div>' + tabsHtml('data-pv', view) +
+  col.innerHTML = '<div class="pv-head"><h2 id="pv-h">Live preview</h2><button type="button" class="btn small ghost rail-x" id="pv-fold" aria-controls="pv-col" aria-label="Fold the Live preview" title="Fold the Live preview">»</button>' +
+    '<button type="button" class="btn small primary sheet-done" data-sheet-x>Done</button></div>' +
+    '<div class="row pv-acts" style="--gap:6px"><button type="button" class="btn small" id="pv-player">Preview as player</button>' +
+    '<button type="button" class="btn small" id="pv-export">Export puzzle spec</button></div>' + tabsHtml('data-pv', view) +
     '<p class="empty" id="pv-empty" hidden>Put a category in a slot to see the desk and the results screen.</p>' +
     '<iframe class="pv-frame" id="pv-frame" title="Live preview of the puzzle" src="' + FRAME_SRC + '"></iframe>' +
     '<p class="hint pv-hint">Drawn by the game itself. Slides show a letter until they go under the microscope; films are shown lit.</p>';
