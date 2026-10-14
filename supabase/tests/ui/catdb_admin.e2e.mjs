@@ -29,17 +29,21 @@ check('A1 closing returns to #/categories', (await P.js('location.hash')) === '#
 check('A2 sub-tabs with counts', /^All categories 7\s*🗑 Trash 2$/.test(await P.text('#cat-subtabs')), await P.text('#cat-subtabs'));
 check('A2 result line', (await P.text('#sug-n')) === 'Showing 7 of 7 categories in the database', await P.text('#sug-n'));
 
-// 3. Usage line from category_usage + votes; drafts counted only where RLS lets me see them.
-const line = (id) => P.text(card(id) + ' .card-line');
-check('A3 used as-is + adapted, schools', /^Used 2× \(1 as-is, 1 adapted\) · CMSRU, RVSOM · 👍 1 \(0 from CMSRU\)$/.test(await line(C.hemoptysis)), await line(C.hemoptysis));
-check('A3 votes all vs my school + comments', /^Never used · 👍 3 \(2 from CMSRU\) · 💬 2$/.test(await line(C.clubbing)), await line(C.clubbing));
-check('A3 in a CMSRU draft', /in 1 draft/.test(await line(C.lead)), await line(C.lead));
+// 3. Usage (top right, zeros hidden) from category_usage; 👍 with the my-school split in its tooltip;
+//    drafts counted only where RLS lets me see them.
+const line = (id) => P.text(card(id) + ' .card-use');
+const vote = (id) => P.js(`(() => { const b = document.querySelector(${JSON.stringify(card(id) + ' .card-acts .vote-btn')}); return b ? b.textContent + ' | ' + b.dataset.tip : null; })()`);
+check('A3 used in 2 published puzzles', (await line(C.hemoptysis)) === 'In 2 published puzzles', await line(C.hemoptysis));
+check('A3 as-is/adapted + schools in the usage tooltip', (await P.attr(card(C.hemoptysis) + ' .u-pub', 'title')) === '1 as-is, 1 adapted · CMSRU, RVSOM');
+check('A3 👍 once, my-school split only in the tooltip', (await vote(C.hemoptysis)) === '👍 1 | 1 thumbs up · 0 from CMSRU · 1 school' && (await vote(C.clubbing)) === '👍 3 | You and 2 others · 2 from CMSRU · 2 schools', [await vote(C.hemoptysis), await vote(C.clubbing)]);
+check('A3 never used + comments', (await line(C.clubbing)) === 'Not used yet💬 2', await line(C.clubbing));
+check('A3 in a CMSRU draft', (await line(C.lead)) === 'In 1 draft', await line(C.lead));
 check('A3 RV-only draft is invisible to CMSRU', !/draft/.test(await line(C.asthma)), await line(C.asthma));
-check('A3 imported category shows source', /From published puzzle holes-haze-and-old-paint-2026-10-08/.test(await P.text(card(C.imported))));
+check('A3 imported category: no source / credit text on the card', !/From published puzzle|Puzzle group|John Doe/.test(await P.text(card(C.imported))), await P.text(card(C.imported)));
 
 // 4. Filters: school multi-select, chips, block, usage, more filters, clear.
-check('A4 always-visible filters', (await P.count('#filters #ms-btn')) === 1 && (await P.count('#filters [data-f="block"]')) > 5 && (await P.count('#filters [data-seg="used"]')) === 4);
-check('A4 rest is under More filters (hidden)', (await P.attr('#more-panel', 'hidden')) !== null);
+check('A4 school, block, usage sections open', (await P.visible('#filters #ms-btn')) && (await P.count('#filters [data-f="block"]')) > 5 && (await P.visible('#filters [data-seg="used"]')) && (await P.count('#filters [data-seg="used"]')) === 4);
+check('A4 the rest are folded sections, no More filters button', (await P.js('["st","tier","ct","sub","dates","vfrom"].every((k) => document.getElementById("fsb-" + k).hidden && document.getElementById("fsh-" + k).getAttribute("aria-expanded") === "false")')) && (await P.count('#more-f')) === 0);
 await P.click('#ms-btn'); await P.sleep(100);
 check('A4 school picker opens with search focused', (await P.focused()) === 'ms-q');
 await P.type('#ms-q', 'virtua'); await P.sleep(50);
@@ -55,10 +59,11 @@ await P.click('#filters [data-seg="used"][data-v="never"]'); await P.settle();
 check('A4 usage: never used', JSON.stringify((await P.names()).sort()) === JSON.stringify(['Asthma triggers', 'Causes of clubbing']), await P.names());
 await P.click('#filters [data-seg="used"][data-v="draft"]'); await P.click('#filters [data-f="block"][data-v="Pulm"]'); await P.settle();
 check('A4 usage: in a draft', JSON.stringify(await P.names()) === JSON.stringify(['Lead poisoning signs']), await P.names());
-await P.click('#more-f'); await P.sleep(50);
-check('A4 More filters opens', (await P.attr('#more-panel', 'hidden')) === null && /Status/.test(await P.text('#more-panel')) && /Count 👍 from/.test(await P.text('#more-panel')));
+await P.click('#fsh-tier'); await P.sleep(50);
+check('A4 a folded section opens', !(await P.js('document.getElementById("fsb-tier").hidden')) && (await P.attr('#fsh-tier', 'aria-expanded')) === 'true' && (await P.focused()) === 'fsh-tier');
 await P.click('#filters [data-seg="used"][data-v="any"]'); await P.click('#filters [data-f="tier"][data-v="4"]'); await P.settle();
-check('A4 difficulty filter (more) + count badge', JSON.stringify(await P.names()) === JSON.stringify(['Cheese-related']) && /More filters 1/.test(await P.text('#more-f')));
+await P.click('#fsh-tier'); await P.sleep(50);
+check('A4 difficulty filter + badge on the folded heading', JSON.stringify(await P.names()) === JSON.stringify(['Cheese-related']) && (await P.text('#fsh-tier .fsec-n')) === '1', await P.text('#fsh-tier'));
 await P.click('#af-clear'); await P.settle();
 check('A4 Clear all', (await P.count('#sug-list .sug-card')) === 7 && (await P.text('#f-toggle')) === 'Filters');
 

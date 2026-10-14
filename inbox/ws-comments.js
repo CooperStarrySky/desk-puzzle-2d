@@ -29,8 +29,15 @@ function visToggle(id) {
     '<button type="button" role="radio" data-v="school" aria-checked="' + (def === 'school') + '">🔒 My school only</button>' +
     '<button type="button" role="radio" data-v="all" aria-checked="' + (def === 'all') + '">🌐 All schools</button></div>';
 }
-/* opts.vis: show the 🔒/🌐 choice (comments on a category). */
+/* opts.vis: show the 🔒/🌐 choice (comments on a category). opts.bare: no
+   heading, and the box under the comments (the category's folding Comments row). */
 export function commentsHtml(r, list, opts) {
+  if (opts && opts.bare) {
+    return '<div class="comments">' + (list.length ? list.map((c) => oneHtml(c, opts.vis)).join('') : '<p class="muted">No comments yet.</p>') + '</div>' +
+      '<div class="composer"><label class="sr" for="cm-' + esc(r.id) + '">Write a comment</label>' +
+      '<textarea class="input cm-in" id="cm-' + esc(r.id) + '" maxlength="2000" rows="2" placeholder="Write a comment…"></textarea>' +
+      '<div class="row composer-row">' + (opts.vis ? visToggle(r.id) : '') + '<button type="button" class="btn primary small" data-cact="post">Post</button></div></div>';
+  }
   return '<section><h4 class="sd-h">Comments (' + list.length + ')</h4><div class="comments">' + list.map((c) => oneHtml(c, opts && opts.vis)).join('') +
     '<div class="cmt">' + av(S.me, 1) + '<div class="stack" style="--gap:6px"><label class="sr" for="cm-' + esc(r.id) + '">Add a comment</label>' +
     '<textarea class="input cm-in" id="cm-' + esc(r.id) + '" maxlength="2000" rows="2" placeholder="Comment as ' + esc(person(S.me).name) + '…"></textarea>' + (opts && opts.vis ? visToggle(r.id) : '') +

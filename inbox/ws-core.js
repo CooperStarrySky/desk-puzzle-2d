@@ -36,6 +36,21 @@ export function toastAct(msg, acts, ms) {
 /* schName: the short code for tight spots ("CMSRU"); schFull: the school's full name. */
 export const schName = (slug) => String(slug || '').toUpperCase();
 export const schFull = (slug) => { const s = S.schools.get(slug); return s ? s.name : schName(slug); };
+/* The "Submitted to CMSRU" pill in the school's own color, with black or white
+   text, whichever reads better on it (WCAG contrast). */
+export const DEFAULT_PILL = '#4a5568';
+export const hexOk = (c) => /^#[0-9a-f]{6}$/i.test(String(c || ''));
+export const schColor = (slug) => { const s = S.schools.get(slug); return s && hexOk(s.color) ? s.color.toLowerCase() : DEFAULT_PILL; };
+const lum = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+  .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+export const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+export const pillInk = (bg) => (contrast(bg, '#ffffff') >= contrast(bg, '#16141f') ? '#ffffff' : '#16141f');
+export function schPill(slug, small, color) {
+  if (!slug) return '';
+  const bg = hexOk(color) ? color.toLowerCase() : schColor(slug);
+  return '<span class="sch-pill' + (small ? ' sm' : '') + '" style="--pill:' + bg + ';--pill-ink:' + pillInk(bg) + '" title="Sent in to ' + esc(schFull(slug)) + '">' +
+    (small ? '' : 'Submitted to ') + esc(schName(slug)) + '</span>';
+}
 export const roleIn = (school) => (S.owner ? 'owner' : S.roles[school] || null);
 /* Trash, restore and tags in the shared bank: the owner or any school's lead/admin. */
 export const isCurator = () => S.owner || Object.values(S.roles).some((r) => r === 'lead' || r === 'admin');
@@ -230,6 +245,8 @@ export async function signedUrl(path) {
   return data.signedUrl;
 }
 export async function fillImages(root) {
+  // Plain web links (images of imported published puzzles) need no signing.
+  $$('[data-src]', root).forEach((el) => { if (!el.style.backgroundImage) el.style.backgroundImage = 'url("' + el.dataset.src.replace(/["\\\n]/g, (c) => '\\' + c) + '")'; });
   await Promise.all($$('[data-path]', root).map(async (el) => {
     const url = await signedUrl(el.dataset.path);
     if (!el.isConnected) return;

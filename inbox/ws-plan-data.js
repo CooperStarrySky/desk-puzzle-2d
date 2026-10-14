@@ -13,7 +13,7 @@ const DCOLS = 'id, title, block, target_release, status, owner_email, notes, dis
 /* usage: submission id -> category_usage row (times used, drafts_count), for the Database rail's filters.
    uses: submission id -> [{ school, puzzle_id, puzzle_date, adapted }] (category_uses, every school).
    removed: slot removals per draft (review_events), for "edited since approval". */
-export const PL = { drafts: [], slots: [], events: [], jobs: [], subs: new Map(), votes: new Map(), uses: new Map(), usage: new Map(), removed: [], loaded: false, err: '', seq: 0 };
+export const PL = { drafts: [], slots: [], events: [], jobs: [], subs: new Map(), votes: new Map(), voteSch: new Map(), uses: new Map(), usage: new Map(), removed: [], loaded: false, err: '', seq: 0 };
 
 export async function loadPlanner() {
   const seq = ++PL.seq;
@@ -24,7 +24,7 @@ export async function loadPlanner() {
       S.sb.from('draft_events').select('id, draft_id, draft_title, actor_email, action, note, notify_email, at').order('at', { ascending: false }).limit(3000),
       S.sb.from('publish_jobs').select('id, draft_id, requested_by, requested_at, kind, state, step, error, finished_at').order('requested_at', { ascending: false }).limit(500),
       S.sb.from('submissions').select(COLS).order('created_at', { ascending: false }).limit(2000),
-      S.sb.from('votes').select('submission_id, voter_email').limit(10000),
+      S.sb.from('votes').select('submission_id, voter_email, school').limit(10000),
       S.sb.from('category_uses').select('submission_id, school, puzzle_id, puzzle_date, adapted').order('published_at', { ascending: false }).limit(5000),
       S.sb.from('review_events').select('draft_id, action, at').eq('action', 'remove_from_draft').order('at', { ascending: false }).limit(3000),
       S.sb.from('category_usage').select('submission_id, times_used, as_is, adapted, schools, drafts_count').limit(5000)]);
@@ -35,6 +35,7 @@ export async function loadPlanner() {
     PL.usage = new Map(cu.map((u) => [u.submission_id, u]));
     PL.drafts = d; PL.slots = sl; PL.events = ev; PL.jobs = jb;
     PL.subs = new Map(su.map((r) => [r.id, r]));
+    PL.voteSch = new Map(vo.map((v) => [v.submission_id + '|' + v.voter_email, v.school]));
     PL.votes = new Map(); vo.forEach((v) => { if (!PL.votes.has(v.submission_id)) PL.votes.set(v.submission_id, []); PL.votes.get(v.submission_id).push(v.voter_email); });
     PL.uses = new Map(); us.forEach((u) => { if (!PL.uses.has(u.submission_id)) PL.uses.set(u.submission_id, []); PL.uses.get(u.submission_id).push(u); });
     PL.removed = rm.filter((x) => x.draft_id);

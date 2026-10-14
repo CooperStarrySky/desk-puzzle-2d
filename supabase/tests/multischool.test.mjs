@@ -105,6 +105,13 @@ async function main() {
   await c3.checkPurgeAndAnon(db, ok, ID, P);
   const c4 = await import('./multischool_checks4.mjs');
   await c4.checkS4(db, ok, P);
+  // Later migrations on top (school pill color, ...).
+  try {
+    for (const f of migrationFiles().filter((f) => f > NEW)) await applyMigration(db, f);
+    ok(true, 'later migrations apply on top');
+  } catch (e) { ok(false, 'later migrations apply on top', e.message); return; }
+  const c5 = await import('./multischool_checks5.mjs');
+  await c5.checkSchoolColor(db, ok, P);
 }
 
 await main();

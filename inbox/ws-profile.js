@@ -11,7 +11,9 @@ export async function loadPeople() {
     S.sb.from('members').select('email, school, role, display_name, color, active').eq('email', S.me),
     S.sb.from('site_owners').select('email').eq('email', S.me),
     S.sb.rpc('member_names'),
-    S.sb.from('schools').select('slug, name, status').order('name', { ascending: true }),
+    // The pill color needs 20261014120000_school_color.sql; before that, fall back to no color.
+    S.sb.from('schools').select('slug, name, status, color').order('name', { ascending: true })
+      .then((x) => (x.error ? S.sb.from('schools').select('slug, name, status').order('name', { ascending: true }) : x)),
     S.sb.from('school_settings').select('school, comment_default, faculty_badge')]);
   const rows = (mine.data || []).filter((r) => r.active);
   S.owner = !own.error && (own.data || []).length > 0;

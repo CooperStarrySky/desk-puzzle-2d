@@ -28,6 +28,7 @@ const cat = (name, labels) => ({ name, explanation: name + ' explained.', items:
 export async function seed(db) {
   const x = (sql, p) => db.query(sql, p);
   await x(`insert into public.schools (slug, name, status) values ('rvsom', 'Rowan-Virtua SOM', 'active')`);
+  await x(`update public.schools set color = '#6b4a2e' where slug = 'rvsom'`);
   await x(`update public.school_settings set comment_default = 'all' where school = 'rvsom'`);
   await x(`insert into public.site_owners (email) values ($1)`, [U.OWNER]);
   await x(`delete from public.members`);

@@ -34,6 +34,8 @@ function groupBody(g) {
   return '<div class="desk"><div class="pieces">' + items.map(pieceHtml).join('') + '</div></div>' + items.map(clueHtml).join('') +
     articleHtml(g.article) + (nids.length ? '<p class="hint">Anki: <span class="code">' + nids.map(esc).join(', ') + '</span></p>' : '');
 }
+/* Just the clues of one category (the desk, then each clue with its pictures). */
+export const cluesHtml = (g) => groupBody(g);
 /* Explanation + clues for either shape: a category, or a full puzzle's 4 groups. */
 export function contentHtml(r) {
   if (!isPuzzle(r)) {

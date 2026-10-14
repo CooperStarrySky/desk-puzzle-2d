@@ -5,7 +5,8 @@
    for every school, how long the Trash keeps things (site owner only; the
    clean-up job that uses it is scheduled separately, see supabase/SETUP.md);
    and "Show What's new" again. Everyone can open it; locked rows say why. */
-import { S, $, esc, toast, openModal, plainError, prefGet, prefSet, schFull } from './ws-core.js';
+import { S, $, $$, esc, busy, toast, openModal, plainError, prefGet, prefSet, schFull, schName, schPill, schColor, hexOk } from './ws-core.js';
+import { redraw } from './ws-suggest.js';
 
 const AUTODEL = [['', 'Never (default)'], ['30', '30 days'], ['90', '90 days'], ['180', '180 days'], ['365', '1 year']];
 const WN_KEY = () => 'dp2d:ws-whatsnew-multischool:' + S.me; // '' open line, 'gone' dismissed, 'open' list shown
@@ -27,6 +28,35 @@ export function initSettings() {
   b.addEventListener('click', openSettings);
 }
 const canSchool = (k) => S.owner || S.roles[k] === 'lead';
+/* The "Submitted to" pill color: a few presets, or any color. */
+const PILL_PRESETS = [['#9e1b32', 'Crimson'], ['#1f3a68', 'Navy'], ['#0f6e70', 'Teal'], ['#2f6b3a', 'Forest'], ['#6b4a2e', 'Brown'], ['#5b3fa0', 'Purple'], ['#b45309', 'Amber'], ['#4a5568', 'Slate']];
+function pillRow(k, off) {
+  const cur = schColor(k);
+  return '<div class="set-row pill-row"><div><b id="pc-l">Pill color</b><p class="muted">The “Submitted to ' + esc(schName(k)) + '” pill on every category card. Text turns black or white, whichever reads better.</p>' +
+    '<p class="pill-prev" id="pc-prev" aria-live="polite">' + schPill(k, false, cur) + ' ' + schPill(k, true, cur) + '</p></div>' +
+    '<div class="pill-pick"><div class="swatches" role="radiogroup" aria-labelledby="pc-l">' + PILL_PRESETS.map(([c, n]) =>
+      '<button type="button" class="swatch" role="radio" data-pc="' + c + '" style="--sw:' + c + '" aria-checked="' + (c === cur) + '" aria-label="' + n + '" title="' + n + '"' + off + '>' + (c === cur ? '✓' : '') + '</button>').join('') + '</div>' +
+    '<div class="row" style="--gap:8px"><label class="pc-custom"><span>Custom</span><input type="color" id="pc-in" value="' + esc(cur) + '"' + off + '></label>' +
+    '<button type="button" class="btn small primary" id="pc-save" disabled' + '>Save color</button></div></div></div>';
+}
+function wirePill(m, k) {
+  const inp = $('#pc-in', m), save = $('#pc-save', m); if (!inp || inp.disabled) return;
+  let color = schColor(k);
+  const paint = () => {
+    $('#pc-prev', m).innerHTML = schPill(k, false, color) + ' ' + schPill(k, true, color);
+    $$('[data-pc]', m).forEach((b) => { const on = b.dataset.pc === color; b.setAttribute('aria-checked', String(on)); b.textContent = on ? '✓' : ''; });
+    inp.value = color; save.disabled = color === schColor(k);
+  };
+  $('.pill-pick .swatches', m).addEventListener('click', (e) => { const b = e.target.closest('[data-pc]'); if (b) { color = b.dataset.pc; paint(); } });
+  inp.addEventListener('input', () => { if (hexOk(inp.value)) { color = inp.value.toLowerCase(); paint(); } });
+  save.addEventListener('click', () => busy(save, 'Saving…', async () => {
+    const { data, error } = await S.sb.rpc('set_school_color', { p_school: k, p_color: color });
+    if (error) { toast('Could not save the color: ' + plainError(error), 5000); return; }
+    const row = S.schools.get(k); if (row) row.color = data || color;
+    toast(schName(k) + '’s pill color saved'); paint();
+    if ($('#sug-list')) redraw();
+  }));
+}
 function schoolBox(k) {
   const st = S.settings[k] || { faculty_badge: true, comment_default: 'school' }, off = canSchool(k) ? '' : ' disabled';
   return '<fieldset class="set-box" id="set-sch" data-school="' + esc(k) + '"><legend>' + esc(schFull(k)) + '</legend>' +
@@ -35,7 +65,7 @@ function schoolBox(k) {
     '<div class="set-row"><div><b id="cmd-l">New comments start as</b><p class="muted">People can still switch it on each comment.</p></div>' +
     '<select class="input" id="set-cm" aria-labelledby="cmd-l"' + off + '><option value="school"' + (st.comment_default !== 'all' ? ' selected' : '') + '>🔒 My school only</option>' +
     '<option value="all"' + (st.comment_default === 'all' ? ' selected' : '') + '>🌐 All schools</option></select></div>' +
-    (off ? '<p class="lock-note">Only this school’s lead or the site owner can change these.</p>' : '') + '</fieldset>';
+    pillRow(k, off) + (off ? '<p class="lock-note">Only this school’s lead or the site owner can change these.</p>' : '') + '</fieldset>';
 }
 export async function openSettings() {
   const mine = S.owner ? [...S.schools.keys()] : Object.keys(S.roles);
@@ -64,6 +94,7 @@ export async function openSettings() {
       }));
       if (c && !c.disabled) c.addEventListener('change', () => saveSchool(k, { comment_default: c.value }, () =>
         toast('New comments at ' + schFull(k) + ' now start as ' + (c.value === 'all' ? 'All schools' : 'My school only'))));
+      wirePill(m, k);
     };
     wire();
     const pick = $('#set-pick', m);

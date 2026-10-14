@@ -1,17 +1,18 @@
-/* Puzzle workspace: Category database filters. Always visible: search,
-   receiving school (searchable multi-select), block, usage. The rest sits
-   under "More filters". Active filters show as chips with × and Clear all;
+/* Puzzle workspace: Category database filters. Search sits above the list;
+   every filter group is a folding section (school, block and usage open at
+   first, the rest folded; kept per browser). Active filters show as chips with × and Clear all;
    on a phone the panel is a drawer ("Filters (n)"). Saved views are presets
    plus your own, kept in this browser. Trash uses the same panel.
    The Planner's Database rail reuses all of it through a context (planner
    rows, its own filter state, extra filters, no saved views): searchHtml(ctx)
    and wireFilters(ctx) pick the context; one view is on screen at a time. */
 import { S, $, esc, toast, openModal, person, schName, schFull, fmtD, TIER_WORDS, prefJson, prefSet } from './ws-core.js';
+import { sideStrip, sideHandle, sideCount, foldSide, mountSide } from './ws-cat-side.js';
 import { V, FS, cf, match, stOf, search, renderList, BLOCKS } from './ws-suggest.js';
 
 const SNAP = ['q', 'school', 'block', 'used', 'st', 'tier', 'ct', 'sub', 'from', 'to', 'vfrom', 'since', 'unusedMine', 'tby', 'sort'];
 export const blankF = (view) => ({ view, q: '', school: [], block: [], used: 'any', st: [], tier: [], ct: [], sub: 'all', from: '', to: '', vfrom: 'all',
-  since: false, unusedMine: false, tby: '', sort: view === 'trash' ? 'trashed' : 'newest', more: false, schQ: '', schOpen: false, drawer: false });
+  since: false, unusedMine: false, tby: '', sort: view === 'trash' ? 'trashed' : 'newest', schQ: '', schOpen: false, drawer: false });
 const CTYPES = [['slide', 'Slide'], ['xray', 'X-ray'], ['photo', 'Photo'], ['text', 'Text']];
 const USED = [['any', 'Any'], ['never', 'Never used'], ['used', 'Used'], ['draft', 'In a draft']];
 const ST = [['new', 'New'], ['draft', 'In a draft'], ['used', 'Used']];
@@ -20,27 +21,44 @@ export const CAT_SORTS = [['newest', 'Newest first'], ['oldest', 'Oldest first']
 /* The context: where the rows, the filter state and the redraw come from. CAT = the Category database tab. */
 const CAT = { F: () => cf(), rows: () => V.rows, match: (r, skip) => match(r, skip), school: (r) => r.school, tags: (r) => r.tags || [], st: (r) => stOf(r),
   trash: () => V.view === 'trash', sorts: () => (V.view === 'trash' ? [['trashed', 'Recently trashed']] : []).concat(CAT_SORTS),
-  setF: (F) => { FS[V.view] = F; }, blank: () => blankF(V.view), refresh: (f) => refresh(f), views: true, vfrom: true, extra: [], placeholder: '' };
+  setF: (F) => { FS[V.view] = F; }, blank: () => blankF(V.view), refresh: (f) => refresh(f), views: true, vfrom: true, extra: [], placeholder: '', name: 'cat', side: true };
 let C = CAT;
 const use = (ctx) => { C = ctx || CAT; return C; };
 const cf2 = () => C.F();
 
 export function filtersShell() {
-  return '<div class="sug-layout"><div class="f-scrim" id="f-scrim" hidden></div><aside class="filters panel" id="filters" aria-label="Filters"></aside>';
+  return '<div class="sug-layout"><div class="f-scrim" id="f-scrim" hidden></div><div class="f-side">' + sideStrip() +
+    '<aside class="filters panel side" id="filters" aria-label="Filters"></aside>' + sideHandle() + '</div>';
 }
-export function searchHtml(ctx) {
+/* tail: more controls after the sort (the Comfortable / Compact switch). */
+export function searchHtml(ctx, tail) {
   const F = use(ctx).F(), trash = C.trash();
   return '<div class="searchbar" role="search"><label class="sr" for="sug-q">Search ' + (trash ? 'Trash' : 'categories') + '</label>' +
     '<input class="input" type="search" id="sug-q" autocomplete="off" placeholder="' + (C.placeholder || (trash ? 'Search trashed names, clues, reasons…' : 'Search names, clues, explanations…')) + '" value="' + esc(F.q) + '">' +
-    '<label class="sr" for="sug-sort">Sort</label><select class="input" id="sug-sort">' + C.sorts().map((o) => '<option value="' + o[0] + '"' + (F.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div>';
+    '<label class="sr" for="sug-sort">Sort</label><select class="input" id="sug-sort">' + C.sorts().map((o) => '<option value="' + o[0] + '"' + (F.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>' + (tail || '') + '</div>';
 }
 
-/* ===== The panel ===== */
-const chipGroup = (key, opts, label) => '<fieldset class="fgroup"><legend class="eyebrow">' + label + '</legend><div class="chips">' + opts.map((o) =>
+/* ===== The panel: one folding section per filter group =====
+   School, Block and Usage start open, the rest start folded; your choice is
+   kept per browser (per screen: database or Planner). A folded heading shows
+   how many of its filters are on. */
+const OPEN0 = { school: true, block: true, used: true };
+const secKey = () => 'dp2d:fsec:' + (C.name || 'cat');
+const secOpen = (k) => { const v = prefJson(secKey(), {}) || {}; return v[k] == null ? !!OPEN0[k] : !!v[k]; };
+function setSec(k, on) { const v = prefJson(secKey(), {}) || {}; v[k] = !!on; prefSet(secKey(), JSON.stringify(v)); }
+function sec(k, label, inner, n) {
+  const open = secOpen(k);
+  return '<section class="fsec" data-sec="' + k + '"><h3 class="fsec-h"><button type="button" class="fsec-btn" id="fsh-' + k + '" aria-expanded="' + open + '" aria-controls="fsb-' + k + '">' +
+    '<span class="grow">' + esc(label) + '</span>' + (n && !open ? '<span class="fsec-n" aria-label="' + n + ' on">' + n + '</span>' : '') + '<span class="chev" aria-hidden="true"></span></button></h3>' +
+    '<div class="fsec-b" id="fsb-' + k + '" role="group" aria-labelledby="fsh-' + k + '"' + (open ? '' : ' hidden') + '>' + inner + '</div></section>';
+}
+const chips = (key, opts) => '<div class="chips">' + opts.map((o) =>
   '<button type="button" class="chip" data-f="' + key + '" data-v="' + esc(o[0]) + '" aria-pressed="' + cf2()[key].includes(o[0]) + '">' + (o[2] || '') + esc(o[1]) +
-  (o[3] != null ? ' <span class="n">' + o[3] + '</span>' : '') + '</button>').join('') + '</div></fieldset>';
-const seg = (key, cur, opts, label) => '<fieldset class="fgroup"><legend class="eyebrow">' + label + '</legend><div class="chips">' + opts.map((o) =>
-  '<button type="button" class="chip" data-seg="' + key + '" data-v="' + o[0] + '" aria-pressed="' + (cur === o[0]) + '">' + esc(o[1]) + '</button>').join('') + '</div></fieldset>';
+  (o[3] != null ? ' <span class="n">' + o[3] + '</span>' : '') + '</button>').join('') + '</div>';
+const chipGroup = (key, opts, label) => sec(key, label, chips(key, opts), cf2()[key].length);
+const segs = (key, cur, opts) => '<div class="chips">' + opts.map((o) =>
+  '<button type="button" class="chip" data-seg="' + key + '" data-v="' + o[0] + '" aria-pressed="' + (cur === o[0]) + '">' + esc(o[1]) + '</button>').join('') + '</div>';
+const seg = (key, cur, opts, label, def) => sec(key, label, segs(key, cur, opts), cur !== (def == null ? opts[0][0] : def) ? 1 : 0);
 function msList() {
   const F = cf2(), q = F.schQ.toLowerCase().trim(), keys = [...S.schools.keys()].filter((k) => !q || (S.schools.get(k).name + ' ' + k).toLowerCase().includes(q));
   if (!keys.length) return '<li class="faint ms-none">No school matches “' + esc(F.schQ) + '”</li>';
@@ -49,41 +67,43 @@ function msList() {
 }
 function schoolMs() {
   const F = cf2(), sel = F.school, sum = !sel.length ? 'Any school' : sel.length === 1 ? schName(sel[0]) : sel.length + ' schools';
-  return '<fieldset class="fgroup ms"><legend class="eyebrow">Receiving school</legend>' +
+  return sec('school', 'Receiving school', '<div class="ms">' +
     (sel.length ? '<div class="ms-chips">' + sel.map((k) => '<span class="ms-chip">' + esc(schName(k)) + '<button type="button" data-msx="' + esc(k) + '" aria-label="Remove ' + esc(schName(k)) + '">×</button></span>').join('') +
       '<button type="button" class="btn small ghost" id="ms-clear">Clear all</button></div>' : '') +
-    '<button type="button" class="input ms-btn" id="ms-btn" aria-expanded="' + F.schOpen + '" aria-controls="ms-pop">' + esc(sum) + '<span class="chev" aria-hidden="true"></span></button>' +
+    '<button type="button" class="input ms-btn" id="ms-btn" aria-label="Receiving school: ' + esc(sum) + '" aria-expanded="' + F.schOpen + '" aria-controls="ms-pop">' + esc(sum) + '<span class="chev" aria-hidden="true"></span></button>' +
     '<div class="ms-pop" id="ms-pop"' + (F.schOpen ? '' : ' hidden') + '><label class="sr" for="ms-q">Find a school</label><input class="input" id="ms-q" type="search" autocomplete="off" placeholder="Type to find a school…" value="' + esc(F.schQ) + '">' +
     '<ul class="ms-list" id="ms-list" aria-label="Schools">' + msList() + '</ul><div class="row spread"><span class="faint" style="font-size:.76rem">' + S.schools.size + ' schools</span>' +
-    '<button type="button" class="btn small" id="ms-done">Done</button></div></div></fieldset>';
+    '<button type="button" class="btn small" id="ms-done">Done</button></div></div></div>', sel.length);
 }
 export function renderFilters() {
   const el = $('#filters'); if (!el) return;
-  const F = cf2(), trash = C.trash(), moreN = activeF().filter((a) => a.more).length, n = C.rows().filter((r) => C.match(r)).length;
+  const F = cf2(), trash = C.trash(), n = C.rows().filter((r) => C.match(r)).length, on = activeF().filter((a) => !a.search).length;
   const blocks = BLOCKS.slice(); C.rows().forEach((r) => C.tags(r).forEach((t) => { if (!blocks.includes(t)) blocks.push(t); }));
   const stN = (st) => C.rows().filter((r) => C.st(r) === st && C.match(r, 'st')).length;
   const tby = [...new Set(C.rows().filter((r) => r.status === 'trashed' && r.trashed_by).map((r) => r.trashed_by))];
-  el.innerHTML = '<div class="f-head"><h2>Filters</h2><button type="button" class="btn small ghost" id="f-x" aria-label="Close filters">✕</button></div>' +
+  el.classList.toggle('side', !!C.side);
+  el.innerHTML = '<div class="f-head"><h2 id="f-h">Filters' + (on ? ' <span class="fsec-n">' + on + '</span>' : '') + '</h2>' +
+    (C.side ? '<button type="button" class="btn small ghost rail-x" id="f-fold" aria-controls="filters" aria-label="Fold the filters" title="Fold the filters">«</button>' : '') +
+    '<button type="button" class="btn small ghost f-x" id="f-x" aria-label="Close filters">✕</button></div>' +
     schoolMs() + chipGroup('block', blocks.map((b) => [b, b]), 'Block / system') + seg('used', F.used, USED, 'Usage') +
-    '<button type="button" class="btn small more-f" id="more-f" aria-expanded="' + F.more + '" aria-controls="more-panel">More filters' + (moreN ? ' <span class="n">' + moreN + '</span>' : '') + '<span class="chev" aria-hidden="true"></span></button>' +
-    '<div class="stack more-panel" id="more-panel" style="--gap:14px"' + (F.more ? '' : ' hidden') + '>' +
-    (trash ? '<label class="field"><span>Trashed by</span><select class="input" id="f-tby"><option value="">Anyone</option>' + tby.map((e) => '<option value="' + esc(e) + '"' + (F.tby === e ? ' selected' : '') + '>' + esc(person(e).name) + '</option>').join('') + '</select></label>'
+    (trash ? sec('tby', 'Trashed by', '<label class="sr" for="f-tby">Trashed by</label><select class="input" id="f-tby"><option value="">Anyone</option>' +
+      tby.map((e) => '<option value="' + esc(e) + '"' + (F.tby === e ? ' selected' : '') + '>' + esc(person(e).name) + '</option>').join('') + '</select>', F.tby ? 1 : 0)
       : chipGroup('st', ST.map((o) => [o[0], o[1], '', stN(o[0])]), 'Status')) +
     chipGroup('tier', [1, 2, 3, 4].map((t) => [String(t), TIER_WORDS[t], '<span class="tierdot t' + t + '"></span>']), 'Suggested difficulty') +
     chipGroup('ct', CTYPES, 'Clue types') + seg('sub', F.sub, [['all', 'Anyone'], ['named', 'Named'], ['anon', 'Anonymous']], 'Submitter') +
-    '<fieldset class="fgroup"><legend class="eyebrow">Submitted between</legend><div class="fdates">' +
-    '<label class="field"><span>From</span><input class="input" type="date" id="f-from" value="' + esc(F.from) + '"></label>' +
-    '<label class="field"><span>To</span><input class="input" type="date" id="f-to" value="' + esc(F.to) + '"></label></div></fieldset>' +
-    C.extra.map((x) => seg(x.key, F[x.key], x.opts, x.label)).join('') +
-    (S.school && C.vfrom ? seg('vfrom', F.vfrom, [['all', 'All admins'], ['mine', 'My school only']], 'Count 👍 from') : '') + '</div>' +
+    sec('dates', 'Submitted between', '<div class="fdates"><label class="field"><span>From</span><input class="input" type="date" id="f-from" value="' + esc(F.from) + '"></label>' +
+      '<label class="field"><span>To</span><input class="input" type="date" id="f-to" value="' + esc(F.to) + '"></label></div>', (F.from ? 1 : 0) + (F.to ? 1 : 0)) +
+    C.extra.map((x) => seg(x.key, F[x.key], x.opts, x.label, x.def)).join('') +
+    (S.school && C.vfrom ? seg('vfrom', F.vfrom, [['all', 'All admins'], ['mine', 'My school only']], 'Count 👍 from') : '') +
     '<div class="f-foot"><button type="button" class="btn small" id="f-clear">Clear all</button><button type="button" class="btn primary f-apply" id="f-apply">Show ' + n + ' result' + (n === 1 ? '' : 's') + '</button></div>';
+  if (C.side) sideCount(on);
 }
 
 /* ===== Active-filter chips ===== */
 function activeF() {
   const F = cf2(), out = [], add = (label, clr, more) => out.push({ label, clr, more: !!more });
   const arr = (k, lab, more) => F[k].forEach((v) => add(lab(v), () => { F[k] = F[k].filter((x) => x !== v); }, more));
-  if (F.q.trim()) add('Search: “' + F.q.trim() + '”', () => { F.q = ''; });
+  if (F.q.trim()) out.push({ label: 'Search: “' + F.q.trim() + '”', clr: () => { F.q = ''; }, search: true });
   arr('school', (v) => 'To ' + schName(v));
   arr('block', (v) => v);
   if (F.used !== 'any') add(USED.find((o) => o[0] === F.used)[1], () => { F.used = 'any'; });
@@ -129,7 +149,7 @@ function renderViews() {
     '<button type="button" class="view-tab add" id="save-view">＋ Save this view</button>';
 }
 async function applyView(over, focusSel) {
-  const F = cf2(), keep = { more: F.more, drawer: F.drawer };
+  const F = cf2(), keep = { drawer: F.drawer };
   C.setF(Object.assign(withOver(over), keep));
   $('#sug-q').value = cf2().q; $('#sug-sort').value = cf2().sort;
   await C.refresh(focusSel);
@@ -164,6 +184,7 @@ function drawer(on) {
 export function wireFilters(ctx) {
   use(ctx);
   const el = $('#filters');
+  if (C.side) mountSide();
   let timer = 0;
   $('#sug-q').addEventListener('input', (e) => { clearTimeout(timer); timer = setTimeout(() => { cf2().q = e.target.value; C.refresh(); }, 250); });
   $('#sug-sort').addEventListener('change', (e) => { cf2().sort = e.target.value; C.refresh(); });
@@ -182,7 +203,8 @@ export function wireFilters(ctx) {
     else if (b.id === 'ms-clear') { F.school = []; toast('School filter cleared'); C.refresh('#ms-btn'); }
     else if (b.id === 'ms-btn') { F.schOpen = !F.schOpen; C.refresh(F.schOpen ? '#ms-q' : '#ms-btn'); }
     else if (b.id === 'ms-done') { F.schOpen = false; C.refresh('#ms-btn'); }
-    else if (b.id === 'more-f') { F.more = !F.more; renderFilters(); $('#more-f').focus(); }
+    else if (b.classList.contains('fsec-btn')) { const k = b.closest('.fsec').dataset.sec; setSec(k, b.getAttribute('aria-expanded') !== 'true'); renderFilters(); $('#fsh-' + k).focus(); }
+    else if (b.id === 'f-fold') foldSide(true, true);
     else if (b.id === 'f-x' || b.id === 'f-apply') drawer(false);
     else if (b.id === 'f-clear') { applyView({}, '#f-clear').then(() => toast('Filters cleared')); }
   });

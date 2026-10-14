@@ -52,8 +52,10 @@ export async function runPart2({ P, check, names, settle, same, shot }) {
   const dr = await names(); check('F5 usage: in a draft (Lead is in this draft)', dr.includes(LE) && !dr.includes(CL) && !dr.includes(HE), dr);
   await chip('[data-seg="used"][data-v="any"]');
 
-  await chip('#more-f');
-  check('F6 More filters opens', (await P.visible('#more-panel')) && (await P.attr('#more-f', 'aria-expanded')) === 'true');
+  // Every filter group is a folding section (no "More filters"): open the folded ones.
+  check('F6 folded sections, no More filters', (await P.count('#more-f')) === 0 && (await P.count('#filters .fsec-btn[aria-expanded="false"]')) >= 9);
+  await P.js('(() => { let b, n = 0; while ((b = document.querySelector("#filters .fsec-btn[aria-expanded=\\"false\\"]")) && n++ < 30) b.click(); return n; })()'); await P.sleep(100);
+  check('F6 all sections open', (await P.count('#filters .fsec-btn[aria-expanded="false"]')) === 0 && (await P.count('#filters .fsec')) >= 12 && (await P.visible('#filters [data-seg="kind"]')));
   await chip('[data-f="st"][data-v="new"]');
   const nw = await names(); check('F6 status: New (not used, not in a draft)', nw.includes(CL) && !nw.includes(HE) && !nw.includes(HO) && !nw.includes(LE), nw);
   await chip('[data-f="st"][data-v="new"]');

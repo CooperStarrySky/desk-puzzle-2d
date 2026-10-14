@@ -8,14 +8,13 @@
    choose a tier) does the same without a mouse. 👁 View, or hovering a card,
    shows what is inside without adding it (ws-plan-peek.js). Folding, widths
    and the phone sheets: ws-plan-rails.js. */
-import { $, esc, TIER_WORDS, ZONES, lc } from './ws-core.js';
-import { matchRow, stFrom, searchIds } from './ws-suggest.js';
+import { S, $, esc, TIER_WORDS, ZONES, lc, schName, schPill, toast, plainError, busy, fillImages, prefGet, prefSet } from './ws-core.js';
+import { matchRow, stFrom, searchIds, clueImage, thumbHtml, densityHtml, DENSITY_KEY } from './ws-suggest.js';
 import { searchHtml, renderFilters, renderActive, wireFilters, blankF, CAT_SORTS } from './ws-cat-filters.js';
 import { PL, libraryPool, votesFor, imageCount, tierOfKey, otherDrafts, slotsOf } from './ws-plan-data.js';
 import { sheet } from './ws-plan-rails.js';
 import { wirePeek, viewDialog } from './ws-plan-peek.js';
 
-const CTYPES = [['slide', 'Slide'], ['xray', 'X-ray'], ['photo', 'Photo'], ['text', 'Text']];
 const ST_WORDS = { new: 'New', draft: 'In a draft', used: 'Used' };
 const NO_USE = { times_used: 0, as_is: 0, adapted: 0, schools: [], drafts_count: 0 };
 export const LIB_SORTS = CAT_SORTS.concat([['diff', 'Difficulty (easy→hard)'], ['imgs', 'Fewest images']]);
@@ -83,29 +82,46 @@ async function libRefresh(focusSel) {
 }
 /* The context ws-cat-filters.js works through while the Planner is on screen. */
 const PCTX = { F: () => PF, rows: pool, match: itemMatch, school: (it) => it.sub.school, tags: (it) => it.tags, st: stOfItem, trash: () => false,
-  sorts: () => LIB_SORTS, setF: (F) => { PF = F; }, blank: PF0, refresh: libRefresh, views: false, vfrom: false, extra: EXTRA, placeholder: 'Search names, clues, notes…' };
+  sorts: () => LIB_SORTS, setF: (F) => { PF = F; }, blank: PF0, refresh: libRefresh, views: false, vfrom: false, extra: EXTRA, placeholder: 'Search names, clues, notes…', name: 'plan' };
 
 export function alsoFlags(key) {
   return LIB.draft ? otherDrafts(key, LIB.draft.id).map((o) => '<span class="flag" title="Also in the draft ' + esc(o.title) + '">⚠ Also in ' + esc(o.title) + '</span>').join('') : '';
 }
+/* The narrow B2 card (owner-approved mockup): name + pill, one clue per line
+   (image clues with a small thumbnail), one usage line with zeros hidden, then
+   👁 View, Add to draft… and 👍 (your own, toggles; the split is in the tooltip). */
+function useLine(it) {
+  const u = useOfItem(it), b = [];
+  if (u.times_used) b.push('<span>In <b>' + u.times_used + '</b> published puzzle' + (u.times_used === 1 ? '' : 's') + '</span>');
+  if (u.drafts_count) b.push('<span>In <b>' + u.drafts_count + '</b> draft' + (u.drafts_count === 1 ? '' : 's') + '</span>');
+  return '<p class="lc-use">' + (b.length ? b.join('') : '<span class="zero">Not used yet</span>') + '</p>';
+}
+function libVoteTip(it) {
+  const vs = votesFor(it), n = vs.length, mine = vs.includes(S.me), here = S.school ? vs.filter((e) => PL.voteSch.get(it.sid + '|' + e) === S.school).length : 0;
+  if (!n) return 'No thumbs up yet';
+  return (mine ? (n === 1 ? 'You' : 'You and ' + (n - 1) + ' other' + (n === 2 ? '' : 's')) : n + ' thumbs up') + (S.school ? ' · ' + here + ' from ' + schName(S.school) : '');
+}
 function cardHtml(it) {
-  const t = LIB.draft ? tierOfKey(LIB.draft.id, it.key) : 0, vs = votesFor(it).length, imgs = imageCount(it), st = stOfItem(it);
-  const kinds = Array.from(it.kinds).map((k) => (CTYPES.find((c) => c[0] === k) || [k, k])[1]).join(', ');
+  const t = LIB.draft ? tierOfKey(LIB.draft.id, it.key) : 0, vs = votesFor(it), mine = vs.includes(S.me), tip = libVoteTip(it);
   const drag = !TOUCH && !!LIB.draft && LIB.canEdit;
-  return '<div class="lib-card t' + (it.tier || 0) + (t ? ' in-use' : '') + '"' + (drag ? ' draggable="true"' : '') + ' data-key="' + esc(it.key) + '">' +
-    '<h4>' + (drag ? '<span class="grip" title="Drag onto a slot" aria-hidden="true">⠿</span>' : '') + '<span class="tierdot" title="Suggested ' + esc(TIER_WORDS[it.tier] || '?') + '"></span><span class="lc-name">' + esc(it.name) + '</span></h4>' +
-    (it.kind === 'group' ? '<p class="faint lib-from"><span class="kind-tag puzzle">Group</span> from “' + esc(it.parent) + '”</p>' : '') +
-    '<p class="lc-clues">' + (it.items.length ? it.items.map((c) => esc(c.label)).join(' · ') : '<i>No clues</i>') + '</p>' +
-    '<p class="faint lib-sum"><span class="st st-' + esc(st) + '">' + esc(ST_WORDS[st] || st) + '</span> ' + (it.tags.length ? esc(it.tags.join(', ')) + ' · ' : '') +
-    '👍 ' + vs + ' · ' + imgs + (imgs === 1 ? ' image' : ' images') + (kinds ? ' · ' + esc(kinds) : '') + '</p>' +
+  const clues = '<ul class="b2-clues">' + (it.items.length ? it.items.map((c) => { const p = clueImage(c);
+    return '<li' + (p ? ' class="img"' : '') + '>' + thumbHtml(p, c.label) + '<span class="lbl">' + esc(c.label) + '</span></li>'; }).join('') : '<li><i>No clues</i></li>') + '</ul>';
+  return '<div class="lib-card b2n t' + (it.tier || 0) + (t ? ' in-use' : '') + '"' + (drag ? ' draggable="true"' : '') + ' data-key="' + esc(it.key) + '">' +
+    '<div class="lc-head"><h4>' + (drag ? '<span class="grip" title="Drag onto a slot" aria-hidden="true">⠿</span>' : '') + '<span class="lc-name" title="Suggested ' + esc(TIER_WORDS[it.tier] || '?') + '">' + esc(it.name) + '</span></h4>' +
+    schPill(it.sub && it.sub.school) + '</div>' +
+    (it.kind === 'group' ? '<p class="faint lib-from"><span class="kind-tag puzzle">Group</span> from “' + esc(it.parent) + '”</p>' : '') + clues + useLine(it) +
     (t ? '<span class="badge in-draft">In this draft · ' + esc(TIER_WORDS[t]) + '</span>' : '') + alsoFlags(it.key) +
-    '<div class="row lib-btns">' + (LIB.canEdit ? '<button type="button" class="btn small" data-add="' + esc(it.key) + '">' + (t ? 'Move…' : 'Add to draft…') + '</button>' : '') +
-    '<button type="button" class="btn small ghost lc-view" data-view="' + esc(it.key) + '" aria-label="View ' + esc(it.name) + ' without adding it" title="See inside without adding it">👁 View</button></div></div>';
+    '<div class="lib-btns"><button type="button" class="btn small ghost lc-view" data-view="' + esc(it.key) + '" aria-label="View ' + esc(it.name) + ' without adding it" title="See inside without adding it">👁 View</button>' +
+    (LIB.canEdit ? '<button type="button" class="btn small primary" data-add="' + esc(it.key) + '">' + (t ? 'Move…' : 'Add to draft…') + '</button>' : '') +
+    (it.sid ? '<button type="button" class="btn small vote-btn has-tip' + (mine ? ' on' : '') + '" data-lvote="' + esc(it.key) + '" aria-pressed="' + mine + '" data-tip="' + esc(tip) + '" aria-label="Thumbs up ' +
+      esc(it.name) + ', ' + vs.length + ' so far. ' + esc(tip) + '">👍 ' + vs.length + '</button>' : '') + '</div></div>';
 }
 export function renderLib() {
   const el = $('#lib-list'); if (!el) return;
   const list = libItems(), all = pool().length;
   el.innerHTML = list.length ? list.map(cardHtml).join('') : '<p class="empty">Nothing matches. Try clearing a filter.</p>';
+  el.classList.toggle('compact', prefGet(DENSITY_KEY) === 'compact');
+  fillImages(el);
   $('#lib-n').textContent = 'Showing ' + list.length + ' of ' + all;
   const c = $('#lib-count'); if (c) c.textContent = all + (all === 1 ? ' category' : ' categories');
   const s = $('#db-cnt'); if (s) s.textContent = String(list.length);
@@ -115,7 +131,8 @@ export function libHtml(tip) {
   return '<div class="lib-head"><h2 id="lib-h">Database</h2><span class="faint lib-count" id="lib-count"></span>' +
     '<button type="button" class="btn small ghost rail-x" id="db-fold" aria-controls="lib" aria-label="Fold the Database" title="Fold the Database">«</button>' +
     '<button type="button" class="btn small primary lib-close" id="lib-close">Done</button></div>' + searchHtml(PCTX) +
-    '<div class="row lib-ftools"><button type="button" class="btn small" id="f-toggle" aria-controls="filters" aria-expanded="false">Filters</button></div>' +
+    '<div class="row lib-ftools"><button type="button" class="btn small" id="f-toggle" aria-controls="filters" aria-expanded="false">Filters</button>' +
+    densityHtml(prefGet(DENSITY_KEY) === 'compact' ? 'compact' : 'comfortable') + '</div>' +
     '<div class="active-f" id="active-f" aria-label="Active filters"></div><div class="f-scrim" id="f-scrim" hidden></div>' +
     '<aside class="filters lib-filters" id="filters" aria-label="Database filters"></aside>' + tip +
     '<p class="result-n" id="lib-n" aria-live="polite"></p><div class="lib-list" id="lib-list"></div>';
@@ -127,7 +144,14 @@ export function wireLib() {
   $('#filters').classList.toggle('open', !!PF.drawer); $('#f-toggle').setAttribute('aria-expanded', String(!!PF.drawer));
   lib.addEventListener('click', (e) => {
     const add = e.target.closest('[data-add]'); if (add && lib.contains(add) && LIB.onAdd) { LIB.onAdd(add.dataset.add, add); return; }
-    const v = e.target.closest('[data-view]'); if (v && lib.contains(v)) viewDialog(v.dataset.view);
+    const v = e.target.closest('[data-view]'); if (v && lib.contains(v)) { viewDialog(v.dataset.view); return; }
+    const vb = e.target.closest('[data-lvote]'); if (vb && lib.contains(vb)) { libVote(vb); return; }
+    const d = e.target.closest('[data-dens]');
+    if (d && lib.contains(d)) {
+      prefSet(DENSITY_KEY, d.dataset.dens === 'compact' ? 'compact' : null);
+      d.parentElement.querySelectorAll('[data-dens]').forEach((x) => x.setAttribute('aria-checked', String(x === d)));
+      renderLib(); d.focus();
+    }
   });
   lib.addEventListener('dragstart', (e) => {
     const c = e.target.closest && e.target.closest('.lib-card'); if (!c) return;
@@ -147,6 +171,22 @@ export function wireLib() {
   });
   wirePeek(lib);
   libRefresh();
+}
+/* 👍 from the rail: add yours or take it back, then redraw the cards. */
+async function libVote(b) {
+  const it = pool().find((x) => x.key === b.dataset.lvote); if (!it || !it.sid) return;
+  const mine = votesFor(it).includes(S.me);
+  await busy(b, '…', async () => {
+    const { error } = mine ? await S.sb.from('votes').delete().eq('submission_id', it.sid).eq('voter_email', S.me)
+      : await S.sb.from('votes').insert({ submission_id: it.sid });
+    if (error) { toast('Could not save your 👍: ' + plainError(error), 5000); return; }
+    const list = votesFor(it).filter((e) => e !== S.me);
+    if (!mine) { list.push(S.me); PL.voteSch.set(it.sid + '|' + S.me, S.school); }
+    PL.votes.set(it.sid, list);
+    toast(mine ? 'Took back your 👍' : '👍 added');
+  });
+  renderLib();
+  const again = $('#lib-list [data-lvote="' + CSS.escape(it.key) + '"]'); if (again) again.focus();
 }
 /* Which tiers already hold something (for the slot picker). */
 export const tiersUsed = () => (LIB.draft ? slotsOf(LIB.draft.id) : []);

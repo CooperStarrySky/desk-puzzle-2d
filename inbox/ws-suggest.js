@@ -6,8 +6,8 @@
    column); every other filter runs here so the counts and chips stay live.
    Filters, chips and saved views: ws-cat-filters.js. Trash, Add to draft,
    menus and keyboard: ws-cat-actions.js. The open card: ws-detail.js. */
-import { S, $, esc, toast, plainError, ago, av, person, isPuzzle, groupsOf, itemsOf, allItems, ZONES, TIER_WORDS,
-  schName, isCurator, canPlan, modalOpen, prefGet, prefSet } from './ws-core.js';
+import { S, $, $$, esc, toast, plainError, av, person, isPuzzle, groupsOf, itemsOf, allItems, ZONES, TIER_WORDS, lc,
+  schName, schPill, isCurator, canPlan, modalOpen, prefGet, prefSet, isStoragePath, fillImages } from './ws-core.js';
 import { mountDetail } from './ws-detail.js';
 import { filtersShell, searchHtml, renderFilters, renderActive, blankF, wireFilters } from './ws-cat-filters.js';
 import { catMenu, wireListActions, initCatKeys } from './ws-cat-actions.js';
@@ -85,7 +85,21 @@ export async function reload() {
 /* ===== Matching (skip = leave one filter out, for the counts next to its options) ===== */
 const clueKinds = (r) => new Set(allItems(r).map((it) => (ZONES[it.zone] || [])[2]).filter(Boolean));
 const day = (iso) => String(iso || '').slice(0, 10);
-export const match = (r, skip, F) => matchRow(r, skip, F || cf(), {});
+/* Local text for the word search, so part of a word matches too ("hemo" finds
+   hemoptysis), same as the Planner's Database rail. The server's full-text
+   search still adds its hits (stemming: "causes" finds "cause"). */
+const HAY = new WeakMap();
+function hayOf(r) {
+  let h = HAY.get(r);
+  if (h == null) {
+    const g = r.payload || {};
+    h = lc([r.group_name, g.explanation, r.trash_reason, r.trashed_by ? person(r.trashed_by).name : '']
+      .concat(groupsOf(r).map((x) => x.name + ' ' + (x.explanation || '')), allItems(r).map((it) => it.label + ' ' + (typeof it.note === 'string' ? it.note : ''))).join(' \n '));
+    HAY.set(r, h);
+  }
+  return h;
+}
+export const match = (r, skip, F) => matchRow(r, skip, F || cf(), { hits: V.hits, text: hayOf(r) });
 /* The shared rules. o (Planner): u = usage row, tier = the group's tier, kinds = clue kinds,
    hits = word-search ids, text = local text to search too, votes = 👍 count. */
 export function matchRow(r, skip, F, o) {
@@ -125,57 +139,107 @@ export function visibleRows() {
   return list.sort(SORTERS[F.sort] || newest);
 }
 
-/* ===== Cards ===== */
+/* ===== Cards (owner-approved option B2) =====
+   Name + "Submitted to" pill on the top line, one clue per line (image clues
+   get a small thumbnail), usage right-aligned at the top right with zeros
+   hidden, and the buttons pinned bottom right: ⋯, Add to draft…, 👍 (the
+   all-admins / my-school split is in the 👍 tooltip). Compact view: one thin
+   line per category. Both: clicking anywhere on the card opens it. */
 const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
-/* "Used 2× (as-is) · CMSRU · in 1 draft · 👍 6 (1 from CMSRU) · 💬 2" */
-export function usageLine(r) {
-  const u = useOf(r.id), b = [], vs = votesOf(r.id).length, n = V.cmts.get(r.id) || 0;
+export const DENSITY_KEY = 'dp2d:cat-density';
+export const compactOn = () => prefGet(DENSITY_KEY) === 'compact';
+/* "1 as-is, 1 adapted · CMSRU, RVSOM": the details behind "In 2 published puzzles". */
+function useTip(u) {
   const split = u.as_is && u.adapted ? u.as_is + ' as-is, ' + u.adapted + ' adapted' : u.adapted ? 'adapted' : 'as-is';
-  if (u.times_used) b.push('<b>Used ' + u.times_used + '×</b> (' + split + ')', esc(u.schools.map(schName).join(', ')));
-  else b.push(r.status === 'used' ? '<b>Used</b>' : 'Never used');
-  if (u.drafts_count) b.push('in ' + plural(u.drafts_count, 'draft') + (u.drafts_count > 1 ? ' <span class="flag" title="Sits in ' + u.drafts_count + ' drafts">!</span>' : ''));
-  b.push('👍 ' + vs + (S.school ? ' (' + votesMine(r.id) + ' from ' + esc(schName(S.school)) + ')' : ''));
-  if (n) b.push('💬 ' + n);
-  return '<p class="usage card-line">' + b.join(' · ') + '</p>';
+  return split + (u.schools.length ? ' · ' + u.schools.map(schName).join(', ') : '');
+}
+/* The usage bits, zeros hidden: "In 2 published puzzles", "In 1 draft", 💬 2 (or "Not used yet"). */
+export function useBits(r) {
+  const u = useOf(r.id), n = V.cmts.get(r.id) || 0, out = [];
+  if (u.times_used) out.push('<span class="u-pub" title="' + esc(useTip(u)) + '">In <b>' + u.times_used + '</b> published puzzle' + (u.times_used === 1 ? '' : 's') + '</span>');
+  else if (r.status === 'used') out.push('<span class="u-pub">Used in a puzzle</span>');
+  if (u.drafts_count) out.push('<span class="u-dr">In <b>' + u.drafts_count + '</b> draft' + (u.drafts_count === 1 ? '' : 's') +
+    (u.drafts_count > 1 ? ' <span class="flag" title="Sits in ' + u.drafts_count + ' drafts">!</span>' : '') + '</span>');
+  if (!out.length) out.push('<span class="zero">Not used yet</span>');
+  if (n) out.push('<span class="u-cm" title="' + plural(n, 'comment') + '">💬 <b>' + n + '</b></span>');
+  return out.join('');
+}
+/* The 👍 tooltip: "You and 5 others · 2 from CMSRU · 2 schools". */
+export function voteTip(id) {
+  const vs = votesOf(id), n = vs.length, mine = vs.includes(S.me), sc = voteSchools(id);
+  if (!n) return 'No thumbs up yet';
+  const who = mine ? (n === 1 ? 'You' : 'You and ' + plural(n - 1, 'other')) : plural(n, 'thumbs up').replace(/thumbs ups$/, 'thumbs up');
+  return who + (S.school ? ' · ' + votesMine(id) + ' from ' + schName(S.school) : '') + ' · ' + plural(sc, 'school');
+}
+export function voteBtn(r, attrs) {
+  const mine = votesOf(r.id).includes(S.me), n = voteN(r.id), tip = voteTip(r.id);
+  return '<button type="button" class="btn small vote-btn has-tip' + (mine ? ' on' : '') + '" ' + attrs + ' aria-pressed="' + mine + '" data-tip="' + esc(tip) + '" aria-label="Thumbs up ' +
+    esc(r.group_name) + ', ' + n + ' so far. ' + esc(tip) + '"' + (r.status === 'trashed' ? ' disabled' : '') + '>👍 ' + n + '</button>';
 }
 export function attribHtml(r) {
   const day = (iso) => esc(new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' }));
-  if (r.status === 'trashed') {
-    return '<p class="attrib declined">' + av(r.trashed_by) + 'Trashed by ' + esc(person(r.trashed_by).name) + (r.trashed_at ? ' · ' + day(r.trashed_at) : '') +
-      (r.trash_reason ? ' — <q>' + esc(r.trash_reason) + '</q>' : ' · <span class="faint">No reason given</span>') + '</p>';
-  }
-  if (r.source === 'published') return '<p class="attrib used">From published puzzle <span class="code">' + esc(r.source_ref || '') + '</span></p>';
-  return '';
+  if (r.status !== 'trashed') return '';
+  return '<p class="attrib declined">' + av(r.trashed_by) + 'Trashed by ' + esc(person(r.trashed_by).name) + (r.trashed_at ? ' · ' + day(r.trashed_at) : '') +
+    (r.trash_reason ? ' — <q>' + esc(r.trash_reason) + '</q>' : ' · <span class="faint">No reason given</span>') + '</p>';
 }
 export function tierClass(r) { return isPuzzle(r) ? 'tp' : 't' + (Number(r.suggested_tier) || 0); }
-function inlineClues(r) {
+/* A clue's picture: the microscope view for a slide, else the info image. */
+export function clueImage(it) {
+  const info = it.info || {}, scope = it.scope || {};
+  const p = it.zone === 'rack' ? (scope.image || info.image) : info.image;
+  return typeof p === 'string' && p ? p : '';
+}
+export function thumbHtml(p, label) {
+  if (!p) return '';
+  return '<span class="thumb" role="img" aria-label="Picture: ' + esc(label) + '" ' + (isStoragePath(p) ? 'data-path' : 'data-src') + '="' + esc(p) + '"></span>';
+}
+export function clueList(r) {
   if (isPuzzle(r)) {
     const gs = groupsOf(r).slice().sort((a, b) => (Number(a.tier) || 9) - (Number(b.tier) || 9));
-    return '<ul class="grp-inline">' + gs.map((g) => '<li><span class="tierdot t' + (Number(g.tier) || 0) + '" title="' + esc(TIER_WORDS[g.tier] || '') + '"></span>' + esc(g.name) + '</li>').join('') + '</ul>';
+    return '<ul class="b2-clues grp-inline">' + gs.map((g) => '<li><span class="tierdot t' + (Number(g.tier) || 0) + '" title="' + esc(TIER_WORDS[g.tier] || '') + '"></span>' + esc(g.name) + '</li>').join('') + '</ul>';
   }
-  return '<ul class="clue-inline">' + itemsOf(r.payload).map((it) => {
-    const z = ZONES[it.zone] || ['Clue', '•'];
-    return '<li title="' + esc(z[0]) + '"><span class="ki" aria-hidden="true">' + z[1] + '</span><span class="sr">' + esc(z[0]) + ': </span>' + esc(it.label) + '</li>';
+  return '<ul class="b2-clues">' + itemsOf(r.payload).map((it) => {
+    const z = ZONES[it.zone] || ['Clue', '•'], p = clueImage(it);
+    return '<li' + (p ? ' class="img"' : '') + ' title="' + esc(z[0]) + '">' + thumbHtml(p, it.label) + '<span class="lbl">' + esc(it.label) + '</span>' +
+      (p ? ' <span class="kind">' + esc(z[0].toLowerCase()) + '</span>' : '') + '</li>';
   }).join('') + '</ul>';
 }
-function actsHtml(r) {
-  const vs = votesOf(r.id), mine = vs.includes(S.me);
+export function actsHtml(r) {
   if (r.status === 'trashed') {
     const off = isCurator() ? '' : ' disabled title="Faculty can’t restore from Trash"';
-    return '<div class="card-acts"><button type="button" class="btn small primary" data-restore="' + esc(r.id) + '"' + off + '>Restore</button>' +
-      '<button type="button" class="btn small" data-why="' + esc(r.id) + '"' + off + '>' + (r.trash_reason ? 'Edit reason' : 'Add reason') + '</button></div>';
+    return '<div class="card-acts"><button type="button" class="btn small" data-why="' + esc(r.id) + '"' + off + '>' + (r.trash_reason ? 'Edit reason' : 'Add reason') + '</button>' +
+      '<button type="button" class="btn small primary" data-restore="' + esc(r.id) + '"' + off + '>Restore</button></div>';
   }
-  return '<div class="card-acts"><button type="button" class="btn small vote-btn" data-id="' + esc(r.id) + '" aria-pressed="' + mine + '" aria-label="Thumbs up ' + esc(r.group_name) + ', ' + voteN(r.id) + ' so far">👍 ' + voteN(r.id) + '</button>' +
-    '<button type="button" class="btn small primary" data-addd="' + esc(r.id) + '"' + (canPlan() ? '' : ' aria-disabled="true" title="Faculty can comment and approve drafts, but can’t add to them"') + '>Add to draft…</button>' + catMenu(r) + '</div>';
+  return '<div class="card-acts">' + catMenu(r) + '<button type="button" class="btn small primary" data-addd="' + esc(r.id) + '"' +
+    (canPlan() ? '' : ' aria-disabled="true" title="Faculty can comment and approve drafts, but can’t add to them"') + '>Add to draft…</button>' + voteBtn(r, 'data-id="' + esc(r.id) + '"') + '</div>';
 }
+const toggleHtml = (r, open) => { const id = esc(r.id); return '<button type="button" class="sug-toggle" id="tg-' + id + '" data-id="' + id + '" aria-expanded="' + open + '" aria-controls="sd-' + id + '">' + esc(r.group_name) + '</button>'; };
 function cardHtml(r) {
   const open = V.open === r.id, id = esc(r.id);
-  return '<article class="sug-card ' + tierClass(r) + (open ? ' open' : '') + '" data-id="' + id + '"><div class="sug-top"><div class="stack" style="--gap:6px">' +
-    '<h3><span class="tierdot" title="Suggested: ' + esc(TIER_WORDS[r.suggested_tier] || '?') + '"></span><button type="button" class="sug-toggle" id="tg-' + id + '" data-id="' + id + '" aria-expanded="' + open + '" aria-controls="sd-' + id + '">' + esc(r.group_name) + '</button></h3>' +
-    '<div class="meta"><span>' + (r.credit_mode === 'named' && r.credit_name ? esc(r.credit_name) : '<i>Anonymous</i>') + '</span><span title="' + esc(new Date(r.created_at).toLocaleString()) + '">' + esc(ago(r.created_at)) + '</span>' +
-    (r.tags || []).map((t) => '<span class="tagchip">' + esc(t) + '</span>').join('') + '<span>to ' + esc(schName(r.school)) + '</span></div>' + inlineClues(r) + '</div>' +
-    '<span class="chev" aria-hidden="true"></span><div class="card-foot">' + usageLine(r) + (open ? '' : actsHtml(r)) + '</div>' + attribHtml(r) + '</div>' +
+  if (!open && compactOn()) return compactHtml(r);
+  return '<article class="sug-card ' + tierClass(r) + (open ? ' open' : '') + '" data-id="' + id + '"><div class="sug-top b2">' +
+    '<div class="b2-head"><h3 title="Suggested: ' + esc(TIER_WORDS[r.suggested_tier] || '?') + '">' + toggleHtml(r, open) + '</h3>' + schPill(r.school) + '</div>' +
+    '<div class="b2-body">' + (open ? '' : clueList(r)) + attribHtml(r) + '</div>' +
+    '<p class="card-use">' + useBits(r) + '</p>' + actsHtml(r) + '</div>' +
     '<div class="sug-detail' + (open && V.justOpened ? ' anim' : '') + '" id="sd-' + id + '" role="region" aria-labelledby="tg-' + id + '"' + (open ? '' : ' hidden') + '></div></article>';
+}
+/* Compact: name, small pill, small counts, ⋯ and a small Add (Restore in Trash). */
+function compactHtml(r) {
+  const u = useOf(r.id), id = esc(r.id), n = [];
+  if (u.times_used) n.push('<span title="In ' + plural(u.times_used, 'published puzzle') + '">' + u.times_used + ' pub</span>');
+  if (u.drafts_count) n.push('<span title="In ' + plural(u.drafts_count, 'draft') + '">' + plural(u.drafts_count, 'draft') + '</span>');
+  n.push('<span title="' + esc(voteTip(r.id)) + '">👍 ' + voteN(r.id) + '</span>');
+  const acts = r.status === 'trashed'
+    ? '<button type="button" class="btn small primary" data-restore="' + id + '"' + (isCurator() ? '' : ' disabled title="Faculty can’t restore from Trash"') + '>Restore</button>'
+    : catMenu(r) + '<button type="button" class="btn small" data-addd="' + id + '"' + (canPlan() ? '' : ' aria-disabled="true" title="Faculty can comment and approve drafts, but can’t add to them"') +
+      ' aria-label="Add ' + esc(r.group_name) + ' to a draft">Add</button>';
+  return '<article class="sug-card cmp ' + tierClass(r) + '" data-id="' + id + '"><div class="sug-top cmp-row"><h3>' + toggleHtml(r, false) + '</h3>' + schPill(r.school, true) +
+    '<span class="cmp-n">' + n.join('<span aria-hidden="true"> · </span>') + '</span><div class="card-acts">' + acts + '</div></div>' +
+    '<div class="sug-detail" id="sd-' + id + '" role="region" aria-labelledby="tg-' + id + '" hidden></div></article>';
+}
+export function densityHtml(cur) {
+  return '<div class="dens" role="radiogroup" aria-label="Card size">' + [['comfortable', 'Comfortable'], ['compact', 'Compact']].map((o) =>
+    '<button type="button" role="radio" data-dens="' + o[0] + '" aria-checked="' + (cur === o[0]) + '">' + o[1] + '</button>').join('') + '</div>';
 }
 
 /* ===== List ===== */
@@ -192,9 +256,11 @@ export function renderList(pending) {
     return;
   }
   el.innerHTML = list.map(cardHtml).join('');
-  V.justOpened = false;
+  el.classList.toggle('compact', compactOn());
+  fillImages(el);
+  const fresh = V.justOpened; V.justOpened = false;
   const r = V.open && rowById(V.open), box = r && document.getElementById('sd-' + r.id);
-  if (box) mountDetail(box, r);
+  if (box) mountDetail(box, r, fresh);
 }
 /* Re-draws everything that shows category data (after any change). */
 export function redraw() { renderSubtabs(); renderFilters(); renderActive(); renderList(); }
@@ -233,11 +299,17 @@ function renderView() {
     '<button type="button" class="btn ftoggle" id="f-toggle" aria-controls="filters" aria-expanded="false">Filters</button></div></div>' +
     '<nav class="subtabs" id="cat-subtabs" aria-label="Category database or Trash"></nav><p class="trash-note" id="trash-note" hidden></p>' +
     '<div class="views" id="views" role="group" aria-label="Saved views"></div>' + filtersShell() +
-    '<section aria-label="' + (V.view === 'trash' ? 'Trash' : 'Categories') + '">' + searchHtml() +
+    '<section aria-label="' + (V.view === 'trash' ? 'Trash' : 'Categories') + '">' + searchHtml(null, densityHtml(compactOn() ? 'compact' : 'comfortable')) +
     '<div class="active-f" id="active-f" aria-label="Active filters"></div><p class="result-n" id="sug-n" aria-live="polite"></p>' +
     '<div class="stack" style="--gap:10px" id="sug-list"></div></section></div>';
   wireFilters();
   wireListActions($('#sug-list'));
+  $('#ws-main .dens').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-dens]'); if (!b) return;
+    prefSet(DENSITY_KEY, b.dataset.dens === 'compact' ? 'compact' : null);
+    $$('#ws-main .dens [data-dens]').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+    renderList(); b.focus();
+  });
   $('#btn-refresh').addEventListener('click', async (e) => {
     const b = e.currentTarget; if (b.disabled) return;
     b.disabled = true; b.textContent = 'Refreshing…';

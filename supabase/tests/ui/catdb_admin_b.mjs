@@ -21,14 +21,14 @@ export async function partB({ P, card, has, line }) {
   // 8. Trash tab: same filters, who/when/why, Restore.
   await P.js('location.hash = "#/categories/trash"'); await P.waitFor('document.querySelector("#ws-main h1").textContent === "Trash"'); await P.settle();
   check('B8 Trash lists trashed only', JSON.stringify((await P.names()).sort()) === JSON.stringify(['Cheese-related', 'Spare category', 'Things that are blue']), await P.names());
-  check('B8 same filters as the database', (await P.count('#ms-btn')) === 1 && (await P.count('#filters [data-f="block"]')) > 5 && (await P.count('[data-seg="used"]')) === 4 && (await P.count('#more-f')) === 1 && (await P.count('#views .view-tab')) >= 2 && (await P.count('#sug-q')) === 1);
+  check('B8 same filters as the database', (await P.count('#ms-btn')) === 1 && (await P.count('#filters [data-f="block"]')) > 5 && (await P.count('[data-seg="used"]')) === 4 && (await P.count('#filters .fsec')) >= 8 && (await P.count('#more-f')) === 0 && (await P.count('#views .view-tab')) >= 2 && (await P.count('#sug-q')) === 1);
   check('B8 note about shared Trash + auto-delete', /shared by every school/.test(await P.text('#trash-note')) && /Auto-delete is off/.test(await P.text('#trash-note')));
   check('B8 who, when, why', /Trashed by Marcus T\. · .+ — Not pathology/.test(await P.text(card(C.blue) + ' .attrib')) && /Trashed by Aisha K\..*No reason given/.test(await P.text(card(C.spare) + ' .attrib')));
   await P.type('#sug-q', 'pathology'); await P.sleep(400); await P.settle();
   check('B8 search finds the reason', JSON.stringify(await P.names()) === JSON.stringify(['Things that are blue']), await P.names());
   await P.type('#sug-q', ''); await P.sleep(400); await P.click('#ms-btn'); await P.click('#ms-c-rvsom'); await P.settle();
   check('B8 school filter in Trash', JSON.stringify(await P.names()) === JSON.stringify(['Cheese-related']) && /To RVSOM/.test(await P.text('#active-f')));
-  await P.click('#af-clear'); await P.settle(); await P.click('#more-f'); await P.sleep(50);
+  await P.click('#af-clear'); await P.settle(); await P.click('#fsh-tby'); await P.sleep(50);
   await P.js('(() => { const s = document.getElementById("f-tby"); s.value = "' + U.OTHER + '"; s.dispatchEvent(new Event("change", { bubbles: true })); })()'); await P.settle();
   check('B8 trashed-by filter', JSON.stringify(await P.names()) === JSON.stringify(['Spare category']) && /Trashed by Aisha K\./.test(await P.text('#active-f')));
   await P.click('#af-clear'); await P.settle();
@@ -69,16 +69,17 @@ export async function partB({ P, card, has, line }) {
 
   // 11. Votes: all admins vs my school.
   await P.click(card(C.hemoptysis) + ' .card-acts .vote-btn'); await P.waitFor('/👍 added/.test(document.getElementById("toast").textContent)'); await P.settle();
-  check('B11 vote counted for my school', /👍 2 \(1 from CMSRU\)/.test(await line(C.hemoptysis)) && (await db1('select school from votes where voter_email = $1 and submission_id = $2', [U.ADMIN, C.hemoptysis])).school === 'cmsru');
+  const vtip = (id) => P.attr(card(id) + ' .card-acts .vote-btn', 'data-tip');
+  check('B11 vote counted for my school', (await P.text(card(C.hemoptysis) + ' .card-acts .vote-btn')) === '👍 2' && /^You and 1 other · 1 from CMSRU/.test(await vtip(C.hemoptysis)) && (await db1('select school from votes where voter_email = $1 and submission_id = $2', [U.ADMIN, C.hemoptysis])).school === 'cmsru');
   await openCard(C.hemoptysis);
-  check('B11 detail: admins · schools / mine', (await P.text('#sd-' + C.hemoptysis + ' .vote-x')) === '2 admins · 2 schools / 1 at CMSRU', await P.text('#sd-' + C.hemoptysis + ' .vote-x'));
+  check('B11 open card: one 👍, split in the tooltip', (await P.count(card(C.hemoptysis) + ' .vote-btn')) === 1 && (await vtip(C.hemoptysis)) === 'You and 1 other · 1 from CMSRU · 2 schools', await vtip(C.hemoptysis));
   // 12. Full usage table + drafts.
   const use = await P.text('#sd-' + C.hemoptysis + ' .sd-use');
   check('B12 usage table', (await P.count('#sd-' + C.hemoptysis + ' .use-tbl tbody tr')) === 2 && /Used 2× in published puzzles \(1 as-is, 1 adapted\)/.test(use) && /Adapted/.test(use) && /lungs-and-more-2026-10-01/.test(use), use);
   await P.click('#tg-' + C.hemoptysis); await P.sleep(100); await openCard(C.lead);
   check('B12 drafts list (mine only)', /In 1 draft: CMSRU next week \(CMSRU\)/.test(await P.text('#sd-' + C.lead + ' .sd-use')), await P.text('#sd-' + C.lead + ' .sd-use'));
   await P.click('#tg-' + C.lead); await P.sleep(100);
-  await P.click('#more-f'); await P.click('[data-seg="vfrom"][data-v="mine"]'); await P.settle();
+  await P.click('#fsh-vfrom'); await P.click('[data-seg="vfrom"][data-v="mine"]'); await P.settle();
   check('B11 Count 👍 from my school only', (await P.text(card(C.clubbing) + ' .card-acts .vote-btn')) === '👍 2');
   await P.click('[data-seg="vfrom"][data-v="all"]'); await P.settle();
 
@@ -87,7 +88,7 @@ export async function partB({ P, card, has, line }) {
   const dl = await P.text('#use-form .use-drafts');
   check('B13 draft list is RLS-filtered', /CMSRU next week/.test(dl) && !/RV private draft/.test(dl), dl);
   await P.submit('#use-form'); await P.waitFor('!!document.getElementById("ud-open")'); await P.settle();
-  check('B13 added; usage line updates', /Added to CMSRU next week/.test(await P.toast()) && /in 1 draft/.test(await line(C.asthma)));
+  check('B13 added; usage line updates', /Added to CMSRU next week/.test(await P.toast()) && /In 1 draft/.test(await line(C.asthma)));
   check('B13 slot saved', (await db1('select count(*)::int n from draft_slots where draft_id = $1 and submission_id = $2', ['20000000-0000-4000-9000-000000000001', C.asthma])).n === 1);
   await P.key('Escape', 'Escape', 27); await P.sleep(100);
 
