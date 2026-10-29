@@ -5,7 +5,7 @@
 // seen, tilts toward the pointer and springs back; reduced motion turns all
 // motion off. Stats, stamp and share stay. SHOTS=<dir> saves screenshots.
 import fs from 'node:fs';
-import { page, check, summary, BASE } from './lib.mjs';
+import { page, check, summary, BASE, stubGameStats } from './lib.mjs';
 
 const SHOTS = process.env.SHOTS || '';
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
@@ -43,12 +43,12 @@ const slideState = (P) => P.js(`(() => { const s = document.querySelector('#resu
 const anims = (P) => P.js(`[...document.querySelectorAll('#results-groups .credit-label')].reduce((n, l) => n + l.getAnimations({ subtree: true }).length, 0)`);
 const mouse = (P, x, y) => P.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
 
-/* The game reads class stats straight from Supabase: fail every live request and count it. */
-let live = 0;
+/* The game reads class stats straight from Supabase: answer them from a local stub; any live request is failed and counted. */
+const stubs = [];
+const liveCount = () => stubs.reduce((n, c) => n + c.live, 0);
 async function safePage(opts) {
   const P = await page(opts);
-  await P.send('Fetch.enable', { patterns: [{ urlPattern: '*supabase.co*' }] });
-  P.on((m) => { if (m.method === 'Fetch.requestPaused') { live++; P.send('Fetch.failRequest', { requestId: m.params.requestId, errorReason: 'BlockedByClient' }).catch(() => {}); } });
+  stubs.push(await stubGameStats(P));
   return P;
 }
 async function boot(opts) {
@@ -140,5 +140,5 @@ for (const dark of [false, true]) {
   check('H3 no console errors', P.errors.length === 0, P.errors);
   P.close();
 }
-check('Z1 never touched the live database', live === 0, live);
+check('Z1 never touched the live database', liveCount() === 0, liveCount());
 process.exit(summary());

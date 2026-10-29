@@ -58,16 +58,16 @@ function drawRated(box, s) {
   line.appendChild(el('strong', '', 'Players rated it ' + s.ratingLabel));
   if (s.enough) line.appendChild(document.createTextNode(' · ' + s.solvedPct + '% solved'));
   box.appendChild(line);
-  var dist = el('ol', 'rate-dist');
+  var dist = el('ol', 'rate-dist rate-grid'); // same columns as the rating buttons below it
   dist.setAttribute('aria-label', 'Difficulty ratings');
   var max = Math.max.apply(null, s.ratingHist.concat([1]));
   RATING_LABELS.forEach(function (name, i) {
     var n = s.ratingHist[i];
     var li = el('li', 'rate-dist-col');
     var bar = el('span', 'rate-dist-bar');
-    bar.style.height = Math.max(6, Math.round((n / max) * 100)) + '%';
+    bar.style.setProperty('--h', Math.max(6, Math.round((n / max) * 100)) + '%'); // share of the bar area
     li.appendChild(bar);
-    li.appendChild(el('span', 'rate-dist-k', name));
+    li.appendChild(el('span', 'rate-dist-k', String(n))); // the button underneath names the column
     li.setAttribute('aria-label', name + ': ' + plural(n, 'rating'));
     dist.appendChild(li);
   });
@@ -103,6 +103,8 @@ function drawRating(puzzleId, s) {
   var reveal = !canVote || !!mine;
   rated.hidden = !reveal || (!canVote && !(s && s.ratingEnough));
   if (!rated.hidden) drawRated(rated, s);
+  var wrap = $('results-rating');
+  if (wrap) wrap.hidden = row.hidden && rated.hidden;
 }
 
 function refreshAfterSend(puzzleId) {
