@@ -7,6 +7,7 @@
    last visit (remembered on this device). Lines meant for you
    (notify_email = you) are highlighted. */
 import { S, $, $$, esc, lc, busy, toast, plainError, when, ago, dayKey, fmtDay, av, person, schName, prefGet, prefSet } from './ws-core.js';
+import { keepFocus, flash } from './ws-live.js';
 
 const GROUPS = { sub: 'Submissions', draft: 'Drafts', comment: 'Comments', publish: 'Publishing', admin: 'Admin' };
 const SUB_GROUP = { submitted: 'sub', comment: 'comment', vote: 'comment', unvote: 'comment', add_to_draft: 'draft', remove_from_draft: 'draft', adapt: 'draft',
@@ -77,7 +78,7 @@ function renderFeed() {
     const a = r[0], d = dayKey(a.at), mine = r.some((x) => lc(x.notify_email) === S.me), fresh = A.seenAt && a.at > A.seenAt && lc(a.actor_email) !== S.me;
     const who = a.actor_email ? esc(person(a.actor_email).name) : a.subject === 'submission' ? 'A student' : 'The publishing robot', k = runKey(a) + '|' + a.at, open = A.open.has(k);
     if (d !== day) { day = d; html += '<li class="day"><span class="eyebrow">' + (d === today ? 'Today · ' : '') + esc(fmtDay(a.at)) + '</span></li>'; }
-    html += '<li class="' + [mine ? 'notify' : '', fresh ? 'fresh' : ''].join(' ').trim() + '"' + (r.length > 1 ? ' data-run="' + r.length + '"' : '') + '>' + av(a.actor_email, 1) +
+    html += '<li class="' + [mine ? 'notify' : '', fresh ? 'fresh' : ''].join(' ').trim() + '" data-when="' + esc(a.at) + '"' + (r.length > 1 ? ' data-run="' + r.length + '"' : '') + '>' + av(a.actor_email, 1) +
       '<div class="what">' + (mine ? '<span class="for-you">For you</span>' : '') + (S.owner && a.school ? '<span class="to-sch">' + esc(schName(a.school)) + '</span> ' : '') + '<b>' + who + '</b> ' +
       (r.length === 1 ? said(a) : runText(r) + ' <button type="button" class="linkish run-tg" data-rk="' + esc(k) + '" aria-expanded="' + open + '">' + (open ? 'Hide' : 'Show all ' + r.length) + '</button>' +
         (open ? '<ul class="run">' + r.map((x) => '<li>' + said(x) + ' <span class="faint">' + esc(ago(x.at)) + '</span></li>').join('') + '</ul>' : '')) +
@@ -124,6 +125,14 @@ export async function showActivity() {
   await loadActivity();
   markSeen();
   if ($('#feed')) renderView(); // still on this tab
+}
+/* Live: fetch the feed again; on the Activity tab new lines appear at the top
+   (filters and open runs stay as they are) with a short highlight. */
+export async function liveActivity() {
+  const top = A.list && A.list[0] ? A.list[0].at : '';
+  if (!(await loadActivity()) || !$('#feed')) return;
+  await keepFocus(() => renderFeed());
+  $$('#feed > li[data-when]').filter((li) => top && li.dataset.when > top).forEach((li) => flash(li, null, 'New'));
 }
 export function initActivity(onCounts) { A.onCounts = onCounts; }
 export function resetActivity() { Object.assign(A, { list: null, who: '', type: '', err: '', seenAt: '' }); A.open.clear(); }

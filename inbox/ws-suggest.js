@@ -8,7 +8,8 @@
    menus and keyboard: ws-cat-actions.js. The open card: ws-detail.js. */
 import { S, $, $$, esc, toast, plainError, av, person, isPuzzle, groupsOf, itemsOf, allItems, ZONES, TIER_WORDS, lc,
   schName, schPill, isCurator, canPlan, modalOpen, prefGet, prefSet, fillImages } from './ws-core.js';
-import { mountDetail } from './ws-detail.js';
+import { mountDetail, DS } from './ws-detail.js';
+import { presenceChanged, paintCats, typingIn, dirtyIn, whenIdle, keepFocus, flash } from './ws-live.js';
 import { filtersShell, searchHtml, renderFilters, renderActive, blankF, wireFilters } from './ws-cat-filters.js';
 import { catMenu, wireListActions, initCatKeys } from './ws-cat-actions.js';
 
@@ -261,6 +262,7 @@ export function renderList(pending) {
   const fresh = V.justOpened; V.justOpened = false;
   const r = V.open && rowById(V.open), box = r && document.getElementById('sd-' + r.id);
   if (box) mountDetail(box, r, fresh);
+  paintCats();
 }
 /* Re-draws everything that shows category data (after any change). */
 export function redraw() { renderSubtabs(); renderFilters(); renderActive(); renderList(); }
@@ -269,7 +271,7 @@ function focusToggle(id) { const t = document.getElementById('tg-' + id); if (t)
 export function openCard(id) {
   V.open = id; V.justOpened = true;
   history.replaceState(null, '', location.pathname + location.search + hashFor(id));
-  renderList();
+  renderList(); presenceChanged();
   const t = document.getElementById('tg-' + id);
   if (t) t.closest('.sug-card').scrollIntoView({ block: 'nearest' });
 }
@@ -277,7 +279,7 @@ export function closeCard(focus) {
   const id = V.open; if (!id) return;
   V.open = null;
   history.replaceState(null, '', location.pathname + location.search + hashFor(null));
-  renderList();
+  renderList(); presenceChanged();
   if (focus) focusToggle(id);
 }
 
@@ -353,4 +355,53 @@ export function initSuggest(onCounts) {
 export function resetSuggest() {
   FS.all = blankF('all'); FS.trash = blankF('trash');
   Object.assign(V, { rows: [], usage: new Map(), votes: new Map(), cmts: new Map(), hits: null, hitQ: '', view: 'all', open: null, err: '', loaded: false, lastVisit: '' });
+}
+
+/* ===== Live updates (ws-live.js notes, routed by ws-main) =====
+   Fetches fresh data, then redraws in place. While someone is typing in the
+   open card (a comment, tags, a fix) that card is left alone and only the
+   other cards change; the rest catches up as soon as they are done. */
+const cardEl = (id) => document.querySelector('#sug-list .sug-card[data-id="' + CSS.escape(id) + '"]');
+const openBusy = () => {
+  const box = V.open && document.getElementById('sd-' + V.open);
+  return !!V.open && (DS.fixing === V.open || typingIn(box) || dirtyIn(box) || modalOpen() || !!$('#sug-list .mnu-pop:not([hidden])'));
+};
+function patchCard(id) {
+  const el = cardEl(id), r = rowById(id); if (!el || !r || id === V.open) return;
+  const tmp = document.createElement('div'); tmp.innerHTML = cardHtml(r);
+  const n = tmp.firstElementChild; el.replaceWith(n); fillImages(n);
+}
+/* notes: [{ t, op, by, items }] from the bank/school channels. */
+export async function liveCats(notes) {
+  if (!V.loaded) return;
+  const ids = new Map();
+  notes.forEach((n) => (n.items || []).forEach((i) => {
+    const id = n.t === 'submissions' ? i.id : n.t === 'comments' ? (i.type === 'submission' ? i.target : null) : i.sid;
+    if (id) ids.set(id, { by: n.by, what: n.t === 'submissions' && n.op === 'insert' ? 'New' : n.t === 'comments' ? 'New comment' : n.t === 'votes' ? 'Vote' : 'Updated' });
+  }));
+  await reload();
+  if (!$('#sug-list') || V.err) return;
+  const before = new Set($$('#sug-list .sug-card[data-id]').map((x) => x.dataset.id));
+  if (openBusy()) {
+    renderSubtabs();
+    const same = visibleRows().every((r) => before.has(r.id)) && before.size === visibleRows().length;
+    ids.forEach((v, id) => patchCard(id));
+    V.livePending = !same || ids.has(V.open) || ids.size === 0;
+    if (V.livePending) whenIdle('cats', () => !$('#sug-list') || openBusy(), catchUp);
+  } else {
+    await keepFocus(() => {
+      renderSubtabs(); renderActive();
+      const f = $('#filters'); if (!(f && f.contains(document.activeElement))) renderFilters();
+      renderList();
+    });
+    V.livePending = false;
+  }
+  ids.forEach((v, id) => flash(cardEl(id), v.by, v.what));
+  paintCats();
+}
+/* Catch up once the person has finished (sent or cleared) what they were typing. */
+function catchUp() {
+  if (!V.livePending || !$('#sug-list')) return;
+  V.livePending = false;
+  keepFocus(() => { renderSubtabs(); renderActive(); renderList(); });
 }

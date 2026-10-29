@@ -7,6 +7,7 @@
    change and Reset all. Pickers (image, swap) are in ws-plan-adapt-pick.js. */
 import { S, BUCKET, esc, isStoragePath, isSitePath, siteUrl, ZONES, ZONE_NAMES } from './ws-core.js';
 import { slotsOf, saveAdapted } from './ws-plan-data.js';
+import { presenceChanged } from './ws-live.js';
 
 export const IMG_ZONES = ['rack', 'tubes', 'photo'];
 export const isImg = (z) => IMG_ZONES.includes(z);
@@ -116,7 +117,7 @@ export const editing = (d, t) => !!AD.w && AD.edit === d.id + ':' + t;
 export function startEdit(d, t) {
   const s = slotsOf(d.id)[t]; if (!s || !s.item || !s.item.sid) return false;
   if (AD.w) stopEdit(); // another slot's edit was still open: it counts as cancelled
-  AD.edit = d.id + ':' + t; AD.w = workFrom(s.item); AD.diff = null; AD.up = []; return true;
+  AD.edit = d.id + ':' + t; AD.w = workFrom(s.item); AD.diff = null; AD.up = []; presenceChanged(); return true;
 }
 /* Ends the edit. saved = the copy that was saved (null when cancelled or reset).
    Pictures uploaded during this edit that the saved copy does not use are
@@ -127,6 +128,7 @@ export function stopEdit(saved) {
   const drop = (AD.up || []).filter((p) => !keep.has(p));
   AD.edit = null; AD.w = null; AD.up = [];
   if (drop.length && draftId) dropUploads(draftId, drop);
+  presenceChanged();
 }
 const imagesOf = (a) => ((a && a.items) || []).reduce((l, c) => l.concat([c && c.info && c.info.image, c && c.scope && c.scope.image]), []).filter(Boolean);
 async function dropUploads(draftId, paths) {

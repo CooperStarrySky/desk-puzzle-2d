@@ -9,6 +9,7 @@
 // POST /__pg     { who, table, op, cols, filters, order, limit, patch, ret } or { who, rpc, args } or { who, storage: 'upload', bucket, path }
 //                or { who, storage: 'remove', bucket, paths }
 // POST /__reset  fresh database + seed (between test files)
+// POST /__rt     Realtime stand-in for live syncing (see "Realtime stand-in" below)
 // /__fake/...    stand-in Supabase for the Studio (studio.e2e.mjs points its config here):
 //                POST /__fake/rest/v1/rpc/active_schools (as the public key) and
 //                POST /__fake/functions/v1/submit (the REAL submit handler, storing into PGlite)
@@ -16,7 +17,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { freshDb, migrationFiles, applyMigration, as } from '../db_harness.mjs';
+import { freshDb, migrationFiles, applyMigration, as, userId } from '../db_harness.mjs';
 import { seed } from './seed.mjs';
 import { createHandler } from '../../functions/submit/handler.js';
 
@@ -143,6 +144,90 @@ function fakeSupabase() {
 }
 const submitHandler = createHandler({ env: (k) => (k === 'ALLOWED_ORIGINS' ? 'http://127.0.0.1:' + port : undefined), supabase: fakeSupabase(), fetch: () => Promise.reject(new Error('no network')) });
 
+// ── Realtime stand-in (live syncing tests) ──────────────────────────────────
+// Private channels like Supabase Realtime: joining asks the real row rules on
+// realtime.messages as that person with the topic set; presence tracking asks
+// the insert rule. Notes written by the live-sync triggers into
+// realtime.messages are delivered to everyone joined to that topic.
+// POST /__rt { cid, who, op: join|leave|track|untrack|poll, topic, key, state }
+// POST /__rt_ctl { down: true|false } simulates Realtime going away / coming back.
+const RT = { clients: new Map(), presence: new Map(), lastId: 0, down: false };
+const rtClient = (cid) => { if (!RT.clients.has(cid)) RT.clients.set(cid, { subs: new Set(), q: [], wait: null }); return RT.clients.get(cid); };
+function rtPush(c, ev) { c.q.push(ev); if (c.wait) { const w = c.wait; c.wait = null; w(); } }
+async function rtAsk(who, topic, sql, params, probe) {
+  return serial(async () => {
+    try {
+      return await db.transaction(async (tx) => {
+        if (probe) await tx.query(`insert into realtime.messages (topic, extension, payload, event) values ($1, $2, '{}', 'probe')`, [topic, probe]);
+        await tx.query(`select set_config('realtime.topic', $1, true)`, [topic]);
+        if (who !== 'anon') await tx.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ email: who, role: 'authenticated', sub: userId(who) })]);
+        await tx.exec(`set local role ${who === 'anon' ? 'anon' : 'authenticated'}`);
+        const r = await tx.query(sql, params);
+        throw Object.assign(new Error('rollback'), { rows: r.rows });
+      });
+    } catch (e) { return e.rows ? { ok: true, rows: e.rows } : { ok: false, error: e.message }; }
+  });
+}
+const rtCanRead = async (who, topic, ext) => {
+  const r = await rtAsk(who, topic, `select count(*)::int n from realtime.messages where topic = $1 and extension = $2`, [topic, ext], ext);
+  return r.ok && r.rows[0].n > 0;
+};
+const rtCanTrack = async (who, topic) => (await rtAsk(who, topic, `insert into realtime.messages (topic, extension, payload, event) values ($1, 'presence', '{}', 'probe') returning id`, [topic])).ok;
+function rtPresenceSync(topic) {
+  const m = RT.presence.get(topic) || new Map(), state = {};
+  m.forEach((v, key) => { state[key] = [Object.assign({ presence_ref: key }, v.state)]; });
+  RT.clients.forEach((c) => { if (c.subs.has(topic) && c.pres && c.pres.has(topic)) rtPush(c, { topic, type: 'presence', state }); });
+}
+function rtDrop(cid, topic) {
+  const m = RT.presence.get(topic); if (!m) return false;
+  let hit = false; m.forEach((v, k) => { if (v.cid === cid) { m.delete(k); hit = true; } });
+  return hit;
+}
+async function rtDrain() {
+  if (!db) return;
+  const r = await as(db, 'postgres', `select id, topic, event, payload from realtime.messages where id > $1 and extension = 'broadcast' and event <> 'probe' order by id`, [RT.lastId]);
+  (r.rows || []).forEach((m) => {
+    RT.lastId = Math.max(RT.lastId, Number(m.id));
+    if (RT.down) return;
+    RT.clients.forEach((c) => { if (c.subs.has(m.topic)) rtPush(c, { topic: m.topic, type: 'broadcast', event: m.event, payload: m.payload }); });
+  });
+}
+setInterval(() => { serial(rtDrain).catch(() => {}); }, 120).unref();
+async function rtOp(b) {
+  const c = rtClient(String(b.cid || '')), who = b.who || 'anon', topic = String(b.topic || '');
+  if (b.op === 'poll') {
+    if (!c.q.length) await new Promise((res) => { c.wait = res; setTimeout(() => { if (c.wait === res) { c.wait = null; res(); } }, 10000); });
+    const events = c.q; c.q = []; return { events };
+  }
+  if (b.op === 'join') {
+    if (RT.down) return { ok: false, error: 'Realtime is down' };
+    if (!(await rtCanRead(who, topic, 'broadcast'))) return { ok: false, error: 'Unauthorized: You do not have permissions to read from this Channel topic: ' + topic };
+    c.subs.add(topic);
+    if (b.key) { if (!(await rtCanRead(who, topic, 'presence'))) return { ok: false, error: 'Unauthorized presence' }; (c.pres = c.pres || new Set()).add(topic); rtPresenceSync(topic); }
+    return { ok: true };
+  }
+  if (b.op === 'leave') { c.subs.delete(topic); if (c.pres) c.pres.delete(topic); if (rtDrop(String(b.cid), topic)) rtPresenceSync(topic); return { ok: true }; }
+  if (b.op === 'track') {
+    if (RT.down || !c.subs.has(topic)) return { ok: false, error: 'not joined' };
+    if (!(await rtCanTrack(who, topic))) return { ok: false, error: 'Unauthorized: You do not have permissions to track presence on this Channel topic: ' + topic };
+    if (!RT.presence.has(topic)) RT.presence.set(topic, new Map());
+    RT.presence.get(topic).set(String(b.key), { cid: String(b.cid), state: b.state || {} });
+    rtPresenceSync(topic); return { ok: true };
+  }
+  if (b.op === 'untrack') { if (rtDrop(String(b.cid), topic)) rtPresenceSync(topic); return { ok: true }; }
+  return { ok: false, error: 'bad op' };
+}
+function rtSetDown(down) {
+  RT.down = !!down;
+  if (!RT.down) return;
+  RT.clients.forEach((c, cid) => { c.subs.forEach((t) => { rtDrop(cid, t); rtPush(c, { topic: t, type: 'status', status: 'CHANNEL_ERROR' }); }); c.subs.clear(); if (c.pres) c.pres.clear(); });
+  RT.presence.clear();
+}
+function rtReset() {
+  RT.clients.forEach((c) => { if (c.wait) { const w = c.wait; c.wait = null; w(); } });
+  RT.clients.clear(); RT.presence.clear(); RT.lastId = 0; RT.down = false;
+}
+
 const srv = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname.startsWith('/__fake/')) {
@@ -164,13 +249,25 @@ const srv = http.createServer((req, res) => {
     });
     return;
   }
+  if (req.method === 'POST' && (url.pathname === '/__rt' || url.pathname === '/__rt_ctl')) {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', async () => {
+      let out;
+      try { const b = JSON.parse(body || '{}'); out = url.pathname === '/__rt_ctl' ? (rtSetDown(b.down), { ok: true, down: RT.down }) : await rtOp(b); }
+      catch (e) { out = { ok: false, error: String(e.message || e) }; }
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      res.end(JSON.stringify(out));
+    });
+    return;
+  }
   if (req.method === 'POST' && (url.pathname === '/__pg' || url.pathname === '/__reset' || url.pathname === '/__sql')) {
     let body = '';
     req.on('data', (c) => { body += c; });
     req.on('end', async () => {
       let out;
       try {
-        if (url.pathname === '/__reset') out = { ms: await serial(reset) };
+        if (url.pathname === '/__reset') { rtReset(); out = { ms: await serial(reset) }; }
         else if (url.pathname === '/__sql') { const b = JSON.parse(body); out = await serial(() => as(db, b.who || 'postgres', b.sql, b.params || [])); }
         else out = await serial(() => run(JSON.parse(body)));
       } catch (e) { out = { data: null, error: { message: String(e.message || e) } }; }

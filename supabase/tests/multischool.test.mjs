@@ -112,6 +112,8 @@ async function main() {
   } catch (e) { ok(false, 'later migrations apply on top', e.message); return; }
   const c5 = await import('./multischool_checks5.mjs');
   await c5.checkSchoolColor(db, ok, P);
+  const c6 = await import('./multischool_checks6.mjs');
+  await c6.checkLiveSync(db, ok, ID, P);
 }
 
 await main();

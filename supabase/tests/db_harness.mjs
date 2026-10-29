@@ -67,6 +67,32 @@ begin
   select string_to_array(name, '/') into _parts;
   return _parts[1 : array_length(_parts, 1) - 1];
 end $$;
+
+-- Supabase Realtime's message table, realtime.topic() and realtime.send(),
+-- shaped like the real ones (Realtime Authorization reads row rules on
+-- realtime.messages with the channel topic set; send() inserts a broadcast
+-- row and never raises). Grants are wide on purpose so only rules decide.
+create schema realtime;
+grant usage on schema realtime to anon, authenticated, service_role;
+create table realtime.messages (
+  id bigserial primary key, topic text not null, extension text not null, payload jsonb, event text,
+  private boolean default true, inserted_at timestamptz default now(), updated_at timestamptz default now()
+);
+alter table realtime.messages enable row level security;
+grant select, insert, update on realtime.messages to anon, authenticated;
+grant usage on sequence realtime.messages_id_seq to anon, authenticated;
+create function realtime.topic() returns text language sql stable as $$
+  select nullif(current_setting('realtime.topic', true), '')::text;
+$$;
+create function realtime.send(payload jsonb, event text, topic text, private boolean default true) returns void language plpgsql as $$
+begin
+  begin
+    perform set_config('realtime.topic', topic, true);
+    insert into realtime.messages (payload, event, topic, private, extension) values (payload, event, topic, private, 'broadcast');
+  exception when others then
+    raise warning 'ErrorSendingBroadcastMessage: %', sqlerrm;
+  end;
+end $$;
 `;
 
 export function migrationFiles() {

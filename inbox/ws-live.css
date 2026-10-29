@@ -1,0 +1,44 @@
+/* Live syncing + presence (ws-live.js): a short highlight on things other
+   people changed, "updated by" tags, who-is-here avatars, the slot conflict note. */
+.live-host { position: relative; }
+.live-flash { animation: live-glow 2.4s ease-out 1; }
+@keyframes live-glow {
+  0% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); }
+  100% { box-shadow: 0 0 0 3px transparent; }
+}
+.live-by {
+  position: absolute; top: -10px; right: 14px; z-index: 3; pointer-events: none;
+  font: 600 0.7rem/1.2 var(--sans); padding: 3px 8px; border-radius: 999px;
+  background: var(--panel); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  max-width: calc(100% - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  animation: live-tag 4.5s ease-out 1 forwards;
+}
+/* Inside boxes that clip their edges (tier slots, feed lines): sit inside the top edge. */
+.slot > .live-by, #feed > li > .live-by { top: 4px; }
+@keyframes live-tag { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .live-flash { animation: none; outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 1px; }
+  .live-by { animation: none; }
+}
+
+/* Draft header: "John D. is viewing" / "Marcus T. is editing Tier 2". */
+.ed-pres { display: flex; align-items: center; gap: 8px; margin: 2px 0 0; font-size: 0.82rem; color: var(--ink-soft); min-width: 0; }
+.ed-pres[hidden] { display: none; }
+.ed-pres .pres-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pres-av { display: inline-flex; border-radius: 50%; }
+.pres-av .av { box-shadow: 0 0 0 2px var(--ok); }
+.pres-av.editing .av { box-shadow: 0 0 0 2px var(--warn); }
+.avs .pres-av + .pres-av { margin-left: -7px; }
+
+/* Categories: someone else in my school has this card open. */
+.pres-chip { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; vertical-align: middle; flex: none; }
+.pres-chip .av { width: 20px; height: 20px; font-size: 0.55rem; box-shadow: 0 0 0 2px var(--ok); }
+
+/* "Marcus T. changed this slot while you were editing it." */
+.live-conflict {
+  border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent); background: var(--warn-soft); color: var(--ink);
+  border-radius: var(--r-s, 8px); padding: 8px 10px; margin: 0 0 10px; display: grid; gap: 6px; font-size: 0.86rem;
+}
+.live-conflict p { margin: 0; }
+#feed > li { position: relative; }

@@ -7,8 +7,8 @@ import { $, $$, esc, busy, toast, toastAct, openModal, fillImages, person, menuH
 import { contentHtml } from './ws-clues.js';
 import { slotsOf, itemByKey, tierOfKey, placeItem, moveSlot, removeSlot, restoreSlot, votesFor } from './ws-plan-data.js';
 import { LIB, DND, alsoFlags, libItems, TOUCH, libSheet } from './ws-plan-lib.js';
-import { addPart, refresh, current, readOnly } from './ws-plan-editor.js';
-import { editing, editorHtml, badgeHtml } from './ws-plan-adapt.js';
+import { addPart, refresh, current, readOnly, ED, SLOT_HOOKS } from './ws-plan-editor.js';
+import { editing, editorHtml, badgeHtml, startEdit, stopEdit } from './ws-plan-adapt.js';
 import { wireAdapt } from './ws-plan-adapt-pick.js';
 
 const STAIN = { 1: 'Tier 1', 2: 'Tier 2', 3: 'Tier 3', 4: 'Tier 4' };
@@ -16,7 +16,7 @@ const byLine = (it) => (it.credit ? 'Category by ' + it.credit.name + (it.credit
 
 function slotHtml(d, t, s) {
   const ro = readOnly(d), it = s && s.item;
-  const band = '<div class="slot-band"><b>' + TIER_WORDS[t] + '</b><span>' + STAIN[t] + '</span></div>';
+  const band = '<div class="slot-band"><div class="sb-in"><b>' + TIER_WORDS[t] + '</b><span>' + STAIN[t] + '</span></div></div>';
   if (!it) {
     return '<div class="slot t' + t + '" data-t="' + t + '" role="group" aria-label="' + TIER_WORDS[t] + ' slot, empty">' + band +
       '<div class="slot-body slot-empty"><span>' + (TOUCH || ro ? 'Empty' : 'Drop a category here') + '</span>' + (ro ? '' : '<button type="button" class="btn small" data-fill="' + t + '">Add category…</button>') + '</div></div>';
@@ -38,8 +38,41 @@ function slotHtml(d, t, s) {
 function render(d) {
   const el = $('#slots'); if (!el) return;
   const sl = slotsOf(d.id);
-  el.innerHTML = [1, 2, 3, 4].map((t) => slotHtml(d, t, sl[t])).join('');
+  // A live update never redraws the slot you are editing (your typing stays).
+  const keep = ED.live ? $('.slot.editing', el) : null;
+  if (keep && editing(d, Number(keep.dataset.t))) {
+    [1, 2, 3, 4].forEach((t) => {
+      const cur = $('.slot[data-t="' + t + '"]', el); if (cur === keep) return;
+      const tmp = document.createElement('div'); tmp.innerHTML = slotHtml(d, t, sl[t]);
+      if (cur) cur.replaceWith(tmp.firstElementChild); else el.appendChild(tmp.firstElementChild);
+    });
+  } else el.innerHTML = [1, 2, 3, 4].map((t) => slotHtml(d, t, sl[t])).join('');
   fillImages(el);
+}
+/* Someone else changed the slot I'm editing: say so, and let me choose. */
+function showConflict(t, by) {
+  const ed = $('#slots .slot.editing[data-t="' + Number(t) + '"] .adapt-ed'); if (!ed) return;
+  let n = $('.live-conflict', ed);
+  if (!n) { n = document.createElement('div'); n.className = 'live-conflict'; n.setAttribute('role', 'alert'); ed.prepend(n); }
+  n.innerHTML = '<p><b>' + esc(person(by).name) + '</b> changed this slot while you were editing it.</p>' +
+    '<div class="row" style="--gap:6px"><button type="button" class="btn small primary" data-lc="reload" data-lct="' + Number(t) + '">Reload slot</button>' +
+    '<button type="button" class="btn small" data-lc="keep">Keep mine</button></div>';
+}
+SLOT_HOOKS.conflict = showConflict;
+function conflictChoice(b) {
+  const d = current(); if (!d) return;
+  if (b.dataset.lc === 'keep') {
+    const n = b.closest('.live-conflict'), ed = n && n.closest('.adapt-ed'); if (n) n.remove();
+    toast('Keeping your version. Saving will replace theirs.', 4000);
+    const f = ed && $('input, textarea', ed); if (f) f.focus();
+    return;
+  }
+  const t = Number(b.dataset.lct);
+  stopEdit();
+  const s = slotsOf(d.id)[t], again = !!(s && s.item && s.item.sid && !readOnly(d)) && startEdit(d, t);
+  render(d);
+  toast(again ? 'Reloaded ' + TIER_WORDS[t] + ' with the latest version.' : TIER_WORDS[t] + ' changed; your edit was closed.', 4500);
+  const f = $('.slot[data-t="' + t + '"] ' + (again ? '.adapt-ed input' : '.mnu-btn, button')); if (f) f.focus();
 }
 /* After a save: reload, redraw, and put focus somewhere sensible. */
 async function after(ok, msg, focusSel) {
@@ -119,6 +152,7 @@ function mount(d) {
   LIB.onRemove = (t) => remove(t);
   el.addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.lc) { conflictChoice(b); return; }
     if (b.dataset.det) { detailsDialog(b.dataset.det); return; }
     if (readOnly(current())) return;
     if (b.dataset.fill) fillPicker(Number(b.dataset.fill));
