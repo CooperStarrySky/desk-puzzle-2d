@@ -9,12 +9,23 @@ function pieceHtml(it, i) {
   return '<div class="mp mp-' + esc(it.zone) + '" style="--rot:' + (((i * 37) % 5) - 2) + 'deg" title="' + esc((ZONE_NAMES[it.zone] || '') + ': ' + (it.label || '')) + '">' +
     (hasImage(pic) ? '<span class="pic" data-path="' + esc(pic) + '"></span>' : '') + '<b>' + esc(it.label) + '</b></div>';
 }
+/* Non-image clues drawn as the game draws them on the desk, with the game's own
+   textures (the prescription texture carries its own printed ℞), each with the
+   clue text. '' for picture clues. cls adds a sizing class; decorative hides
+   it from screen readers when the label is already spoken next to it. */
+const TEXT_ZONES = { corkboard: 1, folder: 1, rx: 1 };
+export function textPieceHtml(it, cls, decorative) {
+  if (!it || !TEXT_ZONES[it.zone]) return '';
+  const a11y = decorative ? 'aria-hidden="true"' : 'role="img" aria-label="' + esc((ZONE_NAMES[it.zone] || 'Clue') + ': ' + (it.label || '')) + '"';
+  return '<span class="mp mp-' + it.zone + ' text-piece' + (cls ? ' ' + cls : '') + '" ' + a11y + '>' +
+    '<b aria-hidden="true">' + esc(it.label || '') + '</b></span>';
+}
 function clueHtml(it, i) {
   const info = it.info || {}; const scope = it.scope || {};
   const thumbs = [];
   if (hasImage(scope.image)) thumbs.push('<img class="scope" alt="Microscope view for clue ' + (i + 1) + '" data-path="' + esc(scope.image) + '">');
   if (hasImage(info.image)) thumbs.push('<img alt="Image for clue ' + (i + 1) + '" data-path="' + esc(info.image) + '">');
-  if (!thumbs.length) thumbs.push('<div class="none">' + (['photo', 'tubes', 'rack'].includes(it.zone) ? 'No image sent' : 'Text clue') + '</div>');
+  if (!thumbs.length) thumbs.push(textPieceHtml(it, 'clue-piece') || '<div class="none">' + (['photo', 'tubes', 'rack'].includes(it.zone) ? 'No image sent' : 'Text clue') + '</div>');
   return '<div class="clue-row"><div class="thumbs">' + thumbs.join('') + '</div><div class="stack" style="--gap:5px">' +
     '<div class="row" style="--gap:8px"><span class="clue-num">Clue ' + (i + 1) + '</span><span class="badge">' + esc(ZONE_NAMES[it.zone] || it.zone) + '</span></div>' +
     '<b>' + esc(it.label) + '</b>' + (info.title && info.title !== it.label ? '<span class="muted">Title: ' + esc(info.title) + '</span>' : '') +

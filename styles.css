@@ -518,7 +518,6 @@ a.btn.btn-small, a.btn.btn-big { display: inline-flex; align-items: center; just
 }
 @media (max-width: 560px) {
   .menu-wrap { padding-inline: 16px; }
-  .site-head-actions a.head-submit { display: none; } /* still in the hero and the footer */
   .brand-name small { white-space: normal; letter-spacing: 0.08em; }
   .site-head-row { gap: 10px; }
   .hero-actions .btn { flex: 1 1 100%; }
@@ -1882,6 +1881,79 @@ div.result-placard-head { cursor: default; }
 @keyframes results-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
   .results-stamp.is-stamped, .results-path-row, .result-placard, .result-teach-row { animation: none; }
+}
+
+/* ── Contributor credit label (option C1: tilt + glare) ─────────────
+   Cream paper label on a glass slide end, iron-gall ink, a faint H&E smear.
+   Off the tier palette on purpose. Pointer position arrives as --px/--py
+   (-1..1) from one rAF-throttled handler in ui-play.js; only transform and
+   opacity animate. Anonymous rows use the quiet .is-anon line instead. */
+:root {
+  --cl-glass-a: rgba(186, 204, 220, 0.42); --cl-glass-b: rgba(226, 236, 244, 0.7); --cl-glass-edge: rgba(96, 120, 146, 0.55);
+  --cl-paper: #f8f3e3; --cl-line: rgba(80, 70, 40, 0.18); --cl-sig: #2b3a8c;
+  --cl-pop: cubic-bezier(.3, 1.6, .5, 1);
+}
+:root[data-theme="dark"] { --cl-glass-a: rgba(176, 196, 222, 0.16); --cl-glass-b: rgba(210, 222, 240, 0.3); --cl-glass-edge: rgba(190, 206, 230, 0.45); }
+.result-placard-credit.is-anon { display: block; font-style: italic; opacity: 0.7; }
+.credit-label { display: inline-block; align-self: flex-start; margin-top: 4px; max-width: 100%; transform-origin: left center; }
+.cl-slide {
+  --px: 0; --py: 0;
+  position: relative; display: flex; align-items: stretch; max-width: 100%; overflow: hidden; border-radius: 4px;
+  background: linear-gradient(115deg, var(--cl-glass-b), var(--cl-glass-a) 55%, var(--cl-glass-b));
+  border: 1px solid var(--cl-glass-edge);
+  box-shadow: 0 2px 7px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(255, 255, 255, .55);
+  transform: perspective(520px) rotate(-1.5deg) rotateX(calc(var(--py) * -10deg)) rotateY(calc(var(--px) * 10deg));
+  transition: transform .55s var(--cl-pop);
+  touch-action: manipulation;
+}
+.cl-slide.is-live { transition: transform .1s linear; }
+.cl-paper { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 4px 12px 2px 10px; color: #1f2440; text-align: left; }
+.cl-paper::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--cl-paper);
+  background-image: repeating-linear-gradient(0deg, transparent 0 9px, var(--cl-line) 9px 10px); border-right: 1px solid rgba(0, 0, 0, .12); }
+.cl-cap { font: 600 0.56rem/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: #6a6450; }
+.cl-sig { font: 400 1.02rem/1.15 var(--hand); color: var(--cl-sig); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cl-paper svg { display: block; width: 92px; height: 7px; margin-top: -2px; }
+.cl-paper path { fill: none; stroke: var(--cl-sig); stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: 120; stroke-dashoffset: 0; opacity: .8; }
+.cl-glass { position: relative; width: 38px; flex: none; }
+.cl-tissue { position: absolute; inset: -6px; z-index: 1; opacity: .5; pointer-events: none;
+  background:
+    radial-gradient(circle at 78% 40%, rgba(75, 63, 176, .55) 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 62%, rgba(75, 63, 176, .5) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 70%, rgba(75, 63, 176, .45) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 92% 30%, rgba(75, 63, 176, .45) 0 1.5px, transparent 2.5px),
+    radial-gradient(ellipse 40% 55% at 84% 50%, rgba(214, 69, 122, .38), transparent 70%); }
+.cl-glare { position: absolute; z-index: 3; width: 140%; height: 300%; left: -20%; top: -100%; opacity: 0; pointer-events: none; mix-blend-mode: soft-light;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .95), rgba(255, 255, 255, 0) 32%);
+  transform: translate(calc(var(--px) * 45%), calc(var(--py) * 25%)); transition: opacity .25s; }
+.cl-slide.is-hover .cl-glare { opacity: .9; }
+/* Entrance: flip in, then the signature writes itself (about 1.25 s, once). */
+.credit-label.is-waiting:not(.is-in) { opacity: 0; }
+.credit-label.is-in:not(.no-entrance) { animation: cl-in 0.6s var(--cl-pop) both; }
+.credit-label.is-in:not(.no-entrance) .cl-sig { animation: cl-write 0.55s 0.3s steps(14, end) both; }
+.credit-label.is-in:not(.no-entrance) .cl-paper path { animation: cl-line 0.45s 0.8s ease-out both; }
+@keyframes cl-in { 0% { opacity: 0; transform: perspective(300px) translateX(22px) rotateY(-75deg) rotate(6deg); } 100% { opacity: 1; transform: none; } }
+@keyframes cl-write { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes cl-line { from { stroke-dashoffset: 120; } to { stroke-dashoffset: 0; } }
+/* Touch: one short wiggle with a light sweep per tap. */
+.cl-slide.is-tap { animation: cl-wiggle .7s var(--ease); }
+.cl-slide.is-tap .cl-glare { animation: cl-sweep .7s ease-out; }
+@keyframes cl-wiggle { 0%, 100% { transform: perspective(520px) rotate(-1.5deg); } 30% { transform: perspective(520px) rotate(-1.5deg) rotateY(9deg) rotateX(-4deg); } 65% { transform: perspective(520px) rotate(-1.5deg) rotateY(-5deg) rotateX(2deg); } }
+@keyframes cl-sweep { 0% { opacity: 0; transform: translateX(-45%); } 40% { opacity: .9; } 100% { opacity: 0; transform: translateX(45%); } }
+/* "Your name could be here" invitation under the four groups. */
+.credit-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 16px 2px 0; font-size: 0.86rem; }
+.credit-cta[hidden] { display: none; }
+.credit-cta .cl-slide { transform: rotate(-1.5deg); }
+.credit-cta .cl-paper::before { border: 1.5px dashed rgba(80, 70, 40, .45); }
+.cl-blank { font: 400 1.02rem/1.2 var(--hand); color: #8b8572; }
+.credit-cta .cl-glass { display: grid; place-items: center; font: 600 1.1rem/1 var(--sans); color: var(--ink-soft); }
+.credit-cta a { font-weight: 600; text-decoration: none; color: var(--accent); }
+.credit-cta a:hover { text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) {
+  .credit-label, .credit-label *, .cl-slide.is-tap, .cl-slide.is-tap * { animation: none !important; }
+  .credit-label.is-waiting:not(.is-in) { opacity: 1; }
+  .cl-slide, .cl-slide.is-live { transform: rotate(-1.5deg) !important; transition: none !important; }
+  .cl-slide * { transform: none !important; }
+  .cl-slide.is-hover .cl-glare { opacity: .5; }
 }
 
 @media (max-width: 720px) {

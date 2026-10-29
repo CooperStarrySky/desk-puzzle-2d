@@ -16,6 +16,13 @@ export async function runPart3({ P, check, sql, U, C, D, settle, shot, mouse, ce
   const pk = await P.text('#lib-peek');
   check('H1 preview: name, suggested tier, explanation, usage line, 👍', /Causes of clubbing/.test(pk) && /Suggested Easy/.test(pk) && /Causes of clubbing explained\./.test(pk) && /Never used/.test(pk) && /👍 3/.test(pk), pk);
   check('H1 preview: all 4 clues, image clue with a thumbnail', (await P.count('#lib-peek .pk-clues li')) === 4 && (await P.waitFor('!!document.querySelector("#lib-peek img.pk-th[src]")', 3000)));
+  // Every non-image clue (sticky note / paper / Rx) is drawn as its piece with text; only image clues may show the bare icon.
+  const textClues = (root) => P.js(`(() => { const li = [...document.querySelectorAll('${root} .pk-clues li')];
+    const isText = (l) => /^(Sticky note|Paper|Rx): /.test((l.querySelector('.sr') || {}).textContent || '');
+    const t = li.filter(isText); return { n: t.length, drawn: t.filter((l) => { const p = l.querySelector('.pk-th.text-piece'); return p && p.textContent.trim(); }).length,
+      icons: t.filter((l) => l.querySelector('.pk-th.none')).length, w: t.length ? t[0].querySelector('.pk-th').getBoundingClientRect().width : 0 }; })()`);
+  const tc = await textClues('#lib-peek');
+  check('H1 preview: text clues drawn as their desk piece with the text (no bare icon)', tc.n >= 1 && tc.drawn === tc.n && tc.icons === 0, tc);
   check('H1 the card points at the preview (aria-describedby)', (await P.attr(card, 'aria-describedby')) === 'lib-peek');
   await shot('planner-hover-preview', true);
   await mouse('mouseMoved', 760, 860, { button: 'none', buttons: 0 });
@@ -25,6 +32,8 @@ export async function runPart3({ P, check, sql, U, C, D, settle, shot, mouse, ce
   await P.click('[data-view="' + C.clubbing + '"]'); await P.waitFor('!!document.querySelector(".view-dlg")');
   check('V1 👁 View opens the same content in a dialog', /Causes of clubbing/.test(await P.text('.view-dlg h2')) && (await P.count('.view-dlg .pk-clues li')) === 4 &&
     /Suggested Easy/.test(await P.text('.view-dlg')) && /👍 3/.test(await P.text('.view-dlg .pk-use')));
+  const tv = await textClues('.view-dlg');
+  check('V1 dialog draws the text clues too, big enough to read', tv.n >= 1 && tv.drawn === tv.n && tv.w >= 70, tv);
   check('V1 dialog has "Add to draft…" and Close', (await P.text('#view-add')) === 'Add to draft…' && (await P.text('#view-close')) === 'Close');
   await P.sleep(200); await shot('planner-view-panel');
   await P.click('#view-close'); await P.sleep(200);

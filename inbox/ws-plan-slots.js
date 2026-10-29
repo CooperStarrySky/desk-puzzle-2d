@@ -12,7 +12,7 @@ import { editing, editorHtml, badgeHtml, startEdit, stopEdit } from './ws-plan-a
 import { wireAdapt } from './ws-plan-adapt-pick.js';
 
 const STAIN = { 1: 'Tier 1', 2: 'Tier 2', 3: 'Tier 3', 4: 'Tier 4' };
-const byLine = (it) => (it.credit ? 'Category by ' + it.credit.name + (it.credit.line ? ', ' + it.credit.line : '') : 'Category by an anonymous player');
+const byLine = (it) => (it.credit && it.credit.name ? 'Category by ' + it.credit.name + (it.credit.line ? ', ' + it.credit.line : '') : 'Category by an anonymous player');
 
 function slotHtml(d, t, s) {
   const ro = readOnly(d), it = s && s.item;
