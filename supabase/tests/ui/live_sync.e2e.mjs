@@ -23,6 +23,8 @@ try {
   check('P1 Marcus sees "John D. is viewing"', await b.waitFor('(document.getElementById("ed-pres").textContent || "").includes("John D. is viewing")', 8000), await b.text('#ed-pres'));
   check('P1 one avatar, with initials', await a.count('#ed-pres .pres-av .av') === 1 && await a.text('#ed-pres .av') === 'MT');
   if (SHOTS) await a.shot(SHOTS + '/15-presence-draft-header.png');
+  check('P1 header never says "someone" or shows a "?" avatar (seeded rows carry no email)',
+    !/someone/.test(await a.text('#ed-meta')) && await a.count('#ed-meta .av') === 0 && /Last updated/.test(await a.text('#ed-meta')), await a.text('#ed-meta'));
 
   // A rename from the other page, while John types notes
   await a.js(`(() => { const n = document.getElementById('ed-notes'); n.focus(); n.value = 'My unsaved note'; })()`);
@@ -32,6 +34,11 @@ try {
   check('P2 my unsaved notes and focus are untouched', await a.js('document.getElementById("ed-notes").value === "My unsaved note" && document.activeElement.id === "ed-notes"'));
   check('P2 the title field took the new title', await a.js('document.getElementById("ed-title").value') === 'Renamed by Marcus');
   check('P2 no self-flash on the page that made the change', await b.count('.ed-head .live-by') === 0);
+  check('P2 header names Marcus T. with his initials', await a.waitFor('/Last updated by Marcus T\\./.test(document.getElementById("ed-meta").textContent)', 5000) &&
+    await a.text('#ed-meta .av') === 'MT', await a.text('#ed-meta'));
+  const rb = await sql(`update public.draft_slots set placed_at = now() + interval '1 second' where draft_id = $1`, [D.cmsru]);
+  check('P2 a newer change with no email (robot/import) keeps Marcus T. named, not "someone"', !rb.error &&
+    await a.waitFor('(() => { const m = document.getElementById("ed-meta").textContent; return /Last updated by Marcus T\\./.test(m) && !/someone/.test(m); })()', 5000), await a.text('#ed-meta'));
   await a.js(`(() => { const n = document.getElementById('ed-notes'); n.value = ''; n.blur(); })()`);
 
   // A slot change (swap tiers 3 and 1)
@@ -47,6 +54,13 @@ try {
   // Conflict while editing a slot
   await a.click('.slot[data-t="3"] [data-adapt]');
   check('P4 John opens the slot editor', await a.waitFor('!!document.querySelector(\'.slot.editing[data-t="3"] [data-ad="name"]\')'));
+  const band = `(() => { const sl = document.querySelector('.slot.editing[data-t="3"]'), b = sl && sl.querySelector('.slot-band b'); if (!b) return null;
+    const r = b.getBoundingClientRect(), s = sl.getBoundingClientRect(); return { txt: b.textContent, off: r.top - s.top, top: r.top, h: innerHeight, vis: r.height > 0 && getComputedStyle(b).visibility !== 'hidden' }; })()`;
+  let bd = await a.js(band);
+  check('P4 tier label stays at the top of the slot while editing', !!bd && bd.txt === 'Hard' && bd.vis && bd.off < 40, bd);
+  await a.js('window.scrollTo(0, document.querySelector(\'.slot.editing[data-t="3"]\').getBoundingClientRect().top + scrollY + 400)');
+  bd = await a.js(band);
+  check('P4 ...and stays in view when scrolling down the editor', !!bd && bd.top >= 100 && bd.top < bd.h - 20, bd);
   await a.js(`(() => { const i = document.querySelector('[data-ad="name"]'); i.focus(); i.value = 'John typing here'; i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   check('P4 Marcus sees "John D. is editing Tier 3"', await b.waitFor('(document.getElementById("ed-pres").textContent || "").includes("John D. is editing Tier 3")', 8000), await b.text('#ed-pres'));
   r = await sql(ADAPT, [D.cmsru, 'Remote copy one'], U.ADMIN);

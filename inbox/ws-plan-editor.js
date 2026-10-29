@@ -22,17 +22,20 @@ export const current = () => (ED.id ? draftById(ED.id) : null);
 /* Published drafts are frozen; faculty read, comment and approve but never plan. */
 export const readOnly = (d) => !!d && (d.status === 'published' || !['owner', 'lead', 'admin'].includes(roleIn(d.school)));
 
-/* Who touched it last: the draft row, a slot change, or a history line. */
+/* Who touched it last: the draft row, a slot change, or a history line.
+   Rows written outside the website (publish robot, imports, seeds) carry no
+   email, so name the newest touch that has one; with none, say only when. */
 function lastTouch(d) {
-  let best = { at: d.updated_at, who: d.updated_by };
-  PL.slots.filter((s) => s.draft_id === d.id).forEach((s) => { if (s.placed_at > best.at) best = { at: s.placed_at, who: s.placed_by }; });
-  const e = eventsOf(d.id)[0]; if (e && e.at > best.at) best = { at: e.at, who: e.actor_email };
-  return best;
+  const all = [{ at: d.updated_at, who: d.updated_by }]
+    .concat(PL.slots.filter((s) => s.draft_id === d.id).map((s) => ({ at: s.placed_at, who: s.placed_by })))
+    .concat(eventsOf(d.id).slice(0, 1).map((e) => ({ at: e.at, who: e.actor_email })))
+    .filter((x) => x.at).sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+  return all.find((x) => x.who) || all[0] || { at: d.updated_at, who: null };
 }
 function metaHtml(d) {
-  const t = lastTouch(d);
-  return '<span class="st st-' + esc(d.status) + '">' + esc(DSTATUS[d.status]) + '</span> ' + av(t.who) +
-    '<span>Last updated by <b>' + esc(t.who ? person(t.who).name : 'someone') + '</b>, <span title="' + esc(when(t.at)) + '">' + esc(ago(t.at)) + '</span></span>';
+  const t = lastTouch(d), at = '<span title="' + esc(when(t.at)) + '">' + esc(ago(t.at)) + '</span>';
+  return '<span class="st st-' + esc(d.status) + '">' + esc(DSTATUS[d.status]) + '</span> ' +
+    (t.who ? av(t.who) + '<span>Last updated by <b>' + esc(person(t.who).name) + '</b>, ' + at + '</span>' : '<span>Last updated ' + at + '</span>');
 }
 function ownerOptions(d) {
   // Owners come from the draft's own school (the database also checks they are a lead or admin there).

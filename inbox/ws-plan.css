@@ -65,6 +65,11 @@ body.resizing { cursor: col-resize; user-select: none; }
 .slot-band { background: var(--tint); border-left: 6px solid var(--tc); color: var(--ink); padding: 10px; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
 .slot-band b { font: 700 0.7rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
 .slot-band span { font-size: 0.74rem; color: var(--ink-soft); }
+.sb-in { display: flex; flex-direction: column; gap: 4px; }
+/* An open editor makes the slot tall: keep the tier label at the top and in view while scrolling. */
+.slot.editing { overflow: clip; }
+.slot.editing .slot-band { justify-content: flex-start; }
+.slot.editing .sb-in { position: sticky; top: 112px; }
 .slot-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .slot-body h4 { font: 600 1rem/1.25 var(--serif); overflow-wrap: anywhere; }
 .slot-body[draggable="true"] { cursor: grab; }

@@ -16,7 +16,7 @@ const byLine = (it) => (it.credit ? 'Category by ' + it.credit.name + (it.credit
 
 function slotHtml(d, t, s) {
   const ro = readOnly(d), it = s && s.item;
-  const band = '<div class="slot-band"><b>' + TIER_WORDS[t] + '</b><span>' + STAIN[t] + '</span></div>';
+  const band = '<div class="slot-band"><div class="sb-in"><b>' + TIER_WORDS[t] + '</b><span>' + STAIN[t] + '</span></div></div>';
   if (!it) {
     return '<div class="slot t' + t + '" data-t="' + t + '" role="group" aria-label="' + TIER_WORDS[t] + ' slot, empty">' + band +
       '<div class="slot-body slot-empty"><span>' + (TOUCH || ro ? 'Empty' : 'Drop a category here') + '</span>' + (ro ? '' : '<button type="button" class="btn small" data-fill="' + t + '">Add category…</button>') + '</div></div>';
