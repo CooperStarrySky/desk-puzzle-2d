@@ -285,7 +285,12 @@ if (SEND_STATS) {
   const day = new Date(Date.now() + 86400e3).toISOString().slice(0, 10);
   const pid = 'leak-test-' + day;
   const anon = crypto.randomUUID();
-  const fin = { event: 'finish', puzzleId: pid, anonId: anon, outcome: 'won', mistakes: 1, guesses: 5, hints: { labels: false, seeds: false, category: false }, casual: false };
+  const fin = { event: 'finish', puzzleId: pid, anonId: anon, outcome: 'won', mistakes: 1, guesses: 5, hints: { labels: false, seeds: false, category: false }, casual: false,
+    // Guess detail (20261029120000_play_attempts.sql): exercises the new private columns.
+    attempts: [{ i: ['a1', 'a2', 'a3', 'b1'], ok: false, one_away: true }, { i: ['a1', 'a2', 'a3', 'a4'], ok: true, one_away: false },
+      { i: ['b1', 'b2', 'b3', 'b4'], ok: true, one_away: false }, { i: ['c1', 'c2', 'c3', 'c4'], ok: true, one_away: false },
+      { i: ['d1', 'd2', 'd3', 'd4'], ok: true, one_away: false }],
+    solveOrder: ['g-a', 'g-b', 'g-c', 'g-d'] };
   let res = await call('POST', '/functions/v1/record', fin, { Origin: ORIGIN });
   result(res.status === 200 && res.json && res.json.ok === true, `sample finish accepted by the record function (${res.status}${res.json ? ': ' + (res.json.error || 'ok') : ', ' + res.text.slice(0, 120)})`);
   if (res.status === 404) console.log('     The function is not deployed yet: npx supabase functions deploy record --no-verify-jwt --use-api');
@@ -296,8 +301,9 @@ if (SEND_STATS) {
   result(!!row && row.plays >= 1 && row.rating_n >= 1, `the sample shows up in the totals (${row ? 'plays=' + row.plays + ', rating_n=' + row.rating_n : how(res)})`);
   res = await call('GET', `/rest/v1/plays?select=*&puzzle_id=eq.${pid}`);
   result(nothing(res), `the sample row itself stays private (${how(res)})`);
-  res = await call('POST', '/functions/v1/record', Object.assign({}, fin, { puzzleId: 'leak-test-2026-10-11' }), { Origin: ORIGIN });
-  result(res.status === 400, `puzzles released on or before Oct 11, 2026 are refused (${res.status})`);
+  // Since 2026-10-29 every dated puzzle id counts (older ones too); an id without a date is still refused.
+  res = await call('POST', '/functions/v1/record', Object.assign({}, fin, { puzzleId: 'leak-test-nodate' }), { Origin: ORIGIN });
+  result(res.status === 400, `a puzzle id without a release date is refused (${res.status})`);
   res = await call('POST', '/functions/v1/record', fin, { Origin: 'https://not-our-site.example' });
   result(res.status === 403, `record refuses other websites (${res.status})`);
   console.log(`     Clean-up (SQL editor): delete from public.plays where puzzle_id like 'leak-test-%'; delete from public.puzzle_stats where puzzle_id like 'leak-test-%';`);

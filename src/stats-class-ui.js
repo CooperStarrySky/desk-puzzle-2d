@@ -2,15 +2,17 @@
  * stats-class-ui.js — class-wide stats on screen: the results screen's
  * "How everyone did" block and difficulty rating row, the menu card line,
  * and the share-text line. Numbers come from stats-core.js classSummary
- * (definitions there). Nothing shows for puzzles released on or before
- * 2026-10-11, in preview mode, or when the totals can't be loaded (3 s
- * limit, hidden silently).
+ * (definitions there). Every published puzzle shows them once enough
+ * players finish (CLASS_MIN). Puzzles released on or before 2026-10-11 only
+ * count finishes since class stats were turned on for them (2026-10-29), so
+ * their block carries LEGACY_CLASS_LABEL. Nothing shows in preview mode or
+ * when the totals can't be loaded (3 s limit, hidden silently).
  *
  * Imports: state.js, stats-core.js, stats-remote.js.
  * ════════════════════════════════════════════════════════════════════ */
 
 import { state, getFirstResult } from './state.js';
-import { isStatsEligible, classSummary, classSlot, fewerMistakesPct, menuStatsLine, RATING_LABELS, CLASS_MIN } from './stats-core.js';
+import { isStatsEligible, isLegacyStatsPuzzle, LEGACY_CLASS_LABEL, classSummary, classSlot, fewerMistakesPct, menuStatsLine, RATING_LABELS, CLASS_MIN } from './stats-core.js';
 import { fetchClassStats, cachedClassStats, whenSent, statsSharingEnabled, getMyRating, rate, skipRating } from './stats-remote.js';
 
 var renderToken = 0;
@@ -137,6 +139,8 @@ export function renderResultsClass(puzzle) {
   if (state.previewMode || state.editorMode || !isStatsEligible(id)) return;
   var everyone = $('results-class-everyone');
   if (everyone) everyone.hidden = true;
+  var since = $('results-class-since');
+  if (since) { since.textContent = LEGACY_CLASS_LABEL; since.hidden = !isLegacyStatsPuzzle(id); }
   // Rating row first: it works even while the totals are loading or down.
   drawRating(id, undefined);
   sec.hidden = !statsSharingEnabled();

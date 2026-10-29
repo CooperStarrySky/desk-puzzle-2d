@@ -4,7 +4,10 @@
  * What is sent, and when, must match the approved Settings wording
  * (docs/08-stats-plan.md §8):
  *   - only when a puzzle is FINISHED for the first time in this browser,
- *   - only for puzzles released after Oct 11, 2026 (isStatsEligible),
+ *     and that finish happened on this page (state.js; a first finish from
+ *     before class stats existed is never sent),
+ *   - for any published puzzle (isStatsEligible: a dated id; until
+ *     2026-10-29 only puzzles released after Oct 11, 2026),
  *   - only the fields in stats-core.js finishPayload (+ a rating 1-5),
  *     with a random per-browser id (dp2d:anon),
  *   - nothing at all while "Share my anonymous play stats" is off

@@ -1120,6 +1120,7 @@ export function applyH1LabelImages() {
     return;
   }
   desk.hints.labels = true;
+  noteHintAfter(desk, game, 'labels');
   announce('Image labels revealed.');
   syncAll();
   persistGame();
@@ -1223,9 +1224,17 @@ export function applyH2SeedTrays() {
   });
 
   desk.hints.seeds = true;
+  noteHintAfter(desk, game, 'seeds');
   announce('Trays seeded with one piece from each group.');
   syncAll();
   persistGame();
+}
+
+/* How many groups were solved when a hint was first used (class stats,
+   stats-core.js guessDetailFromSave). Set once, never overwritten. */
+function noteHintAfter(desk, game, kind) {
+  if (!desk.hints.after || typeof desk.hints.after !== 'object') desk.hints.after = {};
+  if (typeof desk.hints.after[kind] !== 'number') desk.hints.after[kind] = game.solved.length;
 }
 
 /* ── H3: Reveal a Category ────────────────────────────────────────── */
@@ -1249,6 +1258,7 @@ export function applyH3RevealCategory() {
   var lowest = unsolvedGroups[0];
   desk.hints.category = true;
   desk.hints.revealedGroupId = lowest.id;
+  noteHintAfter(desk, game, 'category');
   announce('One group is: ' + lowest.name);
   syncRevealNote();
   persistGame();

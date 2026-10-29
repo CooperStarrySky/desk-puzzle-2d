@@ -296,7 +296,9 @@ export function sanitizeEngineSave(saved, puzzle) {
   (Array.isArray(saved.attempts) ? saved.attempts : []).forEach(function (a) {
     if (a && Array.isArray(a.itemIds) && a.itemIds.length === GROUP_SIZE &&
         a.itemIds.every(function (id) { return ids.has(id); })) {
-      attempts.push({ itemIds: a.itemIds.slice(), correct: !!a.correct, boxIndex: (a.boxIndex | 0) });
+      var att = { itemIds: a.itemIds.slice(), correct: !!a.correct, boxIndex: (a.boxIndex | 0) };
+      if (typeof a.oneAway === 'boolean') att.oneAway = !att.correct && a.oneAway;
+      attempts.push(att);
     }
   });
   // Every solved lock must appear in the share history.
@@ -369,6 +371,16 @@ export function restoreDeskState(saved, puzzle, game) {
     if (dh.labels === true) hints.labels = true;
     if (dh.seeds === true) hints.seeds = true;
     if (dh.category === true) hints.category = true;
+    if (dh.after && typeof dh.after === 'object') {
+      // When each hint was first used (groups solved then, 0-3); only for used hints.
+      ['labels', 'seeds', 'category'].forEach(function (k) {
+        var v = dh.after[k];
+        if (hints[k] && typeof v === 'number' && v >= 0 && v <= 3) {
+          hints.after = hints.after || {};
+          hints.after[k] = Math.floor(v);
+        }
+      });
+    }
     if (typeof dh.revealedGroupId === 'string') {
       var rg = puzzle.groups.find(function (g) { return g.id === dh.revealedGroupId; });
       if (rg) hints.revealedGroupId = dh.revealedGroupId;
