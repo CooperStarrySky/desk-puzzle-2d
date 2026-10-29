@@ -33,8 +33,9 @@ Item id defaults: slug(item label).
 Item title defaults to item label.
 Machines: derived from zones used (rack -> scope, tubes -> lightbox).
 Group credit (optional): `credit: {name: "John D.", line: "MS2"}` or the
-shorthand `credit: "John D."` names who submitted the category; omit it for
-an anonymous group.
+shorthand `credit: "John D."` names who submitted the category;
+`credit: {anonymous: true}` marks a classmate who chose to stay anonymous (the
+game says "Category by an anonymous classmate"); omit it for a house group.
 Puzzle credit (optional): the same `credit:` key at the top level of the spec
 names who submitted a whole puzzle; the game shows it once ("Puzzle by ...").
 """
@@ -169,6 +170,8 @@ def normalize_credit(raw):
     if isinstance(raw, str):
         return {'name': raw.strip()}
     if isinstance(raw, dict):
+        if raw.get('anonymous') is True and not str(raw.get('name') or '').strip():
+            return {'anonymous': True}
         out = {'name': str(raw.get('name') or '').strip()}
         line = raw.get('line')
         if line is not None and str(line).strip():

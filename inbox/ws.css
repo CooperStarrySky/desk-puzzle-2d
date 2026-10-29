@@ -120,6 +120,11 @@ textarea.input { resize: vertical; min-height: 70px; }
 .mp-photo .pic { inset: 9% 14% 34%; }
 .mp-tubes .pic { inset: 10% 10% 34%; opacity: 0.85; }
 .mp-rack .pic { width: 34%; aspect-ratio: 1; border-radius: 50%; top: 18%; left: 33%; }
+.text-piece { display: flex; align-items: center; justify-content: center; }
+.text-piece b { max-height: 5.8em; overflow: hidden; word-break: normal; overflow-wrap: break-word; hyphens: auto; }
+.text-piece.mp-corkboard { background: url(../assets/textures/sticky.webp) center / 100% 100% no-repeat; }
+.text-piece.mp-folder { background: url(../assets/textures/paper.webp) center / 100% 100% no-repeat; }
+.text-piece.mp-rx { background: url(../assets/textures/rx.webp) center / 100% 100% no-repeat; }
 .mp-sep { grid-column: 1 / -1; height: 2px; border-radius: 2px; opacity: 0.85; }
 /* modal + toast */
 .scrim { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: center; padding: 16px; z-index: 50; }
@@ -156,8 +161,9 @@ textarea.input { resize: vertical; min-height: 70px; }
 .clue-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); }
 @media (max-width: 520px) { .clue-row { grid-template-columns: minmax(0, 1fr); } }
 .thumbs { display: flex; flex-direction: column; gap: 6px; }
-.thumbs img { width: 96px; height: 96px; object-fit: cover; border-radius: var(--r-s); background: #000; display: block; }
+.thumbs img { width: 96px; height: 96px; object-fit: cover; border-radius: var(--r-s); background: var(--paper-2); display: block; } /* neutral while loading, not black */
 .thumbs img.scope { border-radius: 50%; }
+.thumbs .text-piece.clue-piece { width: 96px; height: 96px; padding: 12px 6px 10px; font-size: 0.72rem; }
 .thumbs .none { width: 96px; height: 72px; border: 1.5px dotted var(--panel-edge); border-radius: var(--r-s); display: grid; place-items: center; font-size: 0.72rem; color: var(--ink-faint); text-align: center; }
 .kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: 0.88rem; }
 .kv dt { color: var(--ink-soft); font-weight: 600; }

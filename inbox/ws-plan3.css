@@ -106,6 +106,8 @@ body.resizing iframe { pointer-events: none; }
 .pk-use { font-size: 0.76rem; color: var(--ink-soft); }
 .pk.big { font-size: 0.92rem; gap: 12px; }
 .pk.big .pk-th { width: 72px; height: 72px; }
+.pk-th.text-piece { border: 0; border-radius: 2px; padding: 3px 2px; font-size: 0.34rem; line-height: 1.1; transform: none; }
+.pk.big .pk-th.text-piece { padding: 8px 6px; font-size: 0.6rem; }
 .view-dlg h2 { overflow-wrap: anywhere; }
 @media (max-width: 520px) { .pk-clues { grid-template-columns: minmax(0, 1fr); } }
 

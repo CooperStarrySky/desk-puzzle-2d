@@ -54,7 +54,7 @@ t('category slots, credits, notes, images', () => {
   assert.deepEqual(r.spec.groups.map((g) => g.tier), [1, 2, 3, 4]);
   const g1 = r.spec.groups[0];
   assert.deepEqual(g1.credit, { name: 'John D.', line: 'MS2' });
-  assert.equal(r.spec.groups[1].credit, null);
+  assert.deepEqual(r.spec.groups[1].credit, { anonymous: true }); // "Stay anonymous" is kept, not dropped
   assert.equal(r.spec.credit, null);
   assert.equal(g1.items[0].note, 'Seeds have amygdalin');
   assert.equal(g1.items[0].image, 'apple-core-info.jpg');
@@ -71,7 +71,8 @@ t('full-puzzle groups -> puzzle credit only when all four come from it', () => {
   assert.deepEqual(all.spec.groups.map((g) => g.name), ['W4', 'W1', 'W2', 'W3']); // slot tier wins over the group's own tier
   const mixed = draftSpec(draft, [slot(1, 'p1', 0), slot(2, 'p1', 1), slot(3, 'p1', 2), slot(4, 'b')], subs, { date: '2026-10-15' });
   assert.equal(mixed.spec.credit, null);
-  assert.deepEqual(mixed.spec.groups.map((g) => g.credit && g.credit.name), ['Marcus T.', 'Marcus T.', 'Marcus T.', null]);
+  assert.deepEqual(mixed.spec.groups.map((g) => g.credit && g.credit.name), ['Marcus T.', 'Marcus T.', 'Marcus T.', undefined]);
+  assert.deepEqual(mixed.spec.groups[3].credit, { anonymous: true });
 });
 t('custom group slot (from the archive), duplicate ids', () => {
   const cg = { name: 'Berries', explanation: 'Reused.', credit: { name: 'John D.' }, anki: { nids: [123, -4, 'x'] }, article: [{ type: 'text', text: 'Hi' }, { type: 'image', text: 'no' }],
@@ -113,6 +114,7 @@ t('YAML round trip (PyYAML) keeps every value', () => {
   const it = back.groups[0].items[0];
   assert.equal(it.id, 'null'); assert.equal(it.label, 'null'); assert.equal(it.note, 'Line # not a comment'); assert.equal(it.source, "O'Brien"); assert.equal(it.image, 'null-info.webp');
   assert.equal(back.groups[0].tier, 1);
+  assert.deepEqual(back.groups[1].credit, { anonymous: true }); // "Stay anonymous" survives into the spec
 });
 t('adapted copy (S3 "Edit for this puzzle") replaces name, explanation and clues; image from drafts/', () => {
   const subs = { a: cat('a', 'Alpha'), b: cat('b', 'Beta'), c: cat('c', 'Gamma'), e: cat('e', 'Delta') };

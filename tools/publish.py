@@ -62,6 +62,10 @@ def _credit_problems(credit, owner):
     group's "Category by" and a full puzzle's "Puzzle by")."""
     if not isinstance(credit, dict):
         return [f'{owner} credit must be an object like {{"name": "John D.", "line": "MS2"}}']
+    if credit.get("anonymous") is True and "name" not in credit:
+        # A classmate who chose "Stay anonymous": {"anonymous": true} and nothing else.
+        extra = sorted(k for k in credit if k != "anonymous")
+        return [f"{owner} anonymous credit has extra keys: {', '.join(extra)}"] if extra else []
     out = []
     c_name = credit.get("name")
     if not isinstance(c_name, str) or not c_name.strip():

@@ -425,6 +425,7 @@ function puzzleFromDraft(d) {
     else if (G.ankiExtra && Object.keys(G.ankiExtra).length) g.anki = Object.assign({}, G.ankiExtra);
     const byName = String(G.byName || '').trim(), byLine = String(G.byLine || '').trim();
     if (byName) g.credit = Object.assign({ name: byName }, byLine ? { line: byLine } : {}, G.byExtra || {});
+    else if (G.byExtra && G.byExtra.anonymous === true) g.credit = { anonymous: true }; // keep "stayed anonymous"
     g.itemIds = ids[gi].slice();
     G.items.forEach((I, ii) => {
       // One field per clue: the label is also the title (v2). info.text is

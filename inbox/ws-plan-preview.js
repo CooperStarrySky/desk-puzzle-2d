@@ -24,7 +24,8 @@ export async function puzzleOf(d) {
     const g = { id: 'g-t' + t, name: it.name, tier: t, explanation: it.explanation.trim() || 'No explanation yet.', itemIds: ids };
     const art = (Array.isArray(it.article) ? it.article : []).filter((b) => b && (b.type === 'heading' || b.type === 'text'));
     if (art.length) g.article = art;
-    if (it.credit) g.credit = Object.assign({ name: it.credit.name }, it.credit.line ? { line: it.credit.line } : {});
+    if (it.credit && it.credit.name) g.credit = Object.assign({ name: it.credit.name }, it.credit.line ? { line: it.credit.line } : {});
+    else if (it.credit && it.credit.anonymous === true) g.credit = { anonymous: true };
     groups.push(g);
     for (let i = 0; i < it.items.length; i++) {
       const c = it.items[i], info = c.info || {}, scope = c.scope || {};
