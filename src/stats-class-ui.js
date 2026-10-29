@@ -13,7 +13,7 @@
 
 import { state, getFirstResult } from './state.js';
 import { isStatsEligible, isLegacyStatsPuzzle, LEGACY_CLASS_LABEL, classSummary, classSlot, fewerMistakesPct, menuStatsLine, RATING_LABELS, CLASS_MIN } from './stats-core.js';
-import { fetchClassStats, cachedClassStats, whenSent, statsSharingEnabled, getMyRating, rate, skipRating } from './stats-remote.js';
+import { fetchClassStats, cachedClassStats, whenSent, statsSharingEnabled, hasCountedPlay, getMyRating, rate, skipRating } from './stats-remote.js';
 
 var renderToken = 0;
 var $ = function (id) { return document.getElementById(id); };
@@ -79,7 +79,9 @@ function drawRating(puzzleId, s) {
   var rated = $('results-rated');
   if (!row || !rated) return;
   var mine = getMyRating(puzzleId);
-  var canVote = statsSharingEnabled();
+  // No vote without a counted finish (e.g. finished before stats counted
+  // this puzzle): the server would refuse it, so don't offer it.
+  var canVote = statsSharingEnabled() && hasCountedPlay(puzzleId);
   row.hidden = !canVote;
   if (canVote) {
     row.querySelectorAll('[data-rate]').forEach(function (b) {
@@ -171,7 +173,7 @@ export function fillMenuClassLines(entries) {
   if (!ids.length) return;
   fetchClassStats(ids).then(function (map) {
     ids.forEach(function (id) {
-      var text = menuStatsLine(classSummary(map[id]));
+      var text = menuStatsLine(classSummary(map[id]), isLegacyStatsPuzzle(id));
       document.querySelectorAll('.pcard-class[data-class-for="' + id + '"]').forEach(function (n) {
         n.textContent = text;
         n.hidden = !text;

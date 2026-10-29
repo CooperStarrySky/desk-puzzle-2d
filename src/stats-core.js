@@ -231,6 +231,18 @@ export var RATING_LABELS = ['Easy', 'Fair', 'Tricky', 'Hard', 'Brutal'];
 var STATS_ID_RE = /^[a-z0-9-]+-(\d{4}-\d{2}-\d{2})$/;
 
 export var LEGACY_CLASS_LABEL = 'From players since Oct 2026';
+export var LEGACY_MENU_SUFFIX = 'since Oct 2026';
+
+/** Does the server hold this browser's finish for the puzzle (so a rating can
+    attach to it)? counted = the dp2d:counted:<id> marker stats-remote.js sets
+    when it queues a finish (2026-10-29 on). Before that, only puzzles after
+    STATS_SINCE sent finishes, so a first record for one of those counts too.
+    A first record for an older puzzle without the marker was finished before
+    stats existed and was never sent. */
+export function hasCountedFinish(puzzleId, firstRec, counted) {
+  if (counted === true) return true;
+  return !!(firstRec && classifyFirst(firstRec)) && isStatsEligible(puzzleId) && !isLegacyStatsPuzzle(puzzleId);
+}
 
 function idDate(puzzleId) {
   var m = typeof puzzleId === 'string' && puzzleId.length <= 120 ? STATS_ID_RE.exec(puzzleId) : null;
@@ -333,7 +345,7 @@ export function fewerMistakesPct(summary, slot) {
 }
 
 /** Menu card line, e.g. "142 plays · 64% solved · Rated Hard" ('' if nothing to show). */
-export function menuStatsLine(summary) {
+export function menuStatsLine(summary, legacy) {
   if (!summary) return '';
   var parts = [];
   if (summary.enough) {
@@ -341,5 +353,7 @@ export function menuStatsLine(summary) {
     parts.push(summary.solvedPct + '% solved');
   }
   if (summary.ratingEnough) parts.push('Rated ' + summary.ratingLabel);
+  // Older puzzles only hold finishes since 2026-10-29 (isLegacyStatsPuzzle).
+  if (parts.length && legacy) parts.push(LEGACY_MENU_SUFFIX);
   return parts.join(' · ');
 }

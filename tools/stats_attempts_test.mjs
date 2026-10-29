@@ -170,4 +170,29 @@ await t('old puzzle class stats: hidden below CLASS_MIN, shown at CLASS_MIN', ()
   assert.notEqual(core.menuStatsLine(core.classSummary(row(10))), '');
 });
 
+await t('rating offered only with a counted finish', async () => {
+  const OLDID = p.id, NEWID = 'cases-2026-10-12';
+  const won = { v: 1, outcome: 'won', mistakes: 0, guesses: 4, hints: {}, everCasual: false };
+  assert.equal(core.hasCountedFinish(OLDID, won, false), false, 'old puzzle finished before stats: not counted');
+  assert.equal(core.hasCountedFinish(OLDID, won, true), true, 'old puzzle with the marker: counted');
+  assert.equal(core.hasCountedFinish(NEWID, won, false), true, 'newer puzzle finished under the old rules: was sent');
+  assert.equal(core.hasCountedFinish(NEWID, null, false), false, 'no finish: nothing to rate');
+  store.clear(); sent.length = 0; state.settings.shareStats = true;
+  store.set(FIRST_NS + OLDID, JSON.stringify(won));
+  assert.equal(remote.hasCountedPlay(OLDID), false, 'pre-stats local record -> rating row hidden');
+  await remote.sendFirstFinish(OLDID, won);
+  assert.equal(remote.hasCountedPlay(OLDID), true, 'after a live first finish is queued -> rating row shown');
+  store.clear(); state.settings.shareStats = false;
+  await remote.sendFirstFinish(OLDID, won);
+  assert.equal(store.has('dp2d:counted:' + OLDID), false, 'opted out: no marker, nothing sent');
+  state.settings.shareStats = true;
+});
+
+await t('menu class line: "since Oct 2026" only on older puzzles with a line', () => {
+  const s = core.classSummary({ plays: 12, std_finishes: 12, std_wins: 6, mistakes_hist: [6, 0, 0, 0, 6], hint_any: 0, hint_labels: 0, hint_seeds: 0, hint_category: 0, rating_n: 0, rating_hist: [0, 0, 0, 0, 0] });
+  assert.equal(core.menuStatsLine(s, true), '12 plays · 50% solved · since Oct 2026');
+  assert.equal(core.menuStatsLine(s, false), '12 plays · 50% solved');
+  assert.equal(core.menuStatsLine(core.classSummary({ plays: 3, std_finishes: 3 }), true), '', 'below the minimum: nothing, no label');
+});
+
 console.log(`\n${n} tests passed`);

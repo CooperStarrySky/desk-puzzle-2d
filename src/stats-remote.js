@@ -25,11 +25,12 @@
  * ════════════════════════════════════════════════════════════════════ */
 
 import { state, SAVE_PREFIX, getFirstResult, setFirstFinishHook } from './state.js';
-import { isStatsEligible, finishPayload } from './stats-core.js';
+import { isStatsEligible, finishPayload, hasCountedFinish } from './stats-core.js';
 
 var ANON_KEY = SAVE_PREFIX + 'anon';
 var OUTBOX_KEY = SAVE_PREFIX + 'outbox';
 var RATING_NS = SAVE_PREFIX + 'rating:';
+var COUNTED_NS = SAVE_PREFIX + 'counted:'; // a finish for this puzzle was queued to the server
 var OUTBOX_DAYS = 3;
 var OUTBOX_MAX = 30;
 var TIMEOUT_MS = 3000;
@@ -155,7 +156,17 @@ export function sendFirstFinish(puzzleId, rec) {
   var body = anon && finishPayload(puzzleId, anon, rec || getFirstResult(puzzleId));
   if (!body) return Promise.resolve();
   delete statsCache[puzzleId]; // our own finish changes the totals
+  try { localStorage.setItem(COUNTED_NS + puzzleId, '1'); } catch (e) { /* storage unavailable */ }
   return (pending[puzzleId] = queueAndFlush(body));
+}
+
+/** True when the server has (or will get) this browser's finish for the
+    puzzle, so a rating can attach to it. False for a finish from before
+    class stats counted that puzzle: the results screen hides the rating row. */
+export function hasCountedPlay(puzzleId) {
+  var marker = false;
+  try { marker = localStorage.getItem(COUNTED_NS + puzzleId) === '1'; } catch (e) { /* ignore */ }
+  return hasCountedFinish(puzzleId, getFirstResult(puzzleId), marker);
 }
 
 /** Resolves when this page's latest send for the puzzle is done (or failed). */
