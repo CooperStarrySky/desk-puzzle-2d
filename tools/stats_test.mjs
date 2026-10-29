@@ -70,8 +70,9 @@ t('same-date tie keeps index order (later in list = older)', () => {
 const rec = (save) => firstResultFromSave(save, '2026-10-11T00:00:00.000Z');
 t('first-result record shape', () => {
   const r = rec(win(2, { attempts: [{}, {}, {}, {}, {}, {}], desk: { everCasual: false, hints: { seeds: true } } }));
-  assert.deepEqual(r, { v: 1, outcome: 'won', mistakes: 2, guesses: 6, hints: { labels: false, seeds: true, category: false },
-    hintUsed: true, everCasual: false, finishedAt: '2026-10-11T00:00:00.000Z' });
+  assert.deepEqual(r, { v: 2, outcome: 'won', mistakes: 2, guesses: 6, hints: { labels: false, seeds: true, category: false },
+    hintUsed: true, everCasual: false, finishedAt: '2026-10-11T00:00:00.000Z',
+    attempts: null, solveOrder: null, revealedGroup: null, hintAfter: null }); // malformed attempts -> no detail
   assert.equal(rec({ phase: 'playing', mistakes: 1, desk: {} }), null);
   assert.equal(classifyFirst({ outcome: 'maybe' }), null);
 });
@@ -104,10 +105,10 @@ t('older games without a first record fall back to the save; bad records too', (
 
 // ── Class stats helpers ──
 const { isStatsEligible, finishPayload, classSlot, classSummary, fewerMistakesPct, menuStatsLine } = core;
-t('eligibility: strictly after 2026-10-11', () => {
+t('eligibility: every dated puzzle (since 2026-10-29)', () => {
   assert.equal(isStatsEligible('cases-2026-10-12'), true);
-  assert.equal(isStatsEligible('cases-2026-10-11'), false);
-  assert.equal(isStatsEligible('holes-haze-and-old-paint-2026-10-08'), false);
+  assert.equal(isStatsEligible('cases-2026-10-11'), true);
+  assert.equal(isStatsEligible('holes-haze-and-old-paint-2026-10-08'), true);
   assert.equal(isStatsEligible('Cases-2026-10-12'), false);
   assert.equal(isStatsEligible('preview'), false);
   assert.equal(isStatsEligible(null), false);

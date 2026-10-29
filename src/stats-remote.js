@@ -4,7 +4,10 @@
  * What is sent, and when, must match the approved Settings wording
  * (docs/08-stats-plan.md §8):
  *   - only when a puzzle is FINISHED for the first time in this browser,
- *   - only for puzzles released after Oct 11, 2026 (isStatsEligible),
+ *     and that finish happened on this page (state.js; a first finish from
+ *     before class stats existed is never sent),
+ *   - for any published puzzle (isStatsEligible: a dated id; until
+ *     2026-10-29 only puzzles released after Oct 11, 2026),
  *   - only the fields in stats-core.js finishPayload (+ a rating 1-5),
  *     with a random per-browser id (dp2d:anon),
  *   - nothing at all while "Share my anonymous play stats" is off
@@ -22,11 +25,12 @@
  * ════════════════════════════════════════════════════════════════════ */
 
 import { state, SAVE_PREFIX, getFirstResult, setFirstFinishHook } from './state.js';
-import { isStatsEligible, finishPayload } from './stats-core.js';
+import { isStatsEligible, finishPayload, hasCountedFinish } from './stats-core.js';
 
 var ANON_KEY = SAVE_PREFIX + 'anon';
 var OUTBOX_KEY = SAVE_PREFIX + 'outbox';
 var RATING_NS = SAVE_PREFIX + 'rating:';
+var COUNTED_NS = SAVE_PREFIX + 'counted:'; // a finish for this puzzle was queued to the server
 var OUTBOX_DAYS = 3;
 var OUTBOX_MAX = 30;
 var TIMEOUT_MS = 3000;
@@ -152,7 +156,17 @@ export function sendFirstFinish(puzzleId, rec) {
   var body = anon && finishPayload(puzzleId, anon, rec || getFirstResult(puzzleId));
   if (!body) return Promise.resolve();
   delete statsCache[puzzleId]; // our own finish changes the totals
+  try { localStorage.setItem(COUNTED_NS + puzzleId, '1'); } catch (e) { /* storage unavailable */ }
   return (pending[puzzleId] = queueAndFlush(body));
+}
+
+/** True when the server has (or will get) this browser's finish for the
+    puzzle, so a rating can attach to it. False for a finish from before
+    class stats counted that puzzle: the results screen hides the rating row. */
+export function hasCountedPlay(puzzleId) {
+  var marker = false;
+  try { marker = localStorage.getItem(COUNTED_NS + puzzleId) === '1'; } catch (e) { /* ignore */ }
+  return hasCountedFinish(puzzleId, getFirstResult(puzzleId), marker);
 }
 
 /** Resolves when this page's latest send for the puzzle is done (or failed). */

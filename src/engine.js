@@ -303,12 +303,13 @@ DeskPuzzleGame.prototype.submitBox = function (boxIndex) {
     result = { kind: 'correct', group: groups[0], order: order, boxIndex: boxIndex };
   } else {
     this.mistakes_ += 1;
-    this.attempts_.push({ itemIds: ids.slice(), correct: false, boxIndex: boxIndex });
+    var oneAway = this.isOneAway(groups);
+    this.attempts_.push({ itemIds: ids.slice(), correct: false, boxIndex: boxIndex, oneAway: oneAway });
     result = {
       kind: 'wrong',
       mistakesLeft: this.mistakesLeft,
       boxIndex: boxIndex,
-      oneAway: this.isOneAway(groups),
+      oneAway: oneAway,
     };
   }
   this.events.emit('submit', result);

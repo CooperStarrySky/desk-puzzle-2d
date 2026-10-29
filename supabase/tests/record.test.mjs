@@ -76,9 +76,10 @@ const json = async (r) => ({ status: r.status, body: await r.json() });
 // ── Eligibility ──
 {
   const t = NOW;
-  ok(eligibility('cases-2026-10-12', t) === null, 'day after cutoff is eligible');
-  ok(eligibility('cases-2026-10-11', t) === 'puzzle too old for stats', 'cutoff day itself is NOT eligible');
-  ok(eligibility('holes-haze-and-old-paint-2026-10-08', t) !== null, 'older puzzle refused');
+  ok(eligibility('cases-2026-10-12', t) === null, 'puzzle after the old cutoff is eligible');
+  ok(eligibility('cases-2026-10-11', t) === null, 'old cutoff day itself is now eligible (all puzzles count since 2026-10-29)');
+  ok(eligibility('holes-haze-and-old-paint-2026-10-08', t) === null, 'older published puzzle accepted');
+  ok(eligibility('starry-sky-society-2026-08-21', t) === null, 'oldest published puzzle accepted');
   ok(eligibility('cases-2026-10-22', t) === null, 'today + 2 days allowed');
   ok(eligibility('cases-2026-10-23', t) === 'puzzle date is in the future', 'today + 3 days refused');
   ok(eligibility('cases-2026-02-30', t) === 'bad puzzle date', 'impossible date refused');
@@ -86,8 +87,10 @@ const json = async (r) => ({ status: r.status, body: await r.json() });
     ok(eligibility(bad, t) !== null, 'bad id refused: ' + String(bad).slice(0, 30));
   }
   const { handle, db } = setup();
-  const r = await json(await handle(post(finish({ puzzleId: 'cases-2026-10-11' }))));
-  ok(r.status === 400 && db.st.plays.length === 0 && db.st.record_rate.length === 0, 'old puzzle via POST -> 400, nothing stored, not even a rate row');
+  let r = await json(await handle(post(finish({ puzzleId: 'cases-nodate' }))));
+  ok(r.status === 400 && db.st.plays.length === 0 && db.st.record_rate.length === 0, 'undated id via POST -> 400, nothing stored, not even a rate row');
+  r = await json(await handle(post(finish({ puzzleId: 'holes-haze-and-old-paint-2026-10-08' }))));
+  ok(r.status === 200 && db.st.plays.length === 1 && db.st.plays[0].puzzle_id === 'holes-haze-and-old-paint-2026-10-08', 'old puzzle id via POST -> stored');
 }
 // ── Finish once ──
 {
@@ -98,7 +101,8 @@ const json = async (r) => ({ status: r.status, body: await r.json() });
   ok(row && row.puzzle_id === PID && row.anon_id === ANON && row.outcome === 'won' && row.mistakes === 1 && row.guesses === 5 &&
     row.hint_labels === true && row.hint_seeds === false && row.hint_category === false && row.casual === false && row.finished_at === NOW.toISOString(),
     'row has exactly the sent values');
-  ok(Object.keys(row).sort().join(',') === 'anon_id,casual,finished_at,guesses,hint_category,hint_labels,hint_seeds,mistakes,outcome,puzzle_id', 'row has no other columns: ' + Object.keys(row).sort().join(','));
+  ok(Object.keys(row).sort().join(',') === 'anon_id,attempts,casual,finished_at,guesses,hint_after,hint_category,hint_labels,hint_seeds,mistakes,outcome,puzzle_id,revealed_group,solve_order', 'row has no other columns: ' + Object.keys(row).sort().join(','));
+  ok(row.attempts === null && row.solve_order === null && row.revealed_group === null && row.hint_after === null, 'old client (no guess detail) -> detail columns null');
   r = await json(await handle(post(finish({ outcome: 'lost', mistakes: 4, guesses: 8 }))));
   ok(r.status === 200 && r.body.ok && db.st.plays.length === 1 && db.st.plays[0].outcome === 'won', 'second finish ignored, ok returned, first stands');
   r = await json(await handle(post(finish({ anonId: ANON.toUpperCase() }))));
@@ -145,7 +149,7 @@ const json = async (r) => ({ status: r.status, body: await r.json() });
   ok(r.status === 400, 'not JSON -> 400');
   r = await json(await handle(post([1, 2])));
   ok(r.status === 400, 'array -> 400');
-  r = await json(await handle(post(JSON.stringify(finish({ hints: { labels: true, seeds: false, category: false } })) + ' '.repeat(3000))));
+  r = await json(await handle(post(JSON.stringify(finish({ hints: { labels: true, seeds: false, category: false } })) + ' '.repeat(25000))));
   ok(r.status === 413, 'oversized body -> 413');
   r = await json(await handle(post(finish({ casual: true, mistakes: 9, guesses: 13 }))));
   ok(r.status === 200, 'casual win with 9 mistakes accepted');

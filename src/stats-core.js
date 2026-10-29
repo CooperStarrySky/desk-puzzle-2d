@@ -63,14 +63,64 @@ export function classifySave(save) {
   };
 }
 
+var MAX_SENT_ATTEMPTS = 40; // the record function's cap (and guesses' cap)
+
+/** Did a wrong guess have 3 of its 4 clues from one group? */
+function oneAwayIn(puzzle, ids) {
+  if (!puzzle || !Array.isArray(puzzle.groups)) return false;
+  return puzzle.groups.some(function (g) {
+    return (g.itemIds || []).filter(function (id) { return ids.indexOf(id) !== -1; }).length === 3;
+  });
+}
+
+/** Guess detail for the first-result record (v2, 2026-10-29): every guess in
+    order (first 40) as {i, ok, one_away}, the solve order, the revealed
+    group and, per hint, how many groups were solved when it was first used.
+    puzzle (optional) fills in "one away" for saves made before the engine
+    stored it. Anything missing or odd comes out null. */
+export function guessDetailFromSave(save, puzzle) {
+  var d = (save && save.desk) || {};
+  var h = d.hints || {};
+  var attempts = (Array.isArray(save && save.attempts) ? save.attempts : []).slice(0, MAX_SENT_ATTEMPTS)
+    .map(function (a) {
+      var ids = a && Array.isArray(a.itemIds) ? a.itemIds.slice() : [];
+      var ok = !!(a && a.correct === true);
+      var oa = !ok && (a && typeof a.oneAway === 'boolean' ? a.oneAway : oneAwayIn(puzzle, ids));
+      return { i: ids, ok: ok, one_away: oa };
+    });
+  var good = attempts.length && attempts.every(function (a) {
+    return a.i.length === 4 && a.i.every(function (x) { return typeof x === 'string'; });
+  });
+  var solved = (Array.isArray(save && save.solved) ? save.solved.slice() : [])
+    .sort(function (a, b) { return (a && a.order) - (b && b.order); })
+    .map(function (x) { return x && x.groupId; })
+    .filter(function (g) { return typeof g === 'string'; });
+  var after = h.after && typeof h.after === 'object' ? h.after : {};
+  var hintAfter = {};
+  var anyAfter = false;
+  ['labels', 'seeds', 'category'].forEach(function (k) {
+    var v = after[k];
+    hintAfter[k] = h[k] === true && typeof v === 'number' && v >= 0 && v <= 3 ? Math.floor(v) : null;
+    if (hintAfter[k] !== null) anyAfter = true;
+  });
+  return {
+    attempts: good ? attempts : null,
+    solveOrder: solved.length ? solved.slice(0, 4) : null,
+    revealedGroup: h.category === true && typeof h.revealedGroupId === 'string' ? h.revealedGroupId : null,
+    hintAfter: anyAfter ? hintAfter : null,
+  };
+}
+
 /** The permanent first-result record for a save that has just finished
     (phase 'won' or 'lost'), or null while the game is still going. This
-    is also what the server stats step will send. */
-export function firstResultFromSave(save, finishedAt) {
+    is also what the server stats step will send. puzzle is optional (see
+    guessDetailFromSave). */
+export function firstResultFromSave(save, finishedAt, puzzle) {
   if (!save || typeof save !== 'object' || (save.phase !== 'won' && save.phase !== 'lost')) return null;
   var h = (save.desk && save.desk.hints) || {};
+  var detail = guessDetailFromSave(save, puzzle);
   return {
-    v: 1,
+    v: 2,
     outcome: save.phase,
     mistakes: (typeof save.mistakes === 'number' && save.mistakes >= 0) ? Math.floor(save.mistakes) : 0,
     guesses: Array.isArray(save.attempts) ? save.attempts.length : 0,
@@ -78,6 +128,10 @@ export function firstResultFromSave(save, finishedAt) {
     hintUsed: saveUsedHint(save),
     everCasual: saveEverCasual(save),
     finishedAt: finishedAt || null,
+    attempts: detail.attempts,
+    solveOrder: detail.solveOrder,
+    revealedGroup: detail.revealedGroup,
+    hintAfter: detail.hintAfter,
   };
 }
 
@@ -146,8 +200,13 @@ export function computeStats(entries, saves, firsts) {
 }
 
 /* ── Class-wide stats (server totals) ─────────────────────────────────
- * Only puzzles released AFTER STATS_SINCE send or show class stats; the
- * server's record function checks the same rule. The privacy wording in
+ * Every published puzzle (a dated id) sends and shows class stats (owner
+ * decision 2026-10-29; until then only puzzles released after STATS_SINCE
+ * did). Puzzles released on or before STATS_SINCE only count finishes from
+ * that change on, so their class block is labelled (isLegacyStatsPuzzle).
+ * A first finish recorded before then is never sent (state.js only sends a
+ * finish it saw happen live). The server's record function checks the same
+ * id rule. The privacy wording in
  * Settings (docs/08-stats-plan.md §8) promises exactly the fields that
  * finishPayload builds, nothing more.
  *
@@ -171,26 +230,68 @@ export var CLASS_MIN = 10; // show nothing below 10 standard finishes / 10 ratin
 export var RATING_LABELS = ['Easy', 'Fair', 'Tricky', 'Hard', 'Brutal'];
 var STATS_ID_RE = /^[a-z0-9-]+-(\d{4}-\d{2}-\d{2})$/;
 
-/** Does this puzzle id take part in class stats (released after STATS_SINCE)? */
+export var LEGACY_CLASS_LABEL = 'From players since Oct 2026';
+export var LEGACY_MENU_SUFFIX = 'since Oct 2026';
+
+/** Does the server hold this browser's finish for the puzzle (so a rating can
+    attach to it)? counted = the dp2d:counted:<id> marker stats-remote.js sets
+    when it queues a finish (2026-10-29 on). Before that, only puzzles after
+    STATS_SINCE sent finishes, so a first record for one of those counts too.
+    A first record for an older puzzle without the marker was finished before
+    stats existed and was never sent. */
+export function hasCountedFinish(puzzleId, firstRec, counted) {
+  if (counted === true) return true;
+  return !!(firstRec && classifyFirst(firstRec)) && isStatsEligible(puzzleId) && !isLegacyStatsPuzzle(puzzleId);
+}
+
+function idDate(puzzleId) {
+  var m = typeof puzzleId === 'string' && puzzleId.length <= 120 ? STATS_ID_RE.exec(puzzleId) : null;
+  if (!m) return null;
+  var d = new Date(m[1] + 'T00:00:00Z');
+  return isNaN(d) || d.toISOString().slice(0, 10) !== m[1] ? null : m[1];
+}
+
+/** Does this puzzle id take part in class stats? Any published (dated) puzzle. */
 export function isStatsEligible(puzzleId) {
-  var m = typeof puzzleId === 'string' ? STATS_ID_RE.exec(puzzleId) : null;
-  return !!m && m[1] > STATS_SINCE;
+  return idDate(puzzleId) !== null;
+}
+
+/** Released on or before STATS_SINCE: its class totals only hold newer finishes. */
+export function isLegacyStatsPuzzle(puzzleId) {
+  var d = idDate(puzzleId);
+  return d !== null && d <= STATS_SINCE;
 }
 
 /** The exact body sent to the record function for a first finish. Only the
-    approved fields; casual games can run past the server caps, so mistakes
+    approved fields (incl. the guess detail: which clues went together on
+    each guess, solve order, revealed group, when each hint was used); casual games can run past the server caps, so mistakes
     and guesses are capped at 20 / 40 (casual games never reach the charts). */
 export function finishPayload(puzzleId, anonId, rec) {
   if (!rec || (rec.outcome !== 'won' && rec.outcome !== 'lost')) return null;
   var h = rec.hints || {};
   var mistakes = Math.min(20, Math.max(0, Math.floor(rec.mistakes) || 0));
   var guesses = Math.min(40, Math.max(mistakes, Math.floor(rec.guesses) || 0));
-  return {
+  var body = {
     event: 'finish', puzzleId: puzzleId, anonId: anonId,
     outcome: rec.outcome, mistakes: mistakes, guesses: guesses,
     hints: { labels: h.labels === true, seeds: h.seeds === true, category: h.category === true },
     casual: rec.everCasual === true,
   };
+  // Guess detail (v2 records only; older records and odd values send nothing).
+  var sent = Array.isArray(rec.attempts) ? rec.attempts.slice(0, Math.min(40, guesses)) : [];
+  if (sent.length) body.attempts = sent;
+  if (Array.isArray(rec.solveOrder) && rec.solveOrder.length) body.solveOrder = rec.solveOrder.slice(0, 4);
+  if (body.hints.category && typeof rec.revealedGroup === 'string') body.revealedGroup = rec.revealedGroup;
+  if (rec.hintAfter && typeof rec.hintAfter === 'object') {
+    var ha = {}, any = false;
+    ['labels', 'seeds', 'category'].forEach(function (k) {
+      var v = rec.hintAfter[k];
+      ha[k] = body.hints[k] && Number.isInteger(v) && v >= 0 && v <= 3 ? v : null;
+      if (ha[k] !== null) any = true;
+    });
+    if (any) body.hintAfter = ha;
+  }
+  return body;
 }
 
 /** Which class-chart slot a first-result record falls in: 0-3 (solved with
@@ -244,7 +345,7 @@ export function fewerMistakesPct(summary, slot) {
 }
 
 /** Menu card line, e.g. "142 plays · 64% solved · Rated Hard" ('' if nothing to show). */
-export function menuStatsLine(summary) {
+export function menuStatsLine(summary, legacy) {
   if (!summary) return '';
   var parts = [];
   if (summary.enough) {
@@ -252,5 +353,7 @@ export function menuStatsLine(summary) {
     parts.push(summary.solvedPct + '% solved');
   }
   if (summary.ratingEnough) parts.push('Rated ' + summary.ratingLabel);
+  // Older puzzles only hold finishes since 2026-10-29 (isLegacyStatsPuzzle).
+  if (parts.length && legacy) parts.push(LEGACY_MENU_SUFFIX);
   return parts.join(' · ');
 }

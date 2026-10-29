@@ -280,11 +280,18 @@ export function getFirstResult(puzzleId) {
    stats-remote.js uses it to send class stats. Set by setFirstFinishHook. */
 var firstFinishHook = null;
 export function setFirstFinishHook(fn) { firstFinishHook = typeof fn === 'function' ? fn : null; }
-function recordFirstResult(puzzleId, snap) {
+/* The hook only fires for a finish this page saw happen: the game was
+   persisted while still 'playing', then finished. Opening a game that was
+   already finished (e.g. one finished before first-result records or class
+   stats existed) stores the local record but never sends it. */
+var livePlaying = {}; // puzzleId -> true once persisted in phase 'playing' on this page
+export function resetLiveFinishTracking() { livePlaying = {}; } // tests
+function recordFirstResult(puzzleId, snap, puzzle) {
   if (getFirstResult(puzzleId)) return; // already recorded: never overwrite
-  var rec = firstResultFromSave(snap, new Date().toISOString());
+  var rec = firstResultFromSave(snap, new Date().toISOString(), puzzle);
   if (!rec) return;
   try { localStorage.setItem(FIRST_NS + puzzleId, JSON.stringify(rec)); } catch (e) { return; /* storage full/unavailable */ }
+  if (!livePlaying[puzzleId]) return; // finished before this page: keep it local only
   if (firstFinishHook) { try { firstFinishHook(puzzleId, rec); } catch (e) { /* never break the game */ } }
 }
 
@@ -299,7 +306,8 @@ export function persistGame() {
   try {
     localStorage.setItem(saveKey(state.game.puzzle.id), JSON.stringify(snap));
   } catch (e) { /* storage full/unavailable */ }
-  if (snap.phase === 'won' || snap.phase === 'lost') recordFirstResult(state.game.puzzle.id, snap);
+  if (snap.phase === 'playing') livePlaying[state.game.puzzle.id] = true;
+  if (snap.phase === 'won' || snap.phase === 'lost') recordFirstResult(state.game.puzzle.id, snap, state.game.puzzle);
 }
 
 export function loadSavedGame(puzzleId) {
