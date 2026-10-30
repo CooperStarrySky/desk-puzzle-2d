@@ -47,7 +47,7 @@ const mouse = (P, x, y) => P.send('Input.dispatchMouseEvent', { type: 'mouseMove
 const stubs = [];
 const liveCount = () => stubs.reduce((n, c) => n + c.live, 0);
 async function safePage(opts) {
-  const P = await page(opts);
+  const P = await page(Object.assign({ motion: true }, opts)); // game page: keep its own motion (tests it)
   stubs.push(await stubGameStats(P));
   return P;
 }

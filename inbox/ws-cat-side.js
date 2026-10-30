@@ -5,6 +5,7 @@
    Folded or not and the width are kept per browser. Desktop only: on a phone
    the filters are a drawer (ws-cat-filters.js). */
 import { $, toast, prefJson, prefSet } from './ws-core.js';
+import { morphGrid, enter } from './ws-motion.js';
 
 const KEY = 'dp2d:cat-filters';
 export const SIDE = { min: 200, max: 440, def: 250 };
@@ -38,7 +39,10 @@ export function applySide() {
   if (h) { h.setAttribute('aria-valuenow', String(w)); h.setAttribute('aria-valuemin', String(SIDE.min)); h.setAttribute('aria-valuemax', String(SIDE.max)); h.setAttribute('aria-valuetext', 'Filters ' + w + ' pixels wide'); }
 }
 export function foldSide(on, focus) {
-  ST.fold = !!on; save(); applySide();
+  ST.fold = !!on; save();
+  const L = $('#ws-main .sug-layout');
+  if (L) morphGrid(L, applySide); else applySide();
+  if (!on) enter($('#ws-main .filters.side'));
   if (!focus) return;
   const f = on ? $('#f-strip') : $('#f-fold'); if (f) f.focus();
 }
@@ -64,7 +68,7 @@ export function mountSide() {
       else if (k === 'Home') setW(SIDE.min); else if (k === 'End') setW(SIDE.max); else return;
       e.preventDefault(); save();
     });
-    h.addEventListener('dblclick', () => { ST.w = 0; save(); applySide(); toast('Filters width reset'); });
+    h.addEventListener('dblclick', () => { ST.w = 0; save(); const L = $('#ws-main .sug-layout'); if (L) morphGrid(L, applySide); else applySide(); toast('Filters width reset'); });
   }
   applySide();
 }

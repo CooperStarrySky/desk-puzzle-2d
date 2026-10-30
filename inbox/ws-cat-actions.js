@@ -102,8 +102,8 @@ function shortcutSheet() {
     '<p class="faint" style="font-size:.8rem">Shortcuts are off while you type in a box. j, k, v and a work in the Category database.</p>' +
     '<div class="modal-actions"><button class="btn primary" type="button" data-dismiss>Close</button></div></div>');
 }
-const cards = () => $$('#sug-list .sug-card');
-function curCard() { const a = document.activeElement, c = a && a.closest && a.closest('#sug-list .sug-card'); return c || $('#sug-list .sug-card.kcur'); }
+const cards = () => $$('#sug-list .sug-card:not(.m-ghost)');
+function curCard() { const a = document.activeElement, c = a && a.closest && a.closest('#sug-list .sug-card:not(.m-ghost)'); return c || $('#sug-list .sug-card.kcur:not(.m-ghost)'); }
 function markCard(c) { cards().forEach((x) => x.classList.toggle('kcur', x === c)); const t = c && $('.sug-toggle', c); if (t) { t.focus({ preventScroll: true }); c.scrollIntoView({ block: 'nearest' }); } }
 export function initCatKeys() {
   document.addEventListener('keydown', async (e) => {

@@ -8,6 +8,7 @@
    and wireFilters(ctx) pick the context; one view is on screen at a time. */
 import { S, $, esc, toast, openModal, person, schName, schFull, fmtD, TIER_WORDS, prefJson, prefSet } from './ws-core.js';
 import { sideStrip, sideHandle, sideCount, foldSide, mountSide } from './ws-cat-side.js';
+import { morph } from './ws-motion.js';
 import { V, FS, cf, match, stOf, search, renderList, BLOCKS } from './ws-suggest.js';
 
 const SNAP = ['q', 'school', 'block', 'used', 'st', 'tier', 'ct', 'sub', 'from', 'to', 'vfrom', 'since', 'unusedMine', 'tby', 'sort'];
@@ -203,7 +204,8 @@ export function wireFilters(ctx) {
     else if (b.id === 'ms-clear') { F.school = []; toast('School filter cleared'); C.refresh('#ms-btn'); }
     else if (b.id === 'ms-btn') { F.schOpen = !F.schOpen; C.refresh(F.schOpen ? '#ms-q' : '#ms-btn'); }
     else if (b.id === 'ms-done') { F.schOpen = false; C.refresh('#ms-btn'); }
-    else if (b.classList.contains('fsec-btn')) { const k = b.closest('.fsec').dataset.sec; setSec(k, b.getAttribute('aria-expanded') !== 'true'); renderFilters(); $('#fsh-' + k).focus(); }
+    else if (b.classList.contains('fsec-btn')) { const k = b.closest('.fsec').dataset.sec; setSec(k, b.getAttribute('aria-expanded') !== 'true');
+      morph(() => [$('#filters .fsec[data-sec="' + k + '"]')], renderFilters, { key: (x) => x.dataset.sec }); $('#fsh-' + k).focus(); }
     else if (b.id === 'f-fold') foldSide(true, true);
     else if (b.id === 'f-x' || b.id === 'f-apply') drawer(false);
     else if (b.id === 'f-clear') { applyView({}, '#f-clear').then(() => toast('Filters cleared')); }

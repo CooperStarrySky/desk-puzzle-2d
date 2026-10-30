@@ -10,6 +10,7 @@ import { LIB, DND, alsoFlags, libItems, TOUCH, libSheet } from './ws-plan-lib.js
 import { addPart, refresh, current, readOnly, ED, SLOT_HOOKS } from './ws-plan-editor.js';
 import { editing, editorHtml, badgeHtml, startEdit, stopEdit } from './ws-plan-adapt.js';
 import { wireAdapt } from './ws-plan-adapt-pick.js';
+import { morph, flip } from './ws-motion.js';
 
 const STAIN = { 1: 'Tier 1', 2: 'Tier 2', 3: 'Tier 3', 4: 'Tier 4' };
 const byLine = (it) => (it.credit && it.credit.name ? 'Category by ' + it.credit.name + (it.credit.line ? ', ' + it.credit.line : '') : 'Category by an anonymous player');
@@ -26,7 +27,7 @@ function slotHtml(d, t, s) {
   const menu = menuHtml(TIER_WORDS[t] + ' slot', [['slotMove', 'Move…', { arg: t }], ['slotDet', 'Details', { arg: it.key, off: it.sid ? null : 'Made by hand, not in the Category database' }],
     ['slotRm', 'Remove from draft', { arg: t, danger: true }]]);
   return '<div class="slot t' + t + ' filled" data-t="' + t + '" role="group" aria-label="' + TIER_WORDS[t] + ' slot: ' + esc(it.name) + '">' + band +
-    '<div class="slot-body"' + (drag ? ' draggable="true" data-from="' + t + '"' : '') + '><h4>' + (drag ? '<span class="grip" title="Drag to another slot" aria-hidden="true">⠿</span>' : '') + esc(it.name) + '</h4>' +
+    '<div class="slot-body" data-k="' + esc(it.key || 't' + t) + '"' + (drag ? ' draggable="true" data-from="' + t + '"' : '') + '><h4>' + (drag ? '<span class="grip" title="Drag to another slot" aria-hidden="true">⠿</span>' : '') + esc(it.name) + '</h4>' +
     (it.adapted ? badgeHtml(d, t, it, ro) : '') +
     (it.kind === 'group' ? '<p class="faint slot-from"><span class="kind-tag puzzle">Group</span> from “' + esc(it.parent) + '”</p>' : '') +
     (flags ? '<p class="row" style="--gap:6px">' + flags + '</p>' : '') +
@@ -35,8 +36,15 @@ function slotHtml(d, t, s) {
     (ro ? (it.sid ? '<div class="row slot-btns"><button type="button" class="btn small ghost" data-det="' + esc(it.key) + '">Details</button></div>' : '')
       : '<div class="row slot-btns">' + (it.sid ? '<button type="button" class="btn small primary" data-adapt="' + t + '">✎ Edit for this puzzle</button>' : '') + menu + '</div>') + '</div></div>';
 }
+/* Slots resize smoothly; a category glides to its new tier when moved or
+   swapped, and flies in from its Database card when placed (ws-motion.js). */
 function render(d) {
   const el = $('#slots'); if (!el) return;
+  const fromLib = (k) => { const c = $('#lib-list .lib-card[data-key="' + CSS.escape(k) + '"]'); return c && c.offsetParent ? c.getBoundingClientRect() : null; };
+  morph('#slots > .slot', () => flip(el, '.slot-body[data-k], .slot-empty', (x) => x.dataset.k || 'e' + x.parentElement.dataset.t, () => draw(d, el), { source: fromLib, lift: true }), { key: (x) => x.dataset.t, clip: false });
+  fillImages(el);
+}
+function draw(d, el) {
   const sl = slotsOf(d.id);
   // A live update never redraws the slot you are editing (your typing stays).
   const keep = ED.live ? $('.slot.editing', el) : null;
@@ -47,7 +55,6 @@ function render(d) {
       if (cur) cur.replaceWith(tmp.firstElementChild); else el.appendChild(tmp.firstElementChild);
     });
   } else el.innerHTML = [1, 2, 3, 4].map((t) => slotHtml(d, t, sl[t])).join('');
-  fillImages(el);
 }
 /* Someone else changed the slot I'm editing: say so, and let me choose. */
 function showConflict(t, by) {

@@ -34,7 +34,7 @@ const PUZZLE = { id: 'order-test-2026-09-24', title: 'Order test', date: '2026-0
 const stubs = [];
 const liveCount = () => stubs.reduce((n, c) => n + c.live, 0);
 async function safePage(opts) {
-  const P = await page(opts);
+  const P = await page(Object.assign({ motion: true }, opts)); // game page: keep its own motion (tests it)
   stubs.push(await stubGameStats(P));
   return P;
 }
@@ -95,7 +95,7 @@ const RID = 'order-rate-2026-10-30';
 const ROW = { puzzle_id: RID, plays: 25, std_finishes: 24, std_wins: 17, mistakes_hist: [6, 5, 4, 2, 7], hint_any: 9, hint_labels: 6, hint_seeds: 4, hint_category: 2, rating_n: 15, rating_hist: [1, 3, 6, 4, 1] };
 for (const [w, h, mobile, dark] of [[1100, 900, false, false], [375, 760, true, true]]) {
   const tag = mobile ? 'phone dark' : 'desktop light';
-  const P = await page({ width: w, height: h, mobile, dark });
+  const P = await page({ width: w, height: h, mobile, dark, motion: true });
   const stub = await stubGameStats(P, [ROW]); stubs.push(stub);
   await P.go(BASE + '/?order-rate=' + Date.now());
   await P.waitFor('!!(window.__dp2d && window.__dp2d.showResultsForPuzzle)');

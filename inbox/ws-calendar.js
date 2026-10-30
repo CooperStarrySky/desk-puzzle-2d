@@ -12,6 +12,7 @@ import { ARCH, loadArchive } from './ws-plan-checks.js';
 import { weekOf, todayEt, addDays, releaseLabel, dayLabel, shortDay } from './ws-plan-time.js';
 import { sealHtml } from './ws-plan-seal.js';
 import { newDraftDialog, planSchools } from './ws-plan-list.js';
+import { flip } from './ws-motion.js';
 
 const CAL = { others: [], err: '' };
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -87,7 +88,7 @@ function render() {
       (d.target_release ? ' · target ' + releaseLabel(d.target_release) : '')) + (d.target_release ? '' : '<span class="nudge">Needs a date</span>') + '</div>').join('')
       : '<p class="muted">Nothing is waiting for a date.' + (planning ? ' ' + planning + (planning === 1 ? ' draft is' : ' drafts are') + ' still in planning.' : '') + '</p>') + '</section>' +
     '<section aria-labelledby="cal-weeks"><h2 id="cal-weeks" class="cal-h">Next 8 weeks</h2>' + weeks + '</section></div>';
-  $('#cal-refresh').addEventListener('click', (e) => busy(e.currentTarget, 'Refreshing…', async () => { await load(); render(); if (!PL.err) toast('Up to date'); }));
+  $('#cal-refresh').addEventListener('click', (e) => busy(e.currentTarget, 'Refreshing…', async () => { await load(); redraw(); if (!PL.err) toast('Up to date'); }));
   $$('[data-startwk]').forEach((b) => b.addEventListener('click', () => { const [k, day] = b.dataset.startwk.split('|'); newDraftDialog({ school: k, date: day, title: 'Week of ' + shortDay(weekOf(day)) }); }));
 }
 async function loadOthers() {
@@ -99,8 +100,16 @@ async function loadOthers() {
   CAL.others = (data || []).map((r) => ({ school: String(r.school_name || 'Another school'), date: String(r.release_date || '').slice(0, 10) })).filter((r) => r.date);
 }
 const load = () => Promise.all([loadPlanner(), loadArchive(), loadOthers()]);
+/* Redraws keep the old calendar on screen while loading, then drafts that moved
+   glide to their new week and changed ones glow briefly (ws-motion.js). */
+const calKey = (a) => a.getAttribute('href') + '|' + ((a.closest('section') || {}).getAttribute ? a.closest('section').getAttribute('aria-labelledby') : '');
+function redraw() {
+  const main = $('#ws-main'), had = !!$('.cal', main), old = new Map($$('#ws-main .cal-item').map((a) => [calKey(a), a.textContent]));
+  flip(main, '.cal-item', calKey, render);
+  if (had) $$('#ws-main .cal-item').forEach((a) => { const k = calKey(a); if (old.get(k) !== a.textContent) { a.classList.add('live-flash'); setTimeout(() => a.classList.remove('live-flash'), 2500); } });
+}
 export async function showCalendar() {
-  $('#ws-main').innerHTML = '<p class="muted">Loading the calendar…</p>';
+  if (!$('#ws-main .cal')) $('#ws-main').innerHTML = '<p class="muted">Loading the calendar…</p>';
   await load();
-  render();
+  redraw();
 }

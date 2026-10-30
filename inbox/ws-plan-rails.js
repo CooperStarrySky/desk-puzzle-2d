@@ -10,6 +10,7 @@
    floats over the tiers. Phone (<600 px): slots only, plus a bottom bar
    (Database / Preview / Checks) that opens each as a sheet. */
 import { $, $$, toast, prefJson, prefSet, modalOpen } from './ws-core.js';
+import { morph, enter } from './ws-motion.js';
 
 const KEY = 'dp2d:plan-rails';
 export const RAIL = { db: { min: 260, max: 560, def: 340, name: 'Database' }, pv: { min: 300, max: 640, def: 380, name: 'Live preview' } };
@@ -48,9 +49,16 @@ export function applyRails() {
 }
 /* The widest this rail can be while the tiers keep their minimum. */
 function maxW(n, W, open, w) { const o = other(n); return clamp(W - CENTER_MIN - 2 * GAP - (open[o] ? w[o] : STRIP), RAIL[n].min, RAIL[n].max); }
+/* Folding, unfolding and keyboard/reset width changes glide; dragging follows the pointer as is. */
+const RAILS = () => [$('#editor .rail-l'), $('#editor .rail-r')];
+function glide(fn) {
+  const was = { db: !!E.shown.db, pv: !!E.shown.pv };
+  morph(RAILS, fn, { prop: 'width', key: (el) => el.className });
+  ['db', 'pv'].forEach((n) => { if (E.shown[n] && !was[n]) enter(n === 'db' ? $('#lib') : $('#pv-col')); });
+}
 export function foldRail(n, on, focus) {
   ST[n].open = !!on; if (on) E.last = n; if (n === 'db' && !on) E.empty = false;
-  save(); applyRails();
+  save(); glide(applyRails);
   if (!focus) return;
   if (on && E.shown[n]) { const f = n === 'db' ? $('#sug-q') : $('#pv-fold'); if (f) f.focus(); } else { const s = $('#' + n + '-strip'); if (s) s.focus(); }
 }
@@ -73,11 +81,11 @@ function wireHandle(n) {
   });
   h.addEventListener('keydown', (e) => {
     const w = E.w[n] || prefW(n), step = e.shiftKey ? 64 : 16, k = e.key;
-    if (k === 'ArrowLeft' || k === 'ArrowRight') setW(n, w + (k === 'ArrowRight' ? dir : -dir) * step);
-    else if (k === 'Home') setW(n, RAIL[n].min); else if (k === 'End') setW(n, RAIL[n].max); else return;
+    if (k === 'ArrowLeft' || k === 'ArrowRight') glide(() => setW(n, w + (k === 'ArrowRight' ? dir : -dir) * step));
+    else if (k === 'Home') glide(() => setW(n, RAIL[n].min)); else if (k === 'End') glide(() => setW(n, RAIL[n].max)); else return;
     e.preventDefault(); save();
   });
-  h.addEventListener('dblclick', () => { ST[n].w = 0; save(); applyRails(); toast(RAIL[n].name + ' width reset'); });
+  h.addEventListener('dblclick', () => { ST[n].w = 0; save(); glide(applyRails); toast(RAIL[n].name + ' width reset'); });
 }
 
 /* ===== Phone sheets ===== */
