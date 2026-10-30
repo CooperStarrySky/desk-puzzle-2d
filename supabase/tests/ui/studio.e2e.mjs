@@ -28,6 +28,26 @@ check('studio: "Your school" lists the active schools', opts.includes('cmsru|Coo
 check('studio: no school picked yet when there are several', (await P.js('document.getElementById("s-school").value')) === '');
 check('studio: checklist asks for a school', (await P.text('#checks')).includes('Pick your school'));
 
+// Required markers: a red star after each required label, aria-required on the control.
+const reqState = () => P.js(`(() => {
+  const star = (el) => { const box = el && (el.closest('label, .field')); const m = box && box.querySelector('.req-mark'); return m ? (m.classList.contains('filled') ? 'filled' : 'red') : 'none'; };
+  const q = (s) => document.querySelector(s);
+  return { legend: !!q('.req-legend .req-mark'), name: star(q('[data-k="g.name"]')), expl: star(q('[data-k="g.explanation"]')),
+    tier: star(q('.tier-pick')), label0: star(q('[data-f="label"][data-i="0"]')), school: star(q('#s-school')), consent: star(q('#s-consent')),
+    credit: (() => { const m = q('[data-for="s-credit-grp"]'); return m ? (m.classList.contains('filled') ? 'filled' : 'red') : 'none'; })(),
+    email: star(q('[data-k="c.email"]')), note0: star(q('[data-f="note"][data-i="0"]')), article: star(q('[data-k="g.articleText"]')),
+    aria: ['[data-k="g.name"]', '[data-k="g.explanation"]', '#s-tier-x', '#s-school', '#s-consent', '#s-credit-grp', '[data-f="label"][data-i="3"]', '[data-f="zone"][data-i="0"]']
+      .filter((s) => s !== '#s-tier-x').every((s) => q(s) && q(s).getAttribute('aria-required') === 'true') && q('.tier-pick').getAttribute('aria-required') === 'true',
+    ariaOpt: [...document.querySelectorAll('[data-k="c.email"], [data-f="note"], [data-k="g.nids"]')].every((x) => !x.hasAttribute('aria-required')),
+    red: getComputedStyle(q('.req-legend .req-mark')).color };
+})()`);
+let rq = await reqState();
+check('studio: "* = required" legend near the top', rq.legend, rq);
+check('studio: required labels carry a red star (name, explanation, difficulty, clue, school, credit, consent)', ['name', 'expl', 'tier', 'label0', 'school', 'consent', 'credit'].every((k) => rq[k] === 'red'), rq);
+check('studio: optional fields have no star', rq.email === 'none' && rq.note0 === 'none' && rq.article === 'none', rq);
+check('studio: required controls have aria-required, optional ones do not', rq.aria && rq.ariaOpt, rq);
+check('studio: star uses the danger red', /rgb\(192, 57, 47\)/.test(rq.red), rq.red);
+
 // Fill in one category.
 await P.type('[data-k="g.name"]', 'TEST: causes of clubbing (studio e2e)');
 await P.type('[data-k="g.explanation"]', 'Each causes digital clubbing.');
@@ -39,6 +59,12 @@ await P.js('(() => { const s = document.getElementById("s-school"); s.value = "r
 check('studio: school hint names the receiving school', (await P.text('#s-school-hint')).includes('Rowan-Virtua SOM'));
 check('studio: ready to send once a school is picked', (await P.text('#checks')).includes('Ready to send'), await P.text('#checks'));
 
+rq = await reqState();
+check('studio: stars fade once each required field is filled', ['name', 'expl', 'tier', 'label0', 'school', 'consent', 'credit'].every((k) => rq[k] === 'filled'), rq);
+await P.click('input[name="s-credit"][value="named"]');
+check('studio: "Name to show" gets a star only when "Credit me" is chosen', await P.js('!!document.querySelector("[data-k=\\"c.name\\"]").closest("label").querySelector(".req-mark:not(.filled)") && document.querySelector("[data-k=\\"c.name\\"]").getAttribute("aria-required") === "true"'));
+await P.click('input[name="s-credit"][value="anonymous"]');
+check('studio: no name field (and no name star) when anonymous', (await P.count('[data-k="c.name"]')) === 0);
 await P.click('#btn-send');
 const sent = await P.waitFor('!document.getElementById("send-ok").hidden', 20000);
 check('studio: category sent through the real submit handler, with a small inline thank-you', sent && /^Thanks! Your category .* was sent/.test(await P.text('#send-ok-msg')), await P.text('#send-ok'));
@@ -89,6 +115,27 @@ await P.click('#old-hide');
 await open();
 check('studio: "Hide this" keeps the banner hidden next visit', !(await P.visible('#old-puz')));
 check('studio: the old draft itself is kept', /Old group one/.test(await P.js('localStorage.getItem("dp2d:studio-draft") || import("/src/idb-kv.js").then((m) => m.idbGet("dp2d:studio-draft")).then((v) => String(v || ""))')));
+
+// Conditional stars follow the clue type and whether an image is attached.
+const picStars = () => P.js(`(() => { const c = document.querySelector('[data-f="credit"][data-i="0"]'), np = document.querySelector('[data-np="0"]');
+  return { src: c ? !!c.closest('label').querySelector('.req-mark') : null, srcAria: c ? c.getAttribute('aria-required') : null,
+    np: np ? !!np.closest('label').querySelector('.req-mark') : null, npAria: np ? np.getAttribute('aria-required') : null }; })()`);
+await P.js('(() => { const s = document.querySelector("[data-f=\\"zone\\"][data-i=\\"0\\"]"); s.value = "corkboard"; s.dispatchEvent(new Event("change", { bubbles: true })); })()');
+let ps = await picStars();
+check('studio: text clue has no image-source field', ps.src === null && ps.np === null, ps);
+await P.js('(() => { const s = document.querySelector("[data-f=\\"zone\\"][data-i=\\"0\\"]"); s.value = "photo"; s.dispatchEvent(new Event("change", { bubbles: true })); })()');
+ps = await picStars();
+check('studio: photo clue without an image: source and no-patient box not starred yet', ps.src === false && ps.np === false && ps.srcAria === null && ps.npAria === null, ps);
+await P.js(`(async () => { const cv = document.createElement('canvas'); cv.width = 40; cv.height = 30; const x = cv.getContext('2d'); x.fillStyle = '#c33'; x.fillRect(0, 0, 40, 30);
+  const blob = await new Promise((r) => cv.toBlob(r, 'image/png')); const dt = new DataTransfer(); dt.items.add(new File([blob], 'john-d-test.png', { type: 'image/png' }));
+  document.querySelector('[data-drop="0"]').dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })); })()`);
+await P.waitFor('!!document.querySelector(".drop.has[data-drop=\\"0\\"]")', 8000);
+ps = await picStars();
+check('studio: once an image is added, source and no-patient box are starred and aria-required', ps.src && ps.np && ps.srcAria === 'true' && ps.npAria === 'true', ps);
+await P.click('[data-rm="0"]');
+ps = await picStars();
+check('studio: removing the image drops those stars again', ps.src === false && ps.np === false, ps);
+if (process.env.SHOTS) await P.shot(process.env.SHOTS + '/studio-required-1280.png');
 
 // Phone width.
 await P.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 800, deviceScaleFactor: 1, mobile: true });

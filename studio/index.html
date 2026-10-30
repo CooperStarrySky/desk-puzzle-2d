@@ -129,6 +129,13 @@ textarea.input { resize: vertical; min-height: 70px; }
 .clue { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); }
 @media (max-width: 560px) { .clue { grid-template-columns: minmax(0, 1fr); } }
 .field .opt { font-style: normal; font-weight: 500; color: var(--ink-faint); }
+/* Required marker: red star after the label; fades once the field is filled in. */
+.req-mark { color: var(--danger); font-weight: 700; margin-left: 3px; transition: color 0.25s var(--ease, ease); }
+.req-mark.filled { color: var(--ink-faint); }
+h2 .req-mark { font-size: 0.85em; }
+.req-legend { margin: 0; font-size: 0.82rem; color: var(--ink-soft); }
+.req-legend .req-mark { margin: 0 2px 0 0; }
+@media (prefers-reduced-motion: reduce) { .req-mark { transition: none; } }
 .clue-num { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
 .drops { display: flex; flex-direction: column; gap: 6px; }
 @media (max-width: 560px) { .drops { flex-direction: row; } .drops .drop { flex: 1; } }
@@ -938,6 +945,8 @@ function dropHtml(I, ii) {
   return '<div class="drop" role="button" tabindex="0" data-drop="' + ii + '" style="' + shape + '" aria-label="' + esc(label) + ': add image">' +
     esc(label) + '<br>Drop, paste, or click</div>';
 }
+/** Red star for a required field (screen readers get aria-required on the control instead). */
+const REQ = '<span class="req-mark" aria-hidden="true">*</span>';
 function clueHtml(I, ii, noPatient) {
   const img = picField(I.zone);
   const opts = ZONES.map((z) => '<option value="' + z + '"' + (z === I.zone ? ' selected' : '') + '>' + ZONE_NAMES[z] + '</option>').join('');
@@ -945,31 +954,34 @@ function clueHtml(I, ii, noPatient) {
   const fieldLabel = img ? 'What the image shows' : 'Clue (what’s written on it)';
   const ex = CLUE_EXAMPLES[I.zone] || CLUE_EXAMPLES.corkboard;
   const ph = 'e.g. ' + ex.label;
+  // Source and the no-patient box are required only once an image is attached (groupProblems).
+  const hasPic = itemHasImage(I), picReq = hasPic ? ' aria-required="true"' : '';
   return '<div class="clue" data-clue="' + ii + '"><div class="drops">' + dropHtml(I, ii) + '</div>' +
     '<div class="stack" style="--gap:8px">' +
     '<div class="row" style="--gap:8px"><span class="clue-num">' + n + '</span>' +
-    '<select class="input" data-f="zone" data-i="' + ii + '" style="width:190px; flex:none" aria-label="' + n + ': kind of piece">' + opts + '</select></div>' +
-    '<label class="field"><span>' + fieldLabel + '</span><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="' + ph + '" maxlength="' + SEND_LIMITS.label + '"></label>' +
+    '<select class="input" data-f="zone" data-i="' + ii + '" style="width:190px; flex:none" aria-label="' + n + ': kind of piece" aria-required="true">' + opts + '</select></div>' +
+    '<label class="field"><span>' + fieldLabel + REQ + '</span><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="' + ph + '" maxlength="' + SEND_LIMITS.label + '" aria-required="true"></label>' +
     (img ? '<p class="hint">Players don’t see this while solving unless they use the “Label Images” hint, which tags the piece with it. It’s shown under the image on the results screen.</p>' +
-      '<input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="' + esc(ex.source || CLUE_EXAMPLES.photo.source) + '" aria-label="' + n + ': image source">' +
-      '<label class="check"><input type="checkbox" data-np="' + ii + '"' + (noPatient[ii] ? ' checked' : '') + '><span>No patient can be identified in this image (no faces, names, dates, or record numbers)</span></label>' : '') +
+      '<label class="field"><span>Image source' + (hasPic ? REQ : ' <em class="opt">(needed with an image)</em>') + '</span><input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="' + esc(ex.source || CLUE_EXAMPLES.photo.source) + '" aria-label="' + n + ': image source"' + picReq + '></label>' +
+      '<label class="check"><input type="checkbox" data-np="' + ii + '"' + (noPatient[ii] ? ' checked' : '') + picReq + '><span>No patient can be identified in this image (no faces, names, dates, or record numbers)' + (hasPic ? REQ : '') + '</span></label>' : '') +
     (I.zone === 'rack' ? '<p class="hint">A slide takes one image: the microscope view players study.</p>' : '') +
     '<label class="field"><span>Note shown on the results screen <em class="opt">(optional)</em></span><input class="input" data-f="note" data-i="' + ii + '" value="' + esc(I.note) + '" placeholder="' + esc('e.g. ' + ex.note) + '" maxlength="' + SEND_LIMITS.note + '"></label>' +
     '</div></div>';
 }
-function field(k, label, val, ph, extra, max) {
-  return '<label class="field"' + (extra || '') + '><span>' + label + '</span><input class="input" data-k="' + k + '" value="' + esc(val) + '" placeholder="' + esc(ph) + '"' + (max ? ' maxlength="' + max + '"' : '') + '></label>';
+function field(k, label, val, ph, extra, max, req) {
+  return '<label class="field"' + (extra || '') + '><span>' + label + (req ? REQ : '') + '</span><input class="input" data-k="' + k + '" value="' + esc(val) + '" placeholder="' + esc(ph) + '"' + (max ? ' maxlength="' + max + '"' : '') + (req ? ' aria-required="true"' : '') + '></label>';
 }
 function tierPick(name, value) {
-  return '<div class="tier-pick" role="radiogroup" aria-label="Difficulty">' + SUGGESTED_TIERS.map((w, i) => '<label><input type="radio" name="' + name + '" value="' + (i + 1) + '"' + (Number(value) === i + 1 ? ' checked' : '') + '>' +
+  return '<div class="tier-pick" role="radiogroup" aria-label="Difficulty" aria-required="true">' + SUGGESTED_TIERS.map((w, i) => '<label><input type="radio" name="' + name + '" value="' + (i + 1) + '"' + (Number(value) === i + 1 ? ' checked' : '') + '>' +
     '<span class="tierdot" style="background:var(--tier-' + (i + 1) + ')" aria-hidden="true"></span>' + w + '</label>').join('') + '</div>';
 }
 /** Name, explanation, clues, teaching note, AnKing IDs for one category. */
 function groupHtml(G, gi) {
-  const tierHtml = '<div class="field"><span>Suggested difficulty</span>' + tierPick('s-tier', cat.suggestedTier) + '<p class="hint">Just a suggestion. The puzzle group makes the final call when it puts the week’s puzzle together.</p></div>';
+  const tierHtml = '<div class="field"><span>Suggested difficulty' + REQ + '</span>' + tierPick('s-tier', cat.suggestedTier) + '<p class="hint">Just a suggestion. The puzzle group makes the final call when it puts the week’s puzzle together.</p></div>';
   return '<div class="panel stack" style="--gap:12px"><h2>Your category</h2>' +
-    field('g.name', 'Category name (the hidden answer players figure out)', G.name, 'e.g. Things that set off an asthma attack', '', SEND_LIMITS.name) +
-    field('g.explanation', 'One-line explanation (shown after it’s solved)', G.explanation, 'Why these four belong together', '', SEND_LIMITS.explanation) +
+    '<p class="req-legend" aria-hidden="true"><span class="req-mark req-key">*</span> = required</p>' +
+    field('g.name', 'Category name (the hidden answer players figure out)', G.name, 'e.g. Things that set off an asthma attack', '', SEND_LIMITS.name, true) +
+    field('g.explanation', 'One-line explanation (shown after it’s solved)', G.explanation, 'Why these four belong together', '', SEND_LIMITS.explanation, true) +
     tierHtml + '</div>' +
     '<div class="panel stack" style="--gap:12px"><h2>The four clues</h2>' +
     '<p class="hint">Pick what each piece is. Sticky notes, paper, and prescriptions carry written clues. Photos, microscope slides, and X-rays carry an image.</p>' +
@@ -980,17 +992,17 @@ function groupHtml(G, gi) {
 }
 function whoHtml() {
   const c = cur(), named = c.creditMode === 'named';
-  return schoolHtml(c) + '<div class="panel stack" style="--gap:12px"><h2>Credit</h2>' +
-    '<div class="row" style="--gap:18px" role="radiogroup" aria-label="Credit">' +
+  return schoolHtml(c) + '<div class="panel stack" style="--gap:12px"><h2>Credit' + REQ.replace('class="req-mark"', 'class="req-mark" data-for="s-credit-grp"') + '</h2>' +
+    '<div class="row" style="--gap:18px" role="radiogroup" aria-label="Credit" aria-required="true" id="s-credit-grp">' +
     '<label class="radio"><input type="radio" name="s-credit" value="named"' + (named ? ' checked' : '') + '> Credit me</label>' +
     '<label class="radio"><input type="radio" name="s-credit" value="anonymous"' + (c.creditMode === 'anonymous' ? ' checked' : '') + '> Stay anonymous</label></div>' +
     (named ? '<div class="row" style="--gap:12px; align-items:flex-end">' +
-      field('c.name', 'Name to show', c.name, 'e.g. John Doe', ' style="flex:1; min-width:200px"', CREDIT_NAME_MAX) +
+      field('c.name', 'Name to show', c.name, 'e.g. John Doe', ' style="flex:1; min-width:200px"', CREDIT_NAME_MAX, true) +
       field('c.line', 'Year or role (optional)', c.line, 'e.g. MS2', ' style="width:180px"', CREDIT_LINE_MAX) + '</div>' +
       '<p class="hint">Shown on the results screen as “Category by …”. Anonymous hides your name everywhere; your school still gets the category first.</p>' : '') +
     field('c.email', 'Contact email (optional, private)', c.email, 'you@example.com') +
     '<p class="private-note"><b>Never shown on the puzzle.</b> Only the puzzle group sees it, in case they have a question.</p>' +
-    '<label class="check consent"><input type="checkbox" id="s-consent"' + (c.consent ? ' checked' : '') + '><span>I made this or can share it, no patient can be identified, and the puzzle group may edit it.</span></label></div>';
+    '<label class="check consent"><input type="checkbox" id="s-consent"' + (c.consent ? ' checked' : '') + ' aria-required="true"><span>I made this or can share it, no patient can be identified, and the puzzle group may edit it.' + REQ + '</span></label></div>';
 }
 /** "Your school": active schools from the database (a public list of codes and names). */
 function schoolHtml(c) {
@@ -1000,7 +1012,7 @@ function schoolHtml(c) {
     (c.school && schools && !list.some((x) => x.slug === c.school) ? '<option value="' + esc(c.school) + '" selected disabled>' + esc(c.school) + ' (no longer listed)</option>' : '');
   const pick = list.find((x) => x.slug === c.school);
   return '<div class="panel stack" style="--gap:10px"><h2>Your school</h2>' +
-    '<label class="field"><span>Which medical school are you at?</span><select class="input" id="s-school"' + (schools ? '' : ' disabled') + '>' + opts + '</select></label>' +
+    '<label class="field"><span>Which medical school are you at?' + REQ + '</span><select class="input" aria-required="true" id="s-school"' + (schools ? '' : ' disabled') + '>' + opts + '</select></label>' +
     '<p class="hint" id="s-school-hint">' + (pick ? 'Goes to the ' + esc(pick.name) + ' puzzle group first, and into the shared category database every school can use.' : 'Your school’s puzzle group sees your category first. Every school can use it after that.') + '</p></div>';
 }
 function drawBody() {
@@ -1010,7 +1022,19 @@ function drawBody() {
   body.innerHTML = groupHtml(cat.group, 0) + whoHtml();
   $$('#ebody [data-k="c.email"]').forEach((el) => { el.type = 'email'; el.autocomplete = 'email'; });
   if (sel) { const el = $(sel, body); if (el) el.focus(); }
+  refreshReq();
   drawSide();
+}
+/** Mute each required star once its field is filled (purely visual; checks() still decides). */
+function refreshReq() {
+  $$('#ebody .req-mark:not(.req-key)').forEach((m) => {
+    const box = m.dataset.for ? document.getElementById(m.dataset.for) : m.closest('label, .field');
+    if (!box) return;
+    const ctl = [...box.querySelectorAll('input, select, textarea')];
+    const ticks = ctl.filter((x) => x.type === 'radio' || x.type === 'checkbox');
+    const done = ctl.length > 0 && (ticks.length ? ticks.some((x) => x.checked) : ctl.every((x) => String(x.value || '').trim() !== ''));
+    m.classList.toggle('filled', done);
+  });
 }
 /* ===== Sidebar: live preview (the game's own pieces and results placards) + checklist ===== */
 let pvView = 'desk';
@@ -1121,6 +1145,8 @@ function bindEditor() {
     const d = e.target.closest('[data-drop]');
     if (d) { imgTarget = { mode, gi: curGi(), i: Number(d.dataset.drop) }; $('#file-img').click(); }
   });
+  body.addEventListener('input', refreshReq);
+  body.addEventListener('change', refreshReq);
   body.addEventListener('keydown', (e) => {
     const d = e.target.closest('[data-drop]');
     if (d && e.target === d && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); d.click(); }
