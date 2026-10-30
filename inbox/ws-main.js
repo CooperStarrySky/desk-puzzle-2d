@@ -22,6 +22,7 @@ import { showCalendar } from './ws-calendar.js';
 import { showArchive, resetArchive } from './ws-arch-view.js';
 import { showAdmin, resetAdmin, canConsole } from './ws-admin.js';
 import { initSettings, renderWhatsNew } from './ws-settings.js';
+import { enter } from './ws-motion.js';
 
 export const WS_TABS = { categories: true, planner: true, calendar: true, archive: true, activity: true, admin: true };
 const TAB_WORDS = { categories: 'Categories', planner: 'Planner', calendar: 'Calendar', archive: 'Archive', activity: 'Activity', admin: 'Admin' };
@@ -74,6 +75,7 @@ async function go() {
   else if (tab === 'admin') await showAdmin();
   else { await showSuggestions(p.sub, p.id); if (p.sub !== 'trash') renderWhatsNew(); }
   if (changedTab && !p.id) {
+    enter($('#ws-main')); // a soft fade between tabs (instant with reduce motion)
     window.scrollTo(0, 0);
     if (document.activeElement === document.body) $('#ws-root').focus({ preventScroll: true });
   }

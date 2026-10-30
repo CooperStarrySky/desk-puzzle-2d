@@ -1,0 +1,60 @@
+/* Puzzle workspace: shared motion (see ws-motion.js for the JS half).
+   Quick and calm: 150-250 ms, ease-out, transform and opacity where we can.
+   With "reduce motion" on, everything is instant. Loaded last. */
+:root {
+  --m-fast: 150ms;
+  --m-base: 200ms;
+  --m-slow: 250ms;
+  --m-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  interpolate-size: allow-keywords; /* lets height go to/from "auto" below */
+}
+
+/* ===== things that pop up: menus, popovers, the hover preview, dialogs, toasts ===== */
+@keyframes m-pop { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes m-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes m-dialog { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes m-toast { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes m-sheet { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.menu:not([hidden]), .mnu-pop:not([hidden]), .ms-pop:not([hidden]),
+.ck-pop:not([hidden]):not(.sheet-open), .appr-pop:not([hidden]):not(.sheet-open) {
+  animation: m-pop var(--m-fast) var(--m-ease); transform-origin: top right;
+}
+.lib-peek:not([hidden]) { animation: m-fade var(--m-fast) var(--m-ease); }
+#modal-root .scrim { animation: m-fade var(--m-base) var(--m-ease); }
+#modal-root .modal { animation: m-dialog var(--m-base) var(--m-ease); }
+.toast:not([hidden]) { animation: m-toast var(--m-base) var(--m-ease); }
+.sheet-scrim { animation: m-fade var(--m-base) var(--m-ease); }
+.lib.sheet-open, .pv-col.sheet-open, .ck-pop.sheet-open { animation: m-sheet var(--m-slow) var(--m-ease); }
+.filters.open { animation: m-fade var(--m-base) var(--m-ease); }
+
+/* ===== folding rows (Comments, Usage, History, Edit history, Submission info) ===== */
+.sd-row::details-content {
+  block-size: 0; overflow: clip;
+  transition: block-size var(--m-base) var(--m-ease), content-visibility var(--m-base) allow-discrete;
+}
+.sd-row[open]::details-content { block-size: auto; }
+.sd-row > summary::before { transition: transform var(--m-fast) var(--m-ease); }
+
+/* ===== small touches ===== */
+.ws-tabs a, .subtabs a, .dens button, .fsec-btn, .strip, .rail-x { transition: background-color var(--m-fast) var(--m-ease), color var(--m-fast) var(--m-ease), border-color var(--m-fast) var(--m-ease); }
+.slot { transition: border-color var(--m-fast), background-color var(--m-fast), box-shadow var(--m-fast); }
+.lib-card { transition: box-shadow var(--m-fast) var(--m-ease), border-color var(--m-fast) var(--m-ease), opacity var(--m-fast); }
+.sug-detail.anim { animation-duration: var(--m-base); }
+
+/* A ghost: a just-removed item fading out where it was (ws-motion.js). */
+.m-ghost { position: absolute !important; margin: 0 !important; pointer-events: none; z-index: 2; box-sizing: border-box; }
+
+/* ===== reduce motion: everything instant ===== */
+@media (prefers-reduced-motion: reduce) {
+  :root { --m-fast: 0ms; --m-base: 0ms; --m-slow: 0ms; }
+  *, *::before, *::after, ::details-content {
+    animation-duration: 0s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
+    transition-duration: 0s !important; transition-delay: 0s !important; scroll-behavior: auto !important;
+  }
+  .m-ghost { display: none !important; }
+}
+
+/* A Planner category gliding between tiers (or in from the Database) shows over the other slots. */
+#slots .slot:has(> .m-lift) { overflow: visible; position: relative; z-index: 3; }
+#slots .m-lift { position: relative; z-index: 3; background: var(--panel); border-radius: var(--r-m); box-shadow: 0 10px 28px var(--shadow); }

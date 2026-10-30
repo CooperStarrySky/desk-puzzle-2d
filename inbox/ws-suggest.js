@@ -9,6 +9,7 @@
 import { S, $, $$, esc, toast, plainError, av, person, isPuzzle, groupsOf, itemsOf, allItems, ZONES, TIER_WORDS, lc,
   schName, schPill, isCurator, canPlan, modalOpen, prefGet, prefSet, fillImages } from './ws-core.js';
 import { mountDetail, DS } from './ws-detail.js';
+import { flip, enter } from './ws-motion.js';
 import { presenceChanged, paintCats, typingIn, dirtyIn, whenIdle, keepFocus, flash } from './ws-live.js';
 import { filtersShell, searchHtml, renderFilters, renderActive, blankF, wireFilters } from './ws-cat-filters.js';
 import { catMenu, wireListActions, initCatKeys } from './ws-cat-actions.js';
@@ -251,13 +252,19 @@ export function renderList(pending) {
   const list = visibleRows(), trash = V.view === 'trash', total = trash ? inTrash() : V.rows.length - inTrash();
   $('#sug-n').textContent = V.err ? '' : 'Showing ' + list.length + ' of ' + total + (trash ? ' in Trash' : ' categories in the database');
   if (V.err) { el.innerHTML = '<div class="err-box">' + esc(V.err) + ' <button type="button" class="btn small" id="sug-retry">Try again</button></div>'; return; }
-  if (!list.length) {
-    el.innerHTML = '<p class="empty">' + (trash ? (total ? 'Nothing in Trash matches these filters.' : 'Trash is empty.')
-      : !total ? 'Nothing here yet. New categories show up here as students send them.' : 'Nothing matches these filters. Try clearing one.') + '</p>';
-    return;
-  }
-  el.innerHTML = list.map(cardHtml).join('');
-  el.classList.toggle('compact', compactOn());
+  // Cards glide to their new places; a trashed or restored card fades out where it was (ws-motion.js).
+  const dens = list.length && el.classList.contains('compact') !== compactOn();
+  const draw = () => {
+    if (!list.length) {
+      el.innerHTML = '<p class="empty">' + (trash ? (total ? 'Nothing in Trash matches these filters.' : 'Trash is empty.')
+        : !total ? 'Nothing here yet. New categories show up here as students send them.' : 'Nothing matches these filters. Try clearing one.') + '</p>';
+      return;
+    }
+    el.innerHTML = list.map(cardHtml).join('');
+    el.classList.toggle('compact', compactOn());
+  };
+  if (dens) { draw(); enter(el); } else flip(el, '.sug-card[data-id]', (x) => x.dataset.id, draw, { exit: 'slide' });
+  if (!list.length) return;
   fillImages(el);
   const fresh = V.justOpened; V.justOpened = false;
   const r = V.open && rowById(V.open), box = r && document.getElementById('sd-' + r.id);

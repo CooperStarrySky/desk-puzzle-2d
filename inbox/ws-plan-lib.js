@@ -14,6 +14,7 @@ import { searchHtml, renderFilters, renderActive, wireFilters, blankF, CAT_SORTS
 import { PL, libraryPool, votesFor, imageCount, tierOfKey, otherDrafts, slotsOf } from './ws-plan-data.js';
 import { sheet } from './ws-plan-rails.js';
 import { wirePeek, viewDialog } from './ws-plan-peek.js';
+import { flip, enter } from './ws-motion.js';
 
 const ST_WORDS = { new: 'New', draft: 'In a draft', used: 'Used' };
 const NO_USE = { times_used: 0, as_is: 0, adapted: 0, schools: [], drafts_count: 0 };
@@ -131,8 +132,9 @@ export function renderLib() {
   const el = $('#lib-list'); if (!el) return;
   const list = libItems(), all = pool().length;
   const compact = prefGet(DENSITY_KEY) === 'compact';
-  el.innerHTML = list.length ? list.map(compact ? rowHtml : cardHtml).join('') : '<p class="empty">Nothing matches. Try clearing a filter.</p>';
-  el.classList.toggle('compact', compact);
+  const draw = () => { el.innerHTML = list.length ? list.map(compact ? rowHtml : cardHtml).join('') : '<p class="empty">Nothing matches. Try clearing a filter.</p>'; el.classList.toggle('compact', compact); };
+  if (el.classList.contains('compact') !== compact && el.childElementCount) { draw(); enter(el); }
+  else flip(el, '.lib-card[data-key]', (x) => x.dataset.key, draw); // filtering: cards glide into place
   fillImages(el);
   $('#lib-n').textContent = 'Showing ' + list.length + ' of ' + all;
   const c = $('#lib-count'); if (c) c.textContent = all + (all === 1 ? ' category' : ' categories');

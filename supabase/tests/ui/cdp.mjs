@@ -4,8 +4,10 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const procs = new Set();
-const killAll = () => { procs.forEach((p) => { try { p.kill('SIGKILL'); } catch (e) { /* gone */ } }); };
+const procs = new Set(), dirs = new Set();
+// Each Chrome gets a throwaway profile folder (~15 MB); remove it once Chrome is gone so runs don't fill the disk.
+const rmDir = (d) => { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* busy: left for the OS */ } dirs.delete(d); };
+const killAll = () => { procs.forEach((p) => { try { p.kill('SIGKILL'); } catch (e) { /* gone */ } }); dirs.forEach(rmDir); };
 process.on('exit', killAll);
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { killAll(); process.exit(130); });
 process.on('uncaughtException', (e) => { console.log('FAIL harness error: ' + (e && e.message)); killAll(); process.exit(1); });
@@ -18,7 +20,7 @@ export async function launch(port = 9333, callMs = 20000) {
   const dir = fs.mkdtempSync((process.env.TMPDIR || '/tmp/') + 'cdp-');
   const proc = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`,
     '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--window-size=1280,1000', 'about:blank'], { stdio: 'ignore' });
-  procs.add(proc);
+  procs.add(proc); dirs.add(dir); proc.on('exit', () => rmDir(dir));
   let ver;
   for (let i = 0; i < 50 && !ver; i++) { await sleep(200); try { ver = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); } catch (e) { /* not up */ } }
   const page = ver.find((t) => t.type === 'page');

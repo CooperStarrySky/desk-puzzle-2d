@@ -21,7 +21,7 @@ const groups = [
 const PUZZLE = { id: 'icons-test-2026-10-30', title: 'Icons test', date: '2026-10-30', items, groups };
 let live = 0;
 async function results(opts, hints) {
-  const P = await page(opts);
+  const P = await page(Object.assign({ motion: true }, opts)); // game page: keep its own motion (tests it)
   const c = await stubGameStats(P);
   await P.go(BASE + '/?icons-test=' + Date.now());
   await P.waitFor('!!(window.__dp2d && window.__dp2d.showResultsForPuzzle)');

@@ -17,7 +17,9 @@ export const resetDb = async () => (await fetch(BASE + '/__reset', { method: 'PO
 export const sql = async (q, params, who) => (await fetch(BASE + '/__sql', { method: 'POST', body: JSON.stringify({ sql: q, params: params || [], who: who || 'postgres' }) })).json();
 
 let nextPort = 9400 + Math.floor(Math.random() * 300);
-export async function page({ width = 1366, height = 900, mobile = false, dark = false } = {}) {
+// Suites run with "reduce motion" on, so the workspace's animations (ws-motion.js) are
+// instant and checks never race a fade. Pass motion: true to test the animations themselves.
+export async function page({ width = 1366, height = 900, mobile = false, dark = false, motion = false } = {}) {
   const b = await launch(nextPort++);
   const errors = [];
   b.on((m) => {
@@ -27,7 +29,7 @@ export async function page({ width = 1366, height = 900, mobile = false, dark = 
   });
   await b.send('Runtime.enable'); await b.send('Log.enable'); await b.send('Page.enable');
   await b.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile });
-  await b.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }] });
+  await b.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }, { name: 'prefers-reduced-motion', value: motion ? 'no-preference' : 'reduce' }] });
   await b.send('Page.addScriptToEvaluateOnNewDocument', { source: fs.readFileSync(HERE + 'mock_client.js', 'utf8') });
   const P = Object.assign(b, { errors });
   P.go = async (url) => { await b.send('Page.navigate', { url }); return b.waitFor('document.readyState === "complete"'); };
