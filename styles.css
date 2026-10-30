@@ -370,7 +370,6 @@ a.btn.btn-small, a.btn.btn-big { display: inline-flex; align-items: center; just
   letter-spacing: -0.01em;
   text-wrap: balance;
 }
-.lede { margin: 0; font-size: 1.08rem; color: var(--ink-soft); max-width: 52ch; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .menu-stats {
   margin: 0;
@@ -525,6 +524,90 @@ a.btn.btn-small, a.btn.btn-big { display: inline-flex; align-items: center; just
 }
 @media (prefers-reduced-motion: reduce) {
   .pcard, .pcard:hover:not(:disabled) { transition: none; transform: none; }
+}
+
+/* ── Home hero H4: puzzle name as the h1, live line, one Play button ── */
+.hero-title .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.hero-title .w > span { display: inline-block; }
+.hero-live {
+  align-self: flex-start;
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px;
+  margin: 0; padding: 7px 14px 7px 12px;
+  border-radius: 999px; background: var(--panel); border: 1px solid var(--panel-edge);
+  font-size: 0.92rem; color: var(--ink-soft); font-variant-numeric: tabular-nums;
+}
+.hero-live[hidden] { display: none; }
+.hero-live b { color: var(--ink); font-weight: 650; }
+.hero-live .sep { color: var(--ink-faint, var(--ink-soft)); }
+.hero-live .pulse { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--tier-2); flex: none; }
+.hero-live .pulse::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--tier-2); opacity: 0; animation: hero-pulse 2.6s ease-out infinite; }
+@keyframes hero-pulse { 0% { transform: scale(0.6); opacity: 0.7; } 100% { transform: scale(1.8); opacity: 0; } }
+.btn-play-today { min-width: 9.5em; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent); }
+.feature-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; font-size: 0.88rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.feature-row b { color: var(--ink); font-weight: 600; }
+.feature-tiers { display: flex; gap: 4px; }
+.feature-tiers i { width: 18px; height: 6px; border-radius: 3px; display: block; }
+.feature-tiers i:nth-child(1) { background: var(--tier-1); }
+.feature-tiers i:nth-child(2) { background: var(--tier-2); }
+.feature-tiers i:nth-child(3) { background: var(--tier-3); }
+.feature-tiers i:nth-child(4) { background: var(--tier-4); }
+/* Intro start state (set before first paint by index.html, motion allowed only). */
+.home-intro .hero-copy > *, .home-intro .hero .feature { opacity: 0; }
+.home-intro .hero-title { opacity: 1; }
+.home-intro .hero-title .w > span { transform: translateY(110%); }
+
+/* Live desk in the featured card: the thumbnail's tiles as real elements
+   (src/home-hero.js), laid out at 800 x 500 and scaled to the card. */
+.mini > span.desk-live {
+  display: block; visibility: hidden; position: absolute; left: 0; top: 0; z-index: 2;
+  width: 800px; height: 500px; transform-origin: 0 0;
+  border-radius: 0; box-shadow: none;
+}
+/* Hidden (not display:none) while loading, so note labels can be measured and fitted. */
+.mini.is-live > .desk-live { visibility: visible; }
+.mini.is-live > .mini-thumb, .mini.is-live > span:not(.desk-live),
+.mini.desk-wait > .mini-thumb, .mini.desk-wait > span:not(.desk-live) { visibility: hidden; }
+.mini .desk-live .t {
+  position: absolute; box-sizing: border-box; overflow: hidden; border-radius: 5px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.32), 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.mini .desk-live .t img { display: block; width: 100%; height: 100%; object-fit: cover; max-width: none; }
+.mini .desk-live .lbl {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: 12px 14px; box-sizing: border-box; box-shadow: none; border-radius: 0;
+  text-align: center; color: #2b2b33; line-height: 1.12; overflow-wrap: normal; hyphens: manual;
+}
+.mini .desk-live .lbl span { position: static; display: block; min-width: 0; max-width: 100%; max-height: 100%; overflow: hidden; box-shadow: none; border-radius: 0; }
+.mini .desk-live .t-note { background: var(--mini-note); border-radius: 2px; }
+.mini .desk-live .t-note .lbl { font-family: var(--hand); font-weight: 600; }
+.mini .desk-live .t-rx { background: var(--mini-rx); border-top: 14px solid var(--mini-rx-band); }
+.mini .desk-live .t-rx .lbl { font-family: var(--serif); font-weight: 600; padding-top: 30px; }
+.mini .desk-live .t-rx::before { content: "Rx"; position: absolute; top: 6px; left: 10px; font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 22px; color: var(--mini-rx-band); }
+.mini .desk-live .t-sheet { background: var(--mini-sheet); background-image: repeating-linear-gradient(180deg, transparent 0 25px, rgba(60, 90, 140, 0.13) 25px 26px); }
+.mini .desk-live .t-sheet .lbl { font-family: var(--serif); font-weight: 600; }
+.mini .desk-live .t-photo { background: var(--card); padding: 9px; border-radius: 3px; }
+.mini .desk-live .t-photo img { border-radius: 1px; }
+.mini .desk-live .t-slide { background: var(--mini-slide-glass); border-radius: 4px; }
+.mini .desk-live .t-slide::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 24%; background: repeating-linear-gradient(45deg, #e4e2ea 0 3px, #f6f5f9 3px 6px); border-right: 1px solid rgba(0, 0, 0, 0.08); }
+.mini .desk-live .t-slide .smear { position: absolute; top: 9%; bottom: 9%; left: 33%; aspect-ratio: 1 / 1; border-radius: 50%; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
+.mini .desk-live .t-film { background: var(--mini-film-a); padding: 8px; border-radius: 3px; }
+.mini .desk-live .t-film img { filter: grayscale(1) contrast(1.05); opacity: 0.92; border-radius: 1px; }
+
+/* Archive header count, and the "Submitted by YOU" invitation under the archive. */
+.section-head .menu-stats { margin-top: 2px; }
+.home-invite { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding-block: 18px 6px; }
+.home-invite p { margin: 0; font-size: 0.95rem; color: var(--ink-soft); }
+.home-invite .credit-label { margin-top: 0; border-radius: 6px; text-decoration: none; color: inherit; }
+.home-invite .credit-label:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; }
+.home-invite .credit-label:focus-visible .cl-glare { opacity: 0.9; }
+.home-invite .cl-sig { letter-spacing: 0.04em; }
+
+@media (max-width: 560px) {
+  .hero-live { border-radius: 14px; gap: 2px 12px; }
+  .hero-live .sep { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-live .pulse::after { animation: none; }
 }
 
 /* Shared panel-open animation (used by the hints and settings panels). */

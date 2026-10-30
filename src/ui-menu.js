@@ -30,6 +30,7 @@ import {
 } from './ui-play.js';
 import { isStatsEligible } from './stats-core.js';
 import { fillMenuClassLines } from './stats-class-ui.js';
+import { renderHero } from './home-hero.js';
 
 /* ── Shared in-flight guard ──────────────────────────────────────── */
 var puzzleLoadInFlight = false;
@@ -202,6 +203,9 @@ export function renderMenu(registry) {
   if (els.puzzleCount) els.puzzleCount.textContent = String(puzzles.length);
   fillCardThumb(els.featuredMini, currentEntry || { id: registry.current }, true);
   if (els.featuredDate) els.featuredDate.textContent = currentEntry ? formatPuzzleDate(currentEntry.date) : '';
+  // Hero (H4): this week's name as the h1, its number in release order, live desk.
+  var number = currentEntry ? puzzles.slice().reverse().indexOf(currentEntry) + 1 : 0;
+  renderHero(currentEntry, number, currentEntry ? formatPuzzleDate(currentEntry.date) : '', loadPuzzleByEntry);
 
   els.puzzleGrid.innerHTML = '';
 
