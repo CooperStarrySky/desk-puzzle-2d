@@ -47,14 +47,14 @@ html.touch .grip { display: none; }
 .dv-txt del { color: var(--danger); } .dv-txt ins { color: var(--ok); text-decoration: none; font-weight: 600; }
 @media (max-width: 420px) { .dv-pair { grid-template-columns: minmax(0, 1fr); } }
 .adapt-ed { display: flex; flex-direction: column; gap: 8px; }
-.ad-intro { font-size: 0.78rem; margin: 0; }
-.ad-clue { border: 1px solid var(--panel-edge); border-radius: var(--r-s); padding: 6px 8px 8px; margin: 0; background: var(--card); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.ad-clue.changed { border-color: var(--warn); }
-.ad-clue legend { font-size: 0.78rem; font-weight: 700; padding: 0 4px; display: inline-flex; gap: 6px; align-items: center; }
+.tw-intro { font-size: 0.78rem; margin: 0; }
+.tw-clue { border: 1px solid var(--panel-edge); border-radius: var(--r-s); padding: 6px 8px 8px; margin: 0; background: var(--card); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tw-clue.changed { border-color: var(--warn); }
+.tw-clue legend { font-size: 0.78rem; font-weight: 700; padding: 0 4px; display: inline-flex; gap: 6px; align-items: center; }
 .adapted-tag { background: var(--warn-soft); color: var(--warn); }
-.ad-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; align-items: start; }
-.ad-img, .ad-sw { font-size: 0.76rem; color: var(--ink-soft); margin: 0; overflow-wrap: anywhere; }
-.ad-need { margin: 0; }
+.tw-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; align-items: start; }
+.tw-img, .tw-sw { font-size: 0.76rem; color: var(--ink-soft); margin: 0; overflow-wrap: anywhere; }
+.tw-need { margin: 0; }
 .ph { display: grid; place-items: center; border-radius: var(--r-s); background: var(--paper-2); color: var(--ink-soft); border: 1px solid var(--panel-edge);
   font: 600 0.6rem/1.15 var(--sans); background-size: cover; background-position: center; }
 .ph.mini { width: 52px; height: 52px; overflow: hidden; text-align: center; padding: 2px; overflow-wrap: anywhere; }

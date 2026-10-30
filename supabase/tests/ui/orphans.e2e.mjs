@@ -17,7 +17,7 @@ const openEdit = async () => { await P.click(slot + ' [data-adapt]'); const ok =
 const upload = async (color) => {
   await P.waitFor('!document.querySelector(".modal")', 4000); await P.sleep(300);
   await P.js('(() => { const t = document.getElementById("toast"); t.hidden = true; t.textContent = ""; })()');
-  await P.click('.ad-clue[data-clue="1"] [data-adimg]'); if (!(await P.waitFor('!!document.getElementById("ip-file")', 4000))) return false;
+  await P.click('.tw-clue[data-clue="1"] [data-adimg]'); if (!(await P.waitFor('!!document.getElementById("ip-file")', 4000))) return false;
   await P.js(`(async () => { const c = document.createElement('canvas'); c.width = 320; c.height = 200; const x = c.getContext('2d'); x.fillStyle = '${color}'; x.fillRect(0, 0, 320, 200);
     const b = await new Promise((r) => c.toBlob(r, 'image/png')); const dt = new DataTransfer(); dt.items.add(new File([b], 'pic.png', { type: 'image/png' }));
     const i = document.getElementById('ip-file'); i.files = dt.files; i.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);

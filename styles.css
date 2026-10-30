@@ -2326,7 +2326,7 @@ body.layout-mode .machine { cursor: move; outline: 2px dashed rgba(75, 63, 176, 
 }
 .item-editor details { margin-top: 6px; font-size: 0.75rem; color: var(--ink-soft); }
 .item-editor details summary { cursor: pointer; }
-.item-editor details .adv-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+.item-editor details .opt-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
 .item-file { font-size: 0.7rem; max-width: 170px; }
 .label-scale-row input[type="range"] { flex: 1 1 100px; min-width: 80px; }
 .label-scale-readout { font-size: 0.72rem; color: var(--ink-soft); min-width: 32px; text-align: right; }

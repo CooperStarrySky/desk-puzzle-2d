@@ -879,7 +879,7 @@ export function renderItemEditor(g, m) {
   box.appendChild(chips);
 
   var files = document.createElement('div');
-  files.className = 'adv-row';
+  files.className = 'opt-row';
   var imgLabel = document.createElement('label');
   imgLabel.textContent = 'image ';
   var img = document.createElement('input');
@@ -927,7 +927,7 @@ export function renderItemEditor(g, m) {
   sum.textContent = 'Advanced';
   adv.appendChild(sum);
   var advRow = document.createElement('div');
-  advRow.className = 'adv-row';
+  advRow.className = 'opt-row';
   var idNote = document.createElement('span');
   idNote.textContent = 'id: ' + item.id + ' (from the label)';
   advRow.appendChild(idNote);
@@ -955,7 +955,7 @@ export function renderItemEditor(g, m) {
   // auto-fits like every other; this is only for nudging one stubborn
   // long clue smaller, or overriding a piece an author wants bigger.
   var sizeRow = document.createElement('div');
-  sizeRow.className = 'adv-row label-scale-row';
+  sizeRow.className = 'opt-row label-scale-row';
   var sizeLabel = document.createElement('label');
   sizeLabel.textContent = 'clue text size';
   sizeRow.appendChild(sizeLabel);

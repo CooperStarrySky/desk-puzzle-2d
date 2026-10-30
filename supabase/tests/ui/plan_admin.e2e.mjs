@@ -54,11 +54,11 @@ await P.click('#ed-refresh'); await P.waitFor('!/in Trash/.test(document.getElem
 
 // ===== Edit for this puzzle =====
 await P.click(slot(1) + ' [data-adapt]'); await P.waitFor('!!document.querySelector(".adapt-ed")');
-check('E1 editor opens in the slot, original untouched note', /original “Causes of clubbing” in the Category database is untouched/.test(await P.text('.adapt-ed')) && (await P.count('.ad-clue')) === 4);
+check('E1 editor opens in the slot, original untouched note', /original “Causes of clubbing” in the Category database is untouched/.test(await P.text('.adapt-ed')) && (await P.count('.tw-clue')) === 4);
 await P.type('.adapt-ed [data-adl="2"]', 'Tetralogy of Fallot');
 await P.js('(() => { const s = document.querySelector(".adapt-ed [data-adz=\\"1\\"]"); s.value = "photo"; s.dispatchEvent(new Event("change", { bubbles: true })); })()'); await P.sleep(150);
-check('E2 type change → Photo needs an image', /Needs an image/.test(await P.text('.ad-clue[data-clue="1"]')) && (await P.count('.ad-clue[data-clue="1"] [data-adimg]')) === 1);
-await P.click('.ad-clue[data-clue="1"] [data-adimg]'); await P.waitFor('!!document.getElementById("ip-file")');
+check('E2 type change → Photo needs an image', /Needs an image/.test(await P.text('.tw-clue[data-clue="1"]')) && (await P.count('.tw-clue[data-clue="1"] [data-adimg]')) === 1);
+await P.click('.tw-clue[data-clue="1"] [data-adimg]'); await P.waitFor('!!document.getElementById("ip-file")');
 await P.js(`(async () => { const c = document.createElement('canvas'); c.width = 320; c.height = 200; const x = c.getContext('2d'); x.fillStyle = '#c33'; x.fillRect(0, 0, 320, 200);
   const b = await new Promise((r) => c.toBlob(r, 'image/png')); const dt = new DataTransfer(); dt.items.add(new File([b], 'nail.png', { type: 'image/png' }));
   const i = document.getElementById('ip-file'); i.files = dt.files; i.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
@@ -67,12 +67,12 @@ await P.click('#cr-ok'); await toastHas('/New image ready/');
 const up = await P.js('window.__mockState.uploads || []');
 check('E3 upload goes to drafts/<draft id>/ as WebP', up.length === 1 && up[0].path.startsWith('drafts/' + D.cmsru + '/') && /\.(webp|jpg)$/.test(up[0].path), up);
 check('E3 stored through the row rules', (await db1(`select count(*)::int n from storage.objects where name = $1`, [up[0] && up[0].path])).n === 1);
-check('E3 editor shows the new image', /Image: new for this puzzle/.test(await P.text('.ad-clue[data-clue="1"]')));
-await P.click('.ad-clue[data-clue="3"] [data-adsw]'); await P.waitFor('!!document.getElementById("sw-q")');
+check('E3 editor shows the new image', /Image: new for this puzzle/.test(await P.text('.tw-clue[data-clue="1"]')));
+await P.click('.tw-clue[data-clue="3"] [data-adsw]'); await P.waitFor('!!document.getElementById("sw-q")');
 await P.type('#sw-q', 'asthma'); await P.sleep(150);
 check('E4 swap search finds other categories, not this one', /Asthma triggers/.test(await P.text('#sw-list')) && !/Causes of clubbing/.test(await P.text('#sw-list')));
 await P.clickText('#sw-list [data-pk]', 'Cold air'); await toastHas('/Clue 4 swapped/');
-check('E4 swapped clue shown with its source', /Swapped in from “Asthma triggers”/.test(await P.text('.ad-clue[data-clue="3"]')) && (await P.js('document.querySelector(".adapt-ed [data-adl=\\"3\\"]").value')) === 'Cold air');
+check('E4 swapped clue shown with its source', /Swapped in from “Asthma triggers”/.test(await P.text('.tw-clue[data-clue="3"]')) && (await P.js('document.querySelector(".adapt-ed [data-adl=\\"3\\"]").value')) === 'Cold air');
 await P.type('.adapt-ed [data-ad="name"]', 'Clubbing, CMSRU cut');
 await P.click('[data-adsave="1"]'); await toastHas('/Saved for this puzzle only \\(4 changes\\)/');
 const row = await db1(`select adapted, submission_id from public.draft_slots where draft_id = $1 and tier = 1`, [D.cmsru]);

@@ -97,16 +97,16 @@ function typeSelect(i, z) {
 }
 export function editorHtml(d, t, it) {
   const o = origOf(it), w = AD.w;
-  return '<div class="slot-body adapt-ed" data-ed="' + t + '"><p class="eyebrow">Edit for this puzzle only</p><p class="faint ad-intro">Changes stay in this draft. The original “' + esc(o.name) + '” in the Category database is untouched.</p>' +
+  return '<div class="slot-body adapt-ed" data-ed="' + t + '"><p class="eyebrow">Edit for this puzzle only</p><p class="faint tw-intro">Changes stay in this draft. The original “' + esc(o.name) + '” in the Category database is untouched.</p>' +
     '<label class="field"><span>Name</span><input class="input" data-ad="name" maxlength="120" value="' + esc(w.name) + '"></label>' +
     w.items.map((c, i) => {
       const p = clueDiff(o.items[i], c);
-      return '<fieldset class="ad-clue' + (p.length ? ' changed' : '') + '" data-clue="' + i + '"><legend>Clue ' + (i + 1) + (p.length ? ' <span class="kind-tag adapted-tag">Changed</span>' : '') + '</legend>' +
-        '<div class="ad-row">' + thumb(c) + '<div class="stack" style="--gap:6px"><label class="field"><span>Text on the piece</span><input class="input" data-adl="' + i + '" maxlength="80" value="' + esc(c.label) + '"></label>' +
+      return '<fieldset class="tw-clue' + (p.length ? ' changed' : '') + '" data-clue="' + i + '"><legend>Clue ' + (i + 1) + (p.length ? ' <span class="kind-tag adapted-tag">Changed</span>' : '') + '</legend>' +
+        '<div class="tw-row">' + thumb(c) + '<div class="stack" style="--gap:6px"><label class="field"><span>Text on the piece</span><input class="input" data-adl="' + i + '" maxlength="80" value="' + esc(c.label) + '"></label>' +
         '<label class="field"><span>Type</span>' + typeSelect(i, c.zone) + '</label></div></div>' +
-        (isImg(c.zone) ? '<p class="ad-img">' + (picOf(c) ? (picOf(c) === picOf(o.items[i]) ? 'Image: same as the original' : c.swap ? 'Image: comes with the swapped-in clue' : 'Image: new for this puzzle')
-          : isImg(o.items[i].zone) && !picOf(o.items[i]) ? 'No image (the original has none either)' : '<span class="err ad-need">Needs an image</span>') + '</p>' : '') +
-        (c.swap ? '<p class="faint ad-sw">Swapped in from “' + esc(c.swap.name) + '”</p>' : '') +
+        (isImg(c.zone) ? '<p class="tw-img">' + (picOf(c) ? (picOf(c) === picOf(o.items[i]) ? 'Image: same as the original' : c.swap ? 'Image: comes with the swapped-in clue' : 'Image: new for this puzzle')
+          : isImg(o.items[i].zone) && !picOf(o.items[i]) ? 'No image (the original has none either)' : '<span class="err tw-need">Needs an image</span>') + '</p>' : '') +
+        (c.swap ? '<p class="faint tw-sw">Swapped in from “' + esc(c.swap.name) + '”</p>' : '') +
         '<div class="row" style="--gap:6px">' + (isImg(c.zone) ? '<button type="button" class="btn small" data-adimg="' + i + '">Replace image…</button>' : '') +
         '<button type="button" class="btn small" data-adsw="' + i + '">Swap in a clue…</button>' + (p.length ? '<button type="button" class="btn small ghost" data-adrv="' + i + '">Revert clue</button>' : '') + '</div></fieldset>';
     }).join('') +

@@ -77,9 +77,9 @@ export async function openSettings() {
     (mine.length > 1 ? '<label class="field" style="max-width:320px"><span>Show settings for</span><select class="input" id="set-pick">' +
       mine.map((s) => '<option value="' + esc(s) + '"' + (s === k ? ' selected' : '') + '>' + esc(schFull(s)) + '</option>').join('') + '</select></label>' : '') +
     '<div id="set-sch-wrap">' + (k ? schoolBox(k) : '') + '</div>' +
-    '<fieldset class="set-box"><legend>Category database (every school)</legend><div class="set-row"><div><b id="ad-l">Delete trashed categories for good after</b>' +
+    '<fieldset class="set-box"><legend>Category database (every school)</legend><div class="set-row"><div><b id="trash-days-l">Delete trashed categories for good after</b>' +
     '<p class="muted">“Never” keeps everything in the Trash until someone restores it. Categories that went out in a puzzle or sit in a draft are always kept.</p></div>' +
-    '<select class="input" id="set-ad" aria-labelledby="ad-l"' + (S.owner ? '' : ' disabled') + '>' +
+    '<select class="input" id="set-ad" aria-labelledby="trash-days-l"' + (S.owner ? '' : ' disabled') + '>' +
     (known ? '' : '<option value="' + esc(cur) + '" selected>' + esc(cur) + ' days</option>') +
     AUTODEL.map((o) => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
     (S.owner ? '' : '<p class="lock-note">Only the site owner can change this.</p>') + '</fieldset>' +

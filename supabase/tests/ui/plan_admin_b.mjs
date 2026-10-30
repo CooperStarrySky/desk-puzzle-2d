@@ -35,7 +35,7 @@ export async function runPart2({ P, check, sql, db1, slot, openDraft, toastHas, 
   await P.click(slot(1) + ' [data-adapt]'); await P.waitFor('!!document.querySelector(".adapt-ed")');
   await P.type('.adapt-ed [data-adl="0"]', 'Changed'); await P.js('document.querySelector(".adapt-ed [data-adl=\\"0\\"]").blur()');
   await P.js('(() => { const s = document.querySelector(".adapt-ed [data-adz=\\"0\\"]"); s.value = "folder"; s.dispatchEvent(new Event("change", { bubbles: true })); })()'); await P.sleep(100);
-  check('B5 changed clue marked, Revert clue offered', (await P.count('.ad-clue[data-clue="0"].changed [data-adrv="0"]')) === 1);
+  check('B5 changed clue marked, Revert clue offered', (await P.count('.tw-clue[data-clue="0"].changed [data-adrv="0"]')) === 1);
   await P.click('[data-adrv="0"]'); await P.sleep(100);
   check('B5 Revert clue restores text and type', (await P.js('document.querySelector(".adapt-ed [data-adl=\\"0\\"]").value')) === 'Lung cancer' && (await P.js('document.querySelector(".adapt-ed [data-adz=\\"0\\"]").value')) === 'rack');
   await P.click('[data-adsave="1"]'); await toastHas('/No differences from the original/');
