@@ -92,7 +92,7 @@ for (const [w, h, mobile] of [[1100, 900, false], [375, 760, true]]) {
 // Rating: after a vote the class chart shows, and each 1-5 button sits right under its bar;
 // the bottom buttons are normal size, in one wrapping row.
 const RID = 'order-rate-2026-10-30';
-const ROW = { puzzle_id: RID, plays: 25, std_finishes: 24, std_wins: 17, mistakes_hist: [6, 5, 4, 2, 7], hint_any: 9, hint_labels: 6, hint_seeds: 4, hint_category: 2, rating_n: 15, rating_hist: [1, 3, 6, 4, 1] };
+const ROW = { puzzle_id: RID, plays: 25, std_finishes: 24, std_wins: 17, mistakes_hist: [6, 5, 4, 2, 7], hint_any: 9, hint_labels: 6, hint_seeds: 4, hint_category: 2, rating_n: 15, rating_hist: [2, 5, 6, 2] };
 for (const [w, h, mobile, dark] of [[1100, 900, false, false], [375, 760, true, true]]) {
   const tag = mobile ? 'phone dark' : 'desktop light';
   const P = await page({ width: w, height: h, mobile, dark, motion: true });
@@ -100,20 +100,20 @@ for (const [w, h, mobile, dark] of [[1100, 900, false, false], [375, 760, true, 
   await P.go(BASE + '/?order-rate=' + Date.now());
   await P.waitFor('!!(window.__dp2d && window.__dp2d.showResultsForPuzzle)');
   await P.js(`(async () => { const p = Object.assign({}, ${JSON.stringify(PUZZLE)}, { id: '${RID}', date: '2026-10-30' });
-    localStorage.setItem('dp2d:counted:${RID}', '1'); localStorage.removeItem('dp2d:rating:${RID}');
+    localStorage.setItem('dp2d:counted:${RID}', '1'); localStorage.removeItem('dp2d:rating4:${RID}');
     window.__dp2d.showResultsForPuzzle(p, { won: true, sub: 'Solved in 5 guesses.', solvedGroupIds: new Set(['g0', 'g1', 'g2', 'g3']), attempts: [] });
     (await import('/src/stats-class-ui.js')).renderResultsClass(p); return true; })()`);
   await P.waitFor('!document.getElementById("results-rate").hidden', 5000);
-  check(`G1 ${tag}: before a vote the class ratings stay hidden (no swaying)`, (await P.js(`document.getElementById('results-rated').hidden`)) && (await P.count('#results-rate .rate-btn')) === 5);
-  await P.clickText('#results-rate button', 'Hard');
-  await P.waitFor('!document.getElementById("results-rated").hidden && document.querySelectorAll(".rate-dist-col").length === 5', 5000);
+  check(`G1 ${tag}: before a vote the class ratings stay hidden (no swaying)`, (await P.js(`document.getElementById('results-rated').hidden`)) && (await P.count('#results-rate .rate-btn')) === 4);
+  await P.clickText('#results-rate button', 'Difficult');
+  await P.waitFor('!document.getElementById("results-rated").hidden && document.querySelectorAll(".rate-dist-col").length === 4', 5000);
   const al = await P.js(`(() => { const bars = [...document.querySelectorAll('.rate-dist-col')].map((x) => x.getBoundingClientRect()), btns = [...document.querySelectorAll('#results-rate .rate-btn')].map((x) => x.getBoundingClientRect()),
     sec = document.getElementById('results-class').getBoundingClientRect(), d = document.querySelector('.rate-dist').getBoundingClientRect();
     return { dx: Math.max(...bars.map((b, i) => Math.abs((b.left + b.right) / 2 - (btns[i].left + btns[i].right) / 2))), dw: Math.max(...bars.map((b, i) => Math.abs(b.width - btns[i].width))),
       below: btns.every((b, i) => b.top >= bars[i].bottom - 1 && b.top - bars[i].bottom < 24), span: d.width / (sec.width - 24), mid: Math.abs((d.left + d.right) / 2 - (sec.left + sec.right) / 2) }; })()`);
   check(`G2 ${tag}: each rating button sits under its bar, same width`, al.dx < 1 && al.dw < 1 && al.below, al);
   check(`G3 ${tag}: chart spans the section, centered`, al.span > 0.9 && al.mid < 2, al);
-  check(`G4 ${tag}: your vote is marked`, (await P.attr('#results-rate [data-rate="4"]', 'aria-pressed')) === 'true');
+  check(`G4 ${tag}: your vote is marked`, (await P.attr('#results-rate [data-rate="3"]', 'aria-pressed')) === 'true');
   const btns = await P.js(`[...document.querySelectorAll('.results-actions .btn')].filter((b) => !b.hidden).map((b) => { const r = b.getBoundingClientRect(); return { id: b.id, w: Math.round(r.width), h: Math.round(r.height), t: Math.round(r.top) }; })`);
   // Icon buttons (v2): small squares on desktop, icon + short label on phones; one row either way.
   check(`G5 ${tag}: bottom buttons are compact icon buttons`, btns.every((b) => b.h <= (mobile ? 64 : 48)) && btns.find((b) => b.id === 'btn-share').w <= (mobile ? 90 : 52), btns);

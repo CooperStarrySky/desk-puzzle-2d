@@ -3174,8 +3174,8 @@ body.preview-mode .play-header-title p { display: none; }
 .results-class-chart .stats-row { grid-template-columns: 6.2em minmax(0, 1fr); }
 .results-class-hints { margin: 10px 0 0; font-size: 0.85rem; color: var(--ink-soft); }
 #results-class-everyone + .results-rating { border-top: 1px dashed var(--panel-edge); margin-top: 14px; padding-top: 12px; }
-/* Bars and rating buttons share one five-column grid across the section, so button 1 sits under bar 1. */
-.rate-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: 100%; }
+/* Bars and rating buttons share one four-column grid across the section, so button 1 sits under bar 1. */
+.rate-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; }
 .results-rate-q { margin: 0 0 8px; font: 600 0.95rem/1.3 var(--serif); color: var(--ink); }
 .results-rated:not([hidden]) + .results-rate { margin-top: 6px; }
 .rate-btn {

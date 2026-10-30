@@ -8,7 +8,7 @@
  *     before class stats existed is never sent),
  *   - for any published puzzle (isStatsEligible: a dated id; until
  *     2026-10-29 only puzzles released after Oct 11, 2026),
- *   - only the fields in stats-core.js finishPayload (+ a rating 1-5),
+ *   - only the fields in stats-core.js finishPayload (+ a rating 1-4),
  *     with a random per-browser id (dp2d:anon),
  *   - nothing at all while "Share my anonymous play stats" is off
  *     (switching it off also empties the outbox).
@@ -29,7 +29,7 @@ import { isStatsEligible, finishPayload, hasCountedFinish } from './stats-core.j
 
 var ANON_KEY = SAVE_PREFIX + 'anon';
 var OUTBOX_KEY = SAVE_PREFIX + 'outbox';
-var RATING_NS = SAVE_PREFIX + 'rating:';
+var RATING_NS = SAVE_PREFIX + 'rating4:'; // new key for the 4-point scale, so old 5-point picks don't show as pressed
 var COUNTED_NS = SAVE_PREFIX + 'counted:'; // a finish for this puzzle was queued to the server
 var OUTBOX_DAYS = 3;
 var OUTBOX_MAX = 30;
@@ -172,7 +172,7 @@ export function hasCountedPlay(puzzleId) {
 /** Resolves when this page's latest send for the puzzle is done (or failed). */
 export function whenSent(puzzleId) { return Promise.resolve(pending[puzzleId]).catch(function () {}); }
 
-/** This browser's rating for a puzzle: {rating: 1-5} or {skipped: true} or null. */
+/** This browser's rating for a puzzle: {rating: 1-4} or {skipped: true} or null. */
 export function getMyRating(puzzleId) {
   try { var r = JSON.parse(localStorage.getItem(RATING_NS + puzzleId) || 'null'); return r && typeof r === 'object' ? r : null; } catch (e) { return null; }
 }

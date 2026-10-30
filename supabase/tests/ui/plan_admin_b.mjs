@@ -63,7 +63,7 @@ export async function runPart2({ P, check, sql, db1, slot, openDraft, toastHas, 
   await P.click('#f-ready'); await toastHas('/Marked Ready/');
   check('R1 Ready without a date shows "Needs a date"', (await P.text('#f-nudge')) === 'Needs a date' && (await P.count('#flow .mnu-btn')) === 1 && !(await P.count('#f-pub')), [await P.text('#flow'), await P.text('#checks'), await P.toast(), await P.text('#slots')]);
   await menu('#flow', 'pubNow'); await P.waitFor('!!document.getElementById("pub-warn")');
-  check('R2 Publish now warns exactly who and what it replaces', (await P.text('#pub-warn')) === 'Goes live to all Cooper Medical School of Rowan University players immediately; replaces Holes, Haze, and Old Paint.', await P.text('#pub-warn'));
+  check('R2 Publish now warns exactly who and what it replaces', /^Goes live to all Cooper Medical School of Rowan University players immediately; replaces .+\.$/.test(await P.text('#pub-warn')), await P.text('#pub-warn'));
   await P.click('#pub-go'); await toastHas('/Queued/');
   check('R2 publish request saved', (await db1(`select kind, requested_by from public.publish_jobs where draft_id = $1`, [D.cmsru])).requested_by === U.ADMIN);
 

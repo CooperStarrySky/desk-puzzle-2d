@@ -13,7 +13,7 @@ if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 const reg = await (await fetch(BASE + '/puzzles/index.json')).json();
 const cur = reg.puzzles.find((p) => p.id === reg.current);
 const number = reg.puzzles.slice().sort((a, b) => a.date.localeCompare(b.date)).findIndex((p) => p.id === cur.id) + 1;
-const row = (n, wins, plays) => ({ puzzle_id: cur.id, plays, std_finishes: n, std_wins: wins, mistakes_hist: [wins, 0, 0, 0, n - wins], rating_hist: [0, 0, 0, 0, 0], hint_any: 0, hint_labels: 0, hint_seeds: 0, hint_category: 0 });
+const row = (n, wins, plays) => ({ puzzle_id: cur.id, plays, std_finishes: n, std_wins: wins, mistakes_hist: [wins, 0, 0, 0, n - wins], rating_hist: [0, 0, 0, 0], hint_any: 0, hint_labels: 0, hint_seeds: 0, hint_category: 0 });
 
 const stubs = [];
 const liveCount = () => stubs.reduce((n, c) => n + c.live, 0);
