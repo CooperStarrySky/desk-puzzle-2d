@@ -20,7 +20,18 @@
   <meta name="twitter:description" content="Sort 16 pathology clues into 4 hidden groups." />
   <meta name="twitter:image" content="https://pathologyconnections.org/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=49" />
+  <link rel="stylesheet" href="styles.css?v=52" />
+  <script>
+    /* Home intro start state, set before first paint (src/home-hero.js plays it). */
+    (function () {
+      try {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var r = document.documentElement;
+        r.classList.add('home-intro');
+        setTimeout(function () { r.classList.remove('home-intro'); }, 4000);
+      } catch (e) { /* no intro */ }
+    })();
+  </script>
 </head>
 <body>
   <div id="app">
@@ -44,22 +55,17 @@
       <main class="menu-wrap">
         <section class="hero" aria-labelledby="menu-headline">
           <div class="hero-copy">
-            <p class="eyebrow">Sixteen clues &middot; four groups &middot; no timer</p>
-            <h1 id="menu-headline" class="hero-title">Pathology puzzles built from this block&rsquo;s lectures.</h1>
-            <p class="lede">A desk of slides, films, and notes for CMSRU students. Find the four hidden groups at your own pace.</p>
+            <p class="eyebrow" id="hero-meta">16 clues</p>
+            <h1 id="menu-headline" class="hero-title">This week&rsquo;s puzzle</h1>
+            <p class="hero-live" id="hero-live" hidden><span class="pulse" aria-hidden="true"></span><span><b id="hero-players">0</b> players <span id="hero-live-when">so far</span></span><span class="sep" aria-hidden="true">&middot;</span><span><b id="hero-solved">0%</b> found all four</span></p>
             <div class="hero-actions">
-              <button id="btn-play-today" class="btn btn-primary btn-big btn-play-today" type="button">Play this week&rsquo;s puzzle</button>
-              <a class="btn btn-big" href="studio/?submit">Submit a category</a>
+              <button id="btn-play-today" class="btn btn-primary btn-big btn-play-today" type="button">Play</button>
             </div>
-            <p class="menu-stats" id="menu-stats"><span><b id="puzzle-count">&hellip;</b> puzzles so far</span><span>Free, no sign-in</span></p>
           </div>
-          <button id="btn-play-featured" class="pcard feature" type="button" aria-describedby="featured-tag">
-            <span class="feature-tag" id="featured-tag">This week&rsquo;s puzzle</span>
+          <button id="btn-play-featured" class="pcard feature" type="button" aria-label="Play this week&rsquo;s puzzle">
+            <span class="feature-tag" aria-hidden="true">This week</span>
             <span class="mini" id="featured-mini" aria-hidden="true"></span>
-            <span class="pcard-text">
-              <span class="pcard-title feature-title" id="menu-title">Desk Puzzle</span>
-              <span class="pcard-meta" id="featured-date"></span>
-            </span>
+            <span class="feature-row"><span><b>4</b> groups &middot; No timer</span><span class="feature-tiers" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span>
           </button>
         </section>
 
@@ -69,8 +75,14 @@
           <div class="section-head">
             <p class="eyebrow">Archive</p>
             <h2 id="all-puzzles-title">All puzzles</h2>
+            <p class="menu-stats"><span><b id="puzzle-count">&hellip;</b> puzzles so far</span></p>
           </div>
           <ul id="puzzle-grid" class="puzzle-grid"></ul>
+        </section>
+
+        <section class="home-invite" id="home-invite" aria-label="Suggest a category">
+          <a class="credit-label" href="studio/?submit" aria-label="Suggest a category in the Studio"><span class="cl-slide" aria-hidden="true"><span class="cl-tissue"></span><span class="cl-paper"><span class="cl-cap">Submitted by</span><span class="cl-sig">YOU</span><svg viewBox="0 0 92 7"><path d="M2 5 C 14 1, 22 7, 34 4 S 58 1, 70 4 S 84 6, 90 2"/></svg></span><span class="cl-glass"></span><span class="cl-glare"></span></span></a>
+          <p>Submit a category for a chance to be featured in a puzzle.</p>
         </section>
       </main>
 
@@ -393,7 +405,7 @@
     }
   </script>
   <!-- Public Supabase address + publishable key, shared with the Studio (anonymous play stats). -->
-  <script src="studio/config.js?v=49"></script>
-  <script type="module" src="src/main.js?v=49"></script>
+  <script src="studio/config.js?v=52"></script>
+  <script type="module" src="src/main.js?v=52"></script>
 </body>
 </html>

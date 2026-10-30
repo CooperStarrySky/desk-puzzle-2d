@@ -81,13 +81,13 @@ const mouse = (P, p) => P.send('Input.dispatchMouseEvent', { type: 'mouseMoved',
     const b = c.createBufferSource.bind(c); c.createBufferSource = function () { window.__src++; return b(); }; return true; })()`);
   await P.click('.result-placard-head'); // close the notes again so the label sits still
   await P.sleep(300);
-  const lab = await center(P, '.credit-label .cl-slide');
+  const lab = await center(P, '#results-groups .credit-label .cl-slide');
   await mouse(P, { x: lab.x - 30, y: lab.y });
   await P.sleep(80);
   const s1 = await P.js(`({ osc: window.__osc, src: window.__src })`);
   check('A1 hovering the label plays a short clink', s1.osc === 2 && s1.src === 0, s1);
   for (let i = 0; i < 8; i++) { await mouse(P, { x: lab.x - 30 + i * 9, y: lab.y + (i % 2 ? 6 : -6) }); await P.sleep(30); }
-  const s2 = await P.js(`({ osc: window.__osc, src: window.__src, tilted: document.querySelector('.credit-label .cl-slide').style.getPropertyValue('--px') })`);
+  const s2 = await P.js(`({ osc: window.__osc, src: window.__src, tilted: document.querySelector('#results-groups .credit-label .cl-slide').style.getPropertyValue('--px') })`);
   check('A2 tilting the label makes no sound (no slide "shhh")', s2.osc === 2 && s2.src === 0 && s2.tilted !== '' && s2.tilted !== '0', s2);
   await mouse(P, { x: 3, y: 3 });
   await P.sleep(100);
