@@ -272,11 +272,9 @@ export function resetSoundLayer() {
   if (audio.master) audio.master.gain.value = d.master;
 }
 
-/* ── Glass-slide sounds for the "Submitted by" credit label ──────────
-   glassClink: a short glassy tink (two slightly inharmonic sine partials,
-   ~120 ms). glassSlideVoice: a looping band-passed noise "shhh" whose level
-   follows how fast the slide is tilting, and fades to silence when it stops.
-   Both take (ctx, dest) so the same code runs in the credit-animations mockup. */
+/* ── Glass clink for the "Submitted by" credit label ──────────────────
+   A short glassy tink: two slightly inharmonic sine partials, ~120 ms.
+   Takes (ctx, dest) so the same code runs in the credit-animations mockup. */
 export function glassClink(ctx, dest, vol) {
   var t = ctx.currentTime + 0.004;
   [[2870, 1, 0.12], [3790, 0.5, 0.08]].forEach(function (p) {
@@ -292,44 +290,6 @@ export function glassClink(ctx, dest, vol) {
     osc.stop(t + p[2] + 0.03);
   });
 }
-export function glassSlideVoice(ctx, dest, maxVol) {
-  var len = Math.floor(ctx.sampleRate * 0.5);
-  var buf = ctx.createBuffer(1, len, ctx.sampleRate);
-  var d = buf.getChannelData(0);
-  for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-  var src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.loop = true;
-  var bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.9;
-  var lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass'; lp.frequency.value = 6000;
-  var g = ctx.createGain();
-  g.gain.value = 0;
-  src.connect(bp).connect(lp).connect(g).connect(dest);
-  src.start();
-  var idle = 0, done = false;
-  return {
-    /** speed: tilt change per second (|dpx|+|dpy|, each -1..1). */
-    move: function (speed) {
-      if (done) return;
-      var lvl = Math.min(1, speed / 6);
-      var now = ctx.currentTime;
-      g.gain.setTargetAtTime(maxVol * lvl * lvl, now, 0.04);
-      bp.frequency.setTargetAtTime(2300 + 1500 * lvl, now, 0.05);
-      clearTimeout(idle);
-      idle = setTimeout(function () { if (!done) g.gain.setTargetAtTime(0, ctx.currentTime, 0.08); }, 90);
-    },
-    stop: function () {
-      if (done) return;
-      done = true;
-      clearTimeout(idle);
-      g.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
-      try { src.stop(ctx.currentTime + 0.4); } catch (e) { /* already stopped */ }
-    },
-  };
-}
-
 /** The game's running AudioContext for UI sounds, or null. Respects the Sound
     setting, never creates a context before the page has had a user gesture
     (hover alone can't start audio), and never throws. */

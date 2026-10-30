@@ -3,8 +3,10 @@
 // (hover or keyboard focus on desktop, a small label under each icon on phones);
 // the "Open notes" chevron points down when closed and up when open; the hints tile
 // reads "Hints used / 1 of 3 / Label Images"; the solve squares are big enough to
-// read; the credit label clinks on hover and slides quietly while tilting, and stays
-// silent with Sound off.
+// read; the credit label clinks on hover (no sound while it tilts), and stays
+// silent with Sound off. A puzzle with no Anki note ids shows no Anki button (the row
+// stays centered), and every group's teaching notes start collapsed.
+// SHOTS=<dir> saves results-v3-no-anki.png.
 import { page, check, summary, BASE, stubGameStats } from './lib.mjs';
 
 const items = [];
@@ -75,23 +77,25 @@ const mouse = (P, p) => P.send('Input.dispatchMouseEvent', { type: 'mouseMoved',
   await P.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 3, y: 3, button: 'left', clickCount: 1 });
   await P.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 3, y: 3, button: 'left', clickCount: 1 });
   await P.js(`(async () => { const a = await import('/src/audio.js'); const c = a.audioCtx(); if (c) await c.resume(); return c && c.state; })()`);
-  await P.js(`(async () => { const a = await import('/src/audio.js'); const c = a.audio.ctx; window.__osc = 0; const o = c.createOscillator.bind(c); c.createOscillator = function () { window.__osc++; return o(); }; return true; })()`);
+  await P.js(`(async () => { const a = await import('/src/audio.js'); const c = a.audio.ctx; window.__osc = 0; window.__src = 0; const o = c.createOscillator.bind(c); c.createOscillator = function () { window.__osc++; return o(); };
+    const b = c.createBufferSource.bind(c); c.createBufferSource = function () { window.__src++; return b(); }; return true; })()`);
   await P.click('.result-placard-head'); // close the notes again so the label sits still
   await P.sleep(300);
   const lab = await center(P, '.credit-label .cl-slide');
   await mouse(P, { x: lab.x - 30, y: lab.y });
   await P.sleep(80);
+  const s1 = await P.js(`({ osc: window.__osc, src: window.__src })`);
+  check('A1 hovering the label plays a short clink', s1.osc === 2 && s1.src === 0, s1);
   for (let i = 0; i < 8; i++) { await mouse(P, { x: lab.x - 30 + i * 9, y: lab.y + (i % 2 ? 6 : -6) }); await P.sleep(30); }
-  const s1 = await P.js(`({ osc: window.__osc, voice: !!document.querySelector('.credit-label .cl-slide')._clVoice })`);
-  check('A1 hover plays a clink and starts the slide voice', s1.osc >= 2 && s1.voice, s1);
+  const s2 = await P.js(`({ osc: window.__osc, src: window.__src, tilted: document.querySelector('.credit-label .cl-slide').style.getPropertyValue('--px') })`);
+  check('A2 tilting the label makes no sound (no slide "shhh")', s2.osc === 2 && s2.src === 0 && s2.tilted !== '' && s2.tilted !== '0', s2);
   await mouse(P, { x: 3, y: 3 });
   await P.sleep(100);
-  check('A2 leaving stops the slide voice', !(await P.js(`!!document.querySelector('.credit-label .cl-slide')._clVoice`)));
   await P.js(`(async () => { (await import('/src/state.js')).state.settings.sound = false; window.__osc = 0; return true; })()`);
   await P.sleep(300);
   await mouse(P, lab);
   await P.sleep(150);
-  check('A3 Sound off: hovering stays silent', (await P.js(`window.__osc`)) === 0 && !(await P.js(`!!document.querySelector('.credit-label .cl-slide')._clVoice`)));
+  check('A3 Sound off: hovering stays silent', (await P.js(`window.__osc + window.__src`)) === 0);
   await mouse(P, { x: 3, y: 3 });
   check('I9 desktop: no console errors', P.errors.length === 0, P.errors);
   live += P.live();
@@ -109,6 +113,38 @@ const mouse = (P, p) => P.send('Input.dispatchMouseEvent', { type: 'mouseMoved',
   check('L2 phone: the two tiles share a row, solve grid full width under them', lay.pair && lay.under && lay.full, lay);
   check('L3 phone: fits the width', (await P.overflow()) <= 0, await P.overflow());
   check('I9 phone: no console errors', P.errors.length === 0, P.errors);
+  live += P.live();
+  P.close();
+}
+// No Anki cards in the puzzle: the Anki button is not shown at all, and the row stays centered.
+// Teaching notes start collapsed. With Anki note ids the button comes back.
+const balance = (P) => P.js(`(() => { const row = document.querySelector('.results-actions').getBoundingClientRect(); const bs = [...document.querySelectorAll('.results-actions button')].filter((b) => b.offsetParent !== null).map((b) => b.getBoundingClientRect());
+  return { n: bs.length, left: Math.round(bs[0].left - row.left), right: Math.round(row.right - bs[bs.length - 1].right), rows: new Set(bs.map((b) => Math.round(b.top))).size }; })()`);
+for (const [w, h, mobile] of [[1280, 900, false], [390, 844, true]]) {
+  const tag = mobile ? 'phone' : 'desktop';
+  const P = await results({ width: w, height: h, mobile });
+  const anki = await P.js(`(() => { const b = document.getElementById('btn-copy-anki'); return { hidden: b.hidden, shown: b.offsetParent !== null, display: getComputedStyle(b).display }; })()`);
+  check(`K1 ${tag}: no Anki cards, no Anki button (not shown, not just disabled)`, anki.hidden && !anki.shown && anki.display === 'none', anki);
+  const bal = await balance(P);
+  check(`K2 ${tag}: the other four buttons stay in one centered row`, bal.n === 4 && bal.rows === 1 && Math.abs(bal.left - bal.right) <= 2, bal);
+  const col = await P.js(`[...document.querySelectorAll('.result-placard')].map((c) => c.getAttribute('aria-expanded') + ':' + getComputedStyle(c.querySelector('.result-teach')).display)`);
+  check(`K3 ${tag}: every group's teaching notes start collapsed`, col.length === 4 && col.every((x) => x === 'false:none'), col);
+  await P.js(`(() => { const p = ${JSON.stringify(PUZZLE)}; p.groups[0].anki = { nids: [1690000000001, 1690000000002] };
+    window.__dp2d.showResultsForPuzzle(p, { won: true, solvedGroupIds: new Set(['g0']), attempts: [] }); return true; })()`);
+  await P.sleep(300);
+  const bal2 = await balance(P);
+  check(`K4 ${tag}: with Anki cards the button is back, row still centered`, (await P.visible('#btn-copy-anki')) && bal2.n === 5 && bal2.rows === 1 && Math.abs(bal2.left - bal2.right) <= 2, bal2);
+  if (process.env.SHOTS && !mobile) {
+    await P.js(`window.__dp2d.showResultsForPuzzle(${JSON.stringify(PUZZLE)}, { won: true, hints: { labels: true }, solvedGroupIds: new Set(['g0', 'g1', 'g2', 'g3']), attempts: [{ itemIds: ['c00', 'c01', 'c02', 'c10'] }, { itemIds: ['c00', 'c01', 'c02', 'c03'] }] })`);
+    await P.sleep(800);
+    const fs = await import('node:fs');
+    const ht = await P.js(`(() => { const c = document.querySelector('.results-card'); c.style.maxHeight = 'none'; const o = document.getElementById('overlay-results'); o.style.position = 'absolute'; o.style.overflow = 'visible'; return Math.ceil(c.getBoundingClientRect().height + 80); })()`);
+    await P.send('Emulation.setDeviceMetricsOverride', { width: w, height: ht, deviceScaleFactor: 1, mobile: false });
+    await P.sleep(400);
+    const shot = await P.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+    fs.writeFileSync(process.env.SHOTS + '/results-v3-no-anki.png', Buffer.from(shot.data, 'base64'));
+  }
+  check(`K5 ${tag}: no console errors`, P.errors.length === 0, P.errors);
   live += P.live();
   P.close();
 }

@@ -1,7 +1,8 @@
 // node supabase/tests/ui/studio.e2e.mjs   (pg_server.mjs running; BASE=http://127.0.0.1:4820)
 // The Puzzle Studio after the multischool release: one category only (no
 // full-puzzle mode, no test play), a "Your school" list from active_schools(),
-// and a real send through the submit function's handler into PGlite. The
+// and a real send through the submit function's handler into PGlite (a small inline
+// thank-you, no receipt popup; the backend still stores a receipt code). The
 // Studio's config is pointed at pg_server's /__fake stand-in before the page
 // loads, so nothing reaches the live project.
 import { page, check, summary, resetDb, sql, BASE } from './lib.mjs';
@@ -39,15 +40,24 @@ check('studio: school hint names the receiving school', (await P.text('#s-school
 check('studio: ready to send once a school is picked', (await P.text('#checks')).includes('Ready to send'), await P.text('#checks'));
 
 await P.click('#btn-send');
-const sent = await P.waitFor('!!document.querySelector("#modal-root .receipt")', 20000);
-const receipt = sent ? await P.text('#modal-root .receipt') : '';
-check('studio: category sent through the real submit handler', sent && /^DP-/.test(receipt), await P.text('#modal-root'));
-check('studio: thank-you names the school', (await P.text('#modal-root')).includes('Rowan-Virtua SOM'));
-let r = await sql('select school, kind, group_name, credit_mode from public.submissions where receipt_code = $1', [receipt]);
+const sent = await P.waitFor('!document.getElementById("send-ok").hidden', 20000);
+check('studio: category sent through the real submit handler, with a small inline thank-you', sent && /^Thanks! Your category .* was sent/.test(await P.text('#send-ok-msg')), await P.text('#send-ok'));
+check('studio: no receipt popup and no receipt code on screen', !(await P.count('#modal-root > *')) && !/DP-|receipt/i.test(await P.js('document.body.innerText')), await P.text('#modal-root'));
+check('studio: thank-you names the school', (await P.text('#send-ok-msg')).includes('Rowan-Virtua SOM'));
+check('studio: thank-you offers "Start another" and "Close"', (await P.visible('#send-ok-new')) && (await P.visible('#send-ok-close')));
+let r = await sql('select school, kind, group_name, credit_mode, receipt_code from public.submissions where group_name = $1', ['TEST: causes of clubbing (studio e2e)']);
 const row = (r.rows || [])[0] || {};
 check('studio: stored with the chosen school, kind category, anonymous', row.school === 'rvsom' && row.kind === 'category' && row.credit_mode === 'anonymous', row);
-await P.click('#m-clear');
-check('studio: "Clear and start another" keeps the school', (await P.js('document.getElementById("s-school").value')) === 'rvsom' && (await P.js('document.querySelector("[data-k=\\"g.name\\"]").value')) === '');
+check('studio: the backend still issues a receipt code', /^DP-/.test(row.receipt_code || ''), row);
+if (process.env.SHOTS) {
+  const fs = await import('node:fs');
+  await P.js('window.scrollTo(0, 0)'); await P.sleep(200);
+  const shot = await P.send('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(process.env.SHOTS + '/submit-thanks.png', Buffer.from(shot.data, 'base64'));
+}
+await P.click('#send-ok-new');
+check('studio: "Start another" keeps the school and clears the category', (await P.js('document.getElementById("s-school").value')) === 'rvsom' && (await P.js('document.querySelector("[data-k=\\"g.name\\"]").value')) === '');
+check('studio: the thank-you goes away after "Start another"', (await P.js('document.getElementById("send-ok").hidden')) === true);
 
 // The function itself (same page origin, as the Studio calls it).
 const post = (sub) => P.js(`fetch(${JSON.stringify(FAKE + '/functions/v1/submit')}, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(${JSON.stringify({ submission: sub })}) }).then(async (x) => ({ s: x.status, j: await x.json() }))`);

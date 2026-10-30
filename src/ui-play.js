@@ -16,7 +16,7 @@ import {
   fallbackColor, downloadJson, persistGame, scatterSpot,
 } from './state.js';
 
-import { playSound, pieceSound, audio, uiAudioCtx, glassClink, glassSlideVoice } from './audio.js';
+import { playSound, pieceSound, audio, uiAudioCtx, glassClink } from './audio.js';
 
 import { TEXTURE_VARS, TEXTURE_VARIANTS, pickSkinTexVar } from './textures.js';
 import { classShareLine, renderResultsClass, hideResultsClass } from './stats-class-ui.js';
@@ -2274,15 +2274,8 @@ function clFlush() {
   var py = Math.max(-1, Math.min(1, ((q.y - r.top) / r.height) * 2 - 1));
   q.slide.style.setProperty('--px', px.toFixed(3));
   q.slide.style.setProperty('--py', py.toFixed(3));
-  // Glass-slide "shhh": its level follows how fast the tilt changes.
-  var now = performance.now(), last = q.slide._clLast;
-  q.slide._clLast = { px: px, py: py, t: now };
-  if (last && q.slide._clVoice && now > last.t) {
-    var speed = (Math.abs(px - last.px) + Math.abs(py - last.py)) / ((now - last.t) / 1000);
-    q.slide._clVoice.move(speed);
-  }
 }
-/* Credit-label sounds: quiet, through the game's master volume and Sound setting. */
+/* Credit-label clink: quiet, through the game's master volume and Sound setting. */
 var clClinkAt = 0;
 function clClink() {
   var ctx = uiAudioCtx();
@@ -2290,17 +2283,6 @@ function clClink() {
   if (!ctx || now - clClinkAt < 250) return; // no machine-gun clinks on a jittery edge
   clClinkAt = now;
   try { glassClink(ctx, audio.master, 0.16); } catch (e) { /* audio blocked */ }
-}
-function clVoiceStart(slide) {
-  clVoiceStop(slide);
-  var ctx = uiAudioCtx();
-  if (!ctx) return;
-  try { slide._clVoice = glassSlideVoice(ctx, audio.master, 0.05); } catch (e) { slide._clVoice = null; }
-}
-function clVoiceStop(slide) {
-  if (slide._clVoice) { try { slide._clVoice.stop(); } catch (e) { /* gone */ } }
-  slide._clVoice = null;
-  slide._clLast = null;
 }
 function clRestart(node, cls, ms) {
   node.classList.remove(cls);
@@ -2332,7 +2314,7 @@ export function wireCreditLabels(root) {
       if (e.pointerType === 'touch') return;
       slide.classList.add('is-hover');
       clClink();
-      if (!clReduced()) { slide.classList.add('is-live'); clVoiceStart(slide); }
+      if (!clReduced()) slide.classList.add('is-live');
     });
     slide.addEventListener('pointermove', function (e) {
       if (e.pointerType === 'touch' || clReduced()) return;
@@ -2343,7 +2325,6 @@ export function wireCreditLabels(root) {
       if (e.pointerType === 'touch') return;
       if (clQueued && clQueued.slide === slide) clQueued = null;
       slide.classList.remove('is-hover', 'is-live');
-      clVoiceStop(slide);
       slide.style.setProperty('--px', '0');
       slide.style.setProperty('--py', '0');
     });
