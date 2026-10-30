@@ -245,7 +245,9 @@ expected and correct. Test by sending from the Studio instead.
 
 ## Play stats (class totals on the results screen)
 
-The game sends anonymous results for puzzles released **after Oct 11, 2026** to a
+The game sends anonymous results for every published puzzle (until 2026-10-29 only
+puzzles released after Oct 11, 2026; older puzzles count finishes from then on and
+label their totals "From players since Oct 2026") to a
 second server function, `record`, and shows class totals ("How everyone did", the
 difficulty rating, and a line on each menu card) once 10 players have finished. What
 is sent is exactly the list in the game's Settings dialog. Nothing works until you do
@@ -285,6 +287,12 @@ Run these from the site folder (`Desk-Puzzle-2D-site`), the same way as steps 5-
    delete from public.plays where puzzle_id like 'leak-test-%';
    delete from public.puzzle_stats where puzzle_id like 'leak-test-%';
    ```
+
+   **Guess detail (2026-10-29, `20261029120000_play_attempts.sql`).** Adds private
+   columns `attempts`, `solve_order`, `revealed_group`, `hint_after` to `plays`.
+   Release order matters: `npx supabase db push`, then redeploy `record` (it must
+   accept the new fields first; old game versions keep working), then push the site.
+   The record function drops a malformed detail field and still saves the play.
 
 4. **Check the hourly clean-up job.** The privacy note promises the scrambled network
    address is deleted after 24 hours. The migration turns on `pg_cron` and schedules

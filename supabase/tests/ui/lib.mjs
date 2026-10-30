@@ -61,3 +61,23 @@ export async function page({ width = 1366, height = 900, mobile = false, dark = 
   P.settle = async () => { await b.sleep(150); return b.waitFor('document.getElementById("sug-list") && document.getElementById("sug-list").getAttribute("aria-busy") !== "true"'); };
   return P;
 }
+
+/** Game pages: point the public stats address at <same origin>/__stats and answer
+    every request there with `rows` (default: no stats yet), so the home page's class
+    lines and the results screen load quietly. Any request that still reaches
+    *supabase.co* is failed and counted in the returned { live }. Call before P.go. */
+export async function stubGameStats(P, rows) {
+  const counter = { live: 0 };
+  await P.send('Page.addScriptToEvaluateOnNewDocument', { source: `Object.defineProperty(window, 'DESK_PUZZLE_CONFIG', { configurable: true,
+    get() { return this.__c; }, set(v) { this.__c = Object.assign({}, v, { supabaseUrl: location.origin + '/__stats' }); } });` });
+  await P.send('Fetch.enable', { patterns: [{ urlPattern: '*/__stats/*' }, { urlPattern: '*supabase.co*' }] });
+  P.on((m) => {
+    if (m.method !== 'Fetch.requestPaused') return;
+    const u = m.params.request.url, id = m.params.requestId;
+    if (/supabase\.co/.test(u)) { counter.live++; P.send('Fetch.failRequest', { requestId: id, errorReason: 'BlockedByClient' }).catch(() => {}); return; }
+    const body = /puzzle_stats/.test(u) ? JSON.stringify(rows || []) : '{}';
+    P.send('Fetch.fulfillRequest', { requestId: id, responseCode: 200, body: Buffer.from(body).toString('base64'),
+      responseHeaders: [{ name: 'Content-Type', value: 'application/json' }, { name: 'Access-Control-Allow-Origin', value: '*' }] }).catch(() => {});
+  });
+  return counter;
+}

@@ -174,7 +174,8 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 /* sending to the inbox */
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .human:empty { display: none; }
-.receipt { font-family: var(--mono); font-size: 1.5rem; font-weight: 700; letter-spacing: 0.08em; text-align: center; background: var(--accent-soft); color: var(--ink); border: 1px dashed var(--accent); border-radius: var(--r-m); padding: 12px; user-select: all; }
+.send-ok { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: -6px 0 16px; padding: 9px 12px; font-size: 0.9rem; color: var(--ink); background: var(--ok-soft); border-left: 3px solid var(--ok); border-radius: var(--r-s); }
+.send-ok .send-ok-msg { margin: 0; flex: 1 1 220px; }
 .send-err { border-left: 3px solid var(--danger); background: var(--danger-soft); border-radius: var(--r-s); padding: 10px 12px; font-size: 0.9rem; }
 .sent-list { font-family: var(--mono); font-size: 0.78rem; }
 .btn.busy { position: relative; color: transparent !important; }
@@ -236,6 +237,12 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
         <button class="btn primary" type="button" id="btn-send">Submit suggestion</button>
         <input type="file" id="file-img" accept="image/*" hidden>
       </div>
+    </div>
+    <!-- After a successful send: one small inline thank-you (no popup, no code to keep). -->
+    <div class="send-ok" id="send-ok" role="status" hidden>
+      <p class="send-ok-msg" id="send-ok-msg"></p>
+      <button class="btn small primary" type="button" id="send-ok-new">Start another</button>
+      <button class="btn small ghost" type="button" id="send-ok-close">Close</button>
     </div>
     <div class="editor">
       <div class="stack" style="--gap:16px" id="ebody"></div>
@@ -425,6 +432,7 @@ function puzzleFromDraft(d) {
     else if (G.ankiExtra && Object.keys(G.ankiExtra).length) g.anki = Object.assign({}, G.ankiExtra);
     const byName = String(G.byName || '').trim(), byLine = String(G.byLine || '').trim();
     if (byName) g.credit = Object.assign({ name: byName }, byLine ? { line: byLine } : {}, G.byExtra || {});
+    else if (G.byExtra && G.byExtra.anonymous === true) g.credit = { anonymous: true }; // keep "stayed anonymous"
     g.itemIds = ids[gi].slice();
     G.items.forEach((I, ii) => {
       // One field per clue: the label is also the title (v2). info.text is
@@ -1143,6 +1151,8 @@ function bindEditor() {
   });
   $('#btn-new').addEventListener('click', startOver);
   $('#btn-send').addEventListener('click', send);
+  $('#send-ok-new').addEventListener('click', () => { hideSendOk(); clearDraft(); toast('Blank category ready'); });
+  $('#send-ok-close').addEventListener('click', hideSendOk);
 }
 let imgTarget = null;
 async function startOver() {
@@ -1152,6 +1162,7 @@ async function startOver() {
 }
 /** Clear the draft but keep who you are, so the next one is quicker. */
 function clearDraft() {
+  hideSendOk();
   const keep = { school: cat.school, creditMode: cat.creditMode, name: cat.name, line: cat.line, email: cat.email };
   cat = Object.assign(blankCategory(), keep);
   Array.from(originals.keys()).forEach((k) => { URL.revokeObjectURL(originals.get(k)); originals.delete(k); });
@@ -1235,7 +1246,7 @@ function drawSent() {
   const a = sentList().slice(0, 3);
   const el = $('#s-sent');
   el.hidden = !a.length;
-  el.innerHTML = a.length ? 'Sent from this browser:<br>' + a.map((x) => esc(x.code) + ' · ' + esc(x.name)).join('<br>') : '';
+  el.innerHTML = a.length ? 'Sent from this browser:<br>' + a.map((x) => esc(x.name)).join('<br>') : '';
 }
 function rememberSent(code, name) {
   try { localStorage.setItem(SENT_KEY, JSON.stringify([{ code, name, at: new Date().toISOString() }].concat(sentList()).slice(0, 20))); } catch (e) { /* the code is still on screen */ }
@@ -1271,6 +1282,7 @@ async function fitPayload(payload) {
 /* ----- Send to the puzzle group's private inbox ----- */
 async function send() {
   if (sending) return;
+  hideSendOk();
   const which = mode, r = checks();
   if (r.problems.length) {
     toast('Almost there: finish the ' + r.problems.length + ' item' + (r.problems.length > 1 ? 's' : '') + ' under “Ready to send?” first.', 4500);
@@ -1313,24 +1325,12 @@ async function send() {
   sendFailed(msg, which);
 }
 function sendDone(code, name, which) {
-  rememberSent(code, name);
-  const what = 'category', sch = (schools || []).find((x) => x.slug === cat.school);
-  openModal('<div class="stack" style="--gap:14px"><h2>Sent to the puzzle group</h2>' +
-    '<p>Thanks! “' + esc(name) + '” is in ' + (sch ? 'the ' + esc(sch.name) + ' puzzle group’s' : 'the puzzle group’s') + ' category database.</p>' +
-    '<div class="stack" style="--gap:6px"><span class="eyebrow">Your receipt code</span><div class="receipt" id="m-code">' + esc(code) + '</div>' +
-    '<p class="muted">Keep this code. If you want to ask about your ' + what + ' later, it tells the puzzle group which one is yours. They may tweak the wording or an image, and they pick the final difficulty.</p></div>' +
-    '<div class="panel stack" style="--gap:8px; padding:12px 14px"><b>Clear the form?</b><p class="muted" style="font-size:.88rem">Your ' + what + ' is safely sent. Clearing keeps your name, credit choice, and email for the next one.</p></div>' +
-    '<div class="row" style="justify-content:flex-end"><a class="btn ghost" id="m-play" href="../" style="margin-right:auto">Play the latest puzzle</a><button class="btn" type="button" id="m-copy">Copy code</button><button class="btn" type="button" data-dismiss>Keep the form</button>' +
-    '<button class="btn primary" type="button" id="m-clear">Clear and start another</button></div></div>',
-  (m, close) => {
-    $('#m-copy', m).addEventListener('click', () => {
-      const ok = () => toast('Receipt code copied');
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(ok, () => toast('Select the code and copy it'));
-      else toast('Select the code and copy it');
-    });
-    $('#m-clear', m).addEventListener('click', () => { close(); clearDraft(); toast('Blank category ready'); });
-  });
+  rememberSent(code, name); // the code stays in this browser's history only; it isn't shown
+  const sch = (schools || []).find((x) => x.slug === cat.school);
+  $('#send-ok-msg').textContent = 'Thanks! Your category “' + name + '” was sent to ' + (sch ? 'the ' + sch.name + ' puzzle group' : 'the puzzle group') + '.';
+  $('#send-ok').hidden = false;
 }
+function hideSendOk() { const el = $('#send-ok'); if (el) el.hidden = true; }
 function sendFailed(msg, which, noRetry) {
   openModal('<div class="stack" style="--gap:14px"><h2>Not sent yet</h2><p class="send-err">' + esc(msg) + '</p>' +
     '<p class="muted">Your draft is still saved in this browser, so nothing is lost.' + (noRetry ? '' : ' You can try again now or later.') + '</p>' +

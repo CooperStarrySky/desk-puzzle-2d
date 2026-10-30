@@ -28,9 +28,16 @@ export function releaseDate(kind, targetRelease, now) {
 function cleanCredit(c) {
   if (!c || typeof c !== 'object') return null;
   const name = String(c.name || '').trim(), line = String(c.line || '').trim();
+  if (!name && c.anonymous === true) return { anonymous: true };
   return name ? Object.assign({ name }, line ? { line } : {}) : null;
 }
-const subCredit = (r) => (r && r.credit_mode === 'named' ? cleanCredit({ name: r.credit_name, line: r.credit_line }) : null);
+/* named -> {name, line?}; "Stay anonymous" -> {anonymous: true} (the game shows
+   "Category by an anonymous classmate"); no submission (house-written) -> null. */
+const subCredit = (r) => {
+  if (!r) return null;
+  if (r.credit_mode === 'named') return cleanCredit({ name: r.credit_name, line: r.credit_line });
+  return r.credit_mode === 'anonymous' ? { anonymous: true } : null;
+};
 
 /* Where a clue's picture lives: storage (private bucket), the site itself (puzzles/...), inside the row (data:), or elsewhere. */
 export function imageRef(v) {
@@ -130,7 +137,7 @@ export function draftSpec(draft, slots, subs, opts) {
   }
   // A whole puzzle sent in by one person: "Puzzle by ..." once, not on each group.
   let credit = null;
-  if (from.length === 4 && from.every((x) => x.full && x.sid === from[0].sid) && from[0].credit) {
+  if (from.length === 4 && from.every((x) => x.full && x.sid === from[0].sid) && from[0].credit && from[0].credit.name) {
     credit = from[0].credit; groups.forEach((g) => { g.credit = null; });
   }
   const spec = { title: String(draft.title || '').trim(), id, date, credit, groups, empty };
@@ -140,6 +147,7 @@ export function draftSpec(draft, slots, subs, opts) {
 /* ===== YAML (JSON strings are valid YAML double-quoted scalars) ===== */
 const q = (v) => JSON.stringify(String(v == null ? '' : v));
 function creditLines(c, pad) {
+  if (c && c.anonymous === true && !c.name) return [pad + 'credit:', pad + '  anonymous: true'];
   return c ? [pad + 'credit:', pad + '  name: ' + q(c.name)].concat(c.line ? [pad + '  line: ' + q(c.line)] : []) : [];
 }
 /* opts: { header: [comment lines], draftId, imagesDir, imageNote(img) -> extra comment } */

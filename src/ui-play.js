@@ -16,7 +16,7 @@ import {
   fallbackColor, downloadJson, persistGame, scatterSpot,
 } from './state.js';
 
-import { playSound, pieceSound } from './audio.js';
+import { playSound, pieceSound, audio, uiAudioCtx, glassClink } from './audio.js';
 
 import { TEXTURE_VARS, TEXTURE_VARIANTS, pickSkinTexVar } from './textures.js';
 import { classShareLine, renderResultsClass, hideResultsClass } from './stats-class-ui.js';
@@ -1120,6 +1120,7 @@ export function applyH1LabelImages() {
     return;
   }
   desk.hints.labels = true;
+  noteHintAfter(desk, game, 'labels');
   announce('Image labels revealed.');
   syncAll();
   persistGame();
@@ -1223,9 +1224,17 @@ export function applyH2SeedTrays() {
   });
 
   desk.hints.seeds = true;
+  noteHintAfter(desk, game, 'seeds');
   announce('Trays seeded with one piece from each group.');
   syncAll();
   persistGame();
+}
+
+/* How many groups were solved when a hint was first used (class stats,
+   stats-core.js guessDetailFromSave). Set once, never overwritten. */
+function noteHintAfter(desk, game, kind) {
+  if (!desk.hints.after || typeof desk.hints.after !== 'object') desk.hints.after = {};
+  if (typeof desk.hints.after[kind] !== 'number') desk.hints.after[kind] = game.solved.length;
 }
 
 /* ── H3: Reveal a Category ────────────────────────────────────────── */
@@ -1249,6 +1258,7 @@ export function applyH3RevealCategory() {
   var lowest = unsolvedGroups[0];
   desk.hints.category = true;
   desk.hints.revealedGroupId = lowest.id;
+  noteHintAfter(desk, game, 'category');
   announce('One group is: ' + lowest.name);
   syncRevealNote();
   persistGame();
@@ -2193,6 +2203,138 @@ function placardCreditText(puzzle, g) {
   return line;
 }
 
+/** A group sent in by a classmate who chose "Stay anonymous": the published
+    JSON carries `credit: {anonymous: true}` with no name. No credit key at
+    all means a house-written group, which shows nothing. */
+export function isAnonymousCredit(c) {
+  return !!(c && typeof c === 'object' && c.anonymous === true && !creditText(c));
+}
+
+/* ── Contributor credit label (approved option C1, tilt + glare) ──
+   Cream paper "Submitted by" label on the frosted end of a glass slide with a
+   faint H&E smear. It flips in once when scrolled into view, tilts toward the
+   pointer on hover (rAF-throttled, transform/opacity only) and springs back on
+   leave; a tap gives a short wiggle and flare. Reduced motion: no entrance,
+   no tilt, just a still sheen on hover. */
+var SIG_PATH = 'M2 5 C 14 1, 22 7, 34 4 S 58 1, 70 4 S 84 6, 90 2';
+function clSpan(cls, txt) {
+  var n = document.createElement('span');
+  if (cls) n.className = cls;
+  if (txt != null) n.textContent = txt;
+  return n;
+}
+/** blank = the dashed "your name here" CTA version. */
+export function buildCreditLabel(line, blank) {
+  var wrap = clSpan('credit-label' + (blank ? ' is-blank' : ''));
+  var slide = clSpan('cl-slide');
+  if (blank) wrap.setAttribute('aria-hidden', 'true');
+  else slide.setAttribute('aria-label', 'Category submitted by ' + line);
+  var tissue = clSpan('cl-tissue');
+  tissue.setAttribute('aria-hidden', 'true');
+  var paper = clSpan('cl-paper');
+  paper.appendChild(clSpan('cl-cap', 'Submitted by'));
+  if (blank) {
+    paper.appendChild(clSpan('cl-blank', 'your name here'));
+  } else {
+    var sig = paper.appendChild(clSpan('cl-sig', line));
+    sig.setAttribute('aria-hidden', 'true');
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 92 7');
+    svg.setAttribute('aria-hidden', 'true');
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', SIG_PATH);
+    svg.appendChild(path);
+    paper.appendChild(svg);
+  }
+  var glass = clSpan('cl-glass', blank ? '+' : null);
+  glass.setAttribute('aria-hidden', 'true');
+  var glare = clSpan('cl-glare');
+  glare.setAttribute('aria-hidden', 'true');
+  slide.appendChild(tissue);
+  slide.appendChild(paper);
+  slide.appendChild(glass);
+  slide.appendChild(glare);
+  wrap.appendChild(slide);
+  return wrap;
+}
+
+function clReduced() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+var clQueued = null, clRaf = 0;
+function clFlush() {
+  clRaf = 0;
+  var q = clQueued;
+  clQueued = null;
+  if (!q) return;
+  var r = q.slide.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  var px = Math.max(-1, Math.min(1, ((q.x - r.left) / r.width) * 2 - 1));
+  var py = Math.max(-1, Math.min(1, ((q.y - r.top) / r.height) * 2 - 1));
+  q.slide.style.setProperty('--px', px.toFixed(3));
+  q.slide.style.setProperty('--py', py.toFixed(3));
+}
+/* Credit-label clink: quiet, through the game's master volume and Sound setting. */
+var clClinkAt = 0;
+function clClink() {
+  var ctx = uiAudioCtx();
+  var now = performance.now();
+  if (!ctx || now - clClinkAt < 250) return; // no machine-gun clinks on a jittery edge
+  clClinkAt = now;
+  try { glassClink(ctx, audio.master, 0.16); } catch (e) { /* audio blocked */ }
+}
+function clRestart(node, cls, ms) {
+  node.classList.remove(cls);
+  void node.offsetWidth;
+  node.classList.add(cls);
+  clearTimeout(node._clT);
+  node._clT = setTimeout(function () { node.classList.remove(cls); }, ms);
+}
+var clObserver = null;
+/** Wires every unwired signed label under root: play-once entrance + pointer. */
+export function wireCreditLabels(root) {
+  var labels = root.querySelectorAll('.credit-label:not(.is-blank):not([data-wired])');
+  var reduced = clReduced();
+  if (!reduced && !clObserver && 'IntersectionObserver' in window) {
+    clObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('is-in');
+        clObserver.unobserve(e.target);
+      });
+    }, { threshold: 0.6 });
+  }
+  Array.prototype.forEach.call(labels, function (wrap) {
+    wrap.setAttribute('data-wired', '');
+    if (reduced || !clObserver) wrap.classList.add('is-in', 'no-entrance');
+    else { wrap.classList.add('is-waiting'); clObserver.observe(wrap); }
+    var slide = wrap.querySelector('.cl-slide');
+    slide.addEventListener('pointerenter', function (e) {
+      if (e.pointerType === 'touch') return;
+      slide.classList.add('is-hover');
+      clClink();
+      if (!clReduced()) slide.classList.add('is-live');
+    });
+    slide.addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch' || clReduced()) return;
+      clQueued = { slide: slide, x: e.clientX, y: e.clientY };
+      if (!clRaf) clRaf = requestAnimationFrame(clFlush);
+    });
+    slide.addEventListener('pointerleave', function (e) {
+      if (e.pointerType === 'touch') return;
+      if (clQueued && clQueued.slide === slide) clQueued = null;
+      slide.classList.remove('is-hover', 'is-live');
+      slide.style.setProperty('--px', '0');
+      slide.style.setProperty('--py', '0');
+    });
+    slide.addEventListener('pointerdown', function (e) {
+      if (e.pointerType !== 'touch' || clReduced()) return;
+      clRestart(slide, 'is-tap', 800);
+    });
+  });
+}
+
 export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
   var isPreview = !!state.previewMode;
   var card = document.createElement('div');
@@ -2248,13 +2390,16 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
   }
   text.appendChild(h3);
   text.appendChild(explEl);
-  // Who submitted this category (optional; absent = anonymous)
+  // Who submitted this category: a signed slide label for a named classmate,
+  // a quiet line for an anonymous one, nothing for house-written groups.
   var creditLine = placardCreditText(puzzle, g);
   if (creditLine) {
-    var creditEl = document.createElement('p');
-    creditEl.className = 'result-placard-credit';
-    creditEl.textContent = 'Category by ' + creditLine;
-    text.appendChild(creditEl);
+    text.appendChild(buildCreditLabel(creditLine));
+  } else if (isAnonymousCredit(g && g.credit)) {
+    var anonEl = document.createElement('span');
+    anonEl.className = 'result-placard-credit is-anon';
+    anonEl.textContent = 'Category by an anonymous classmate';
+    text.appendChild(anonEl);
   }
   if (!isPreview) {
     var more = document.createElement('span');
@@ -2357,19 +2502,16 @@ export function showResultsForPuzzle(puzzle, opts) {
 
   var hintsObj = opts.hints || {};
   var hintDefs = [['labels', 'Label Images'], ['seeds', 'Seed the Trays'], ['category', 'Reveal a Category']];
-  var usedCount = 0;
-  if (els.resultsHints) {
-    els.resultsHints.innerHTML = '';
-    hintDefs.forEach(function (h) {
-      var chip = document.createElement('span');
-      chip.className = 'results-hint-chip' + (hintsObj[h[0]] ? '' : ' is-off');
-      chip.textContent = h[1];
-      if (hintsObj[h[0]]) usedCount++;
-      els.resultsHints.appendChild(chip);
-    });
-    if (!usedCount && opts.legacyHintsUsed) usedCount = opts.legacyHintsUsed;
+  // Hints tile: "Hints used / 1 of 3 / Label Images" — the count, out of how many
+  // the game offers, then which ones (or a short "none" note).
+  var usedNames = hintDefs.filter(function (h) { return hintsObj[h[0]]; }).map(function (h) { return h[1]; });
+  var usedCount = usedNames.length;
+  if (!usedCount && opts.legacyHintsUsed) usedCount = Math.min(opts.legacyHintsUsed, hintDefs.length);
+  if (els.resultsHintsK) els.resultsHintsK.textContent = 'Hints used';
+  if (els.resultsHints) els.resultsHints.textContent = usedCount + ' of ' + hintDefs.length;
+  if (els.resultsHintsSub) {
+    els.resultsHintsSub.textContent = usedNames.length ? usedNames.join(', ') : (usedCount ? '' : (won ? 'Solved without help' : 'None used'));
   }
-  if (els.resultsHintsK) els.resultsHintsK.textContent = 'Hints · ' + usedCount + ' used';
 
   // Solve path: one row of tier colors per guess.
   var attempts = opts.attempts || [];
@@ -2400,12 +2542,20 @@ export function showResultsForPuzzle(puzzle, opts) {
     });
   }
   if (els.resultsPathBlock) els.resultsPathBlock.hidden = !attempts.length;
+  if (els.resultsMe) els.resultsMe.classList.toggle('no-path', !attempts.length);
 
   els.resultsGroups.innerHTML = '';
   var ordered = puzzle.groups.slice().sort(function (a, b) { return a.tier - b.tier; });
   ordered.forEach(function (g, i) {
     els.resultsGroups.appendChild(buildResultPlacard(puzzle, g, solvedGroupIds, i));
   });
+  wireCreditLabels(els.resultsGroups);
+  // "Your name could be here" invitation: real games only, not the editor preview.
+  var cta = els.overlayResults.querySelector('.credit-cta');
+  if (cta) {
+    if (!cta.querySelector('.credit-label')) cta.insertBefore(buildCreditLabel('', true), cta.firstChild);
+    cta.hidden = !!state.previewMode;
+  }
 
   hideResultsClass(); // showResults fills it in for real games only
   els.shareFallback.hidden = true;

@@ -518,7 +518,6 @@ a.btn.btn-small, a.btn.btn-big { display: inline-flex; align-items: center; just
 }
 @media (max-width: 560px) {
   .menu-wrap { padding-inline: 16px; }
-  .site-head-actions a.head-submit { display: none; } /* still in the hero and the footer */
   .brand-name small { white-space: normal; letter-spacing: 0.08em; }
   .site-head-row { gap: 10px; }
   .hero-actions .btn { flex: 1 1 100%; }
@@ -1695,46 +1694,95 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   from { opacity: 0; transform: rotate(-8deg) scale(2.2); }
   to { opacity: 0.85; transform: rotate(-8deg) scale(1); }
 }
-.results-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+/* "How you did": Groups found + Hints used stacked on the left, the solve grid
+   on the right (desktop). On phones the two small tiles share a row and the
+   solve grid runs full width under them. No solve path: the tiles share the row. */
+.results-me {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 10px;
+  align-items: stretch;
+}
+.results-me.no-path { grid-template-columns: minmax(0, 1fr); }
+.results-stats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.results-me.no-path .results-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .results-stat {
-  flex: 0 1 170px;
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: 12px;
-  padding: 11px 13px;
+  padding: 13px 15px;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
-.results-stat-hints { flex: 1 1 280px; }
-.results-stat-v { font: 600 1.35rem/1.2 var(--serif); margin-top: 7px; }
-.results-hint-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.results-hint-chip {
-  font: 500 0.76rem/1 var(--sans);
-  border: 1px solid var(--panel-edge);
-  border-radius: 99px;
-  padding: 5px 9px;
-  color: var(--ink);
-  white-space: nowrap;
-}
-.results-hint-chip.is-off { opacity: 0.4; text-decoration: line-through; }
-.results-path-wrap {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 16px 24px;
-  align-items: center;
-  margin-top: 16px;
-}
-.results-path { display: grid; gap: 5px; margin-top: 10px; }
-.results-path-row { display: flex; align-items: center; gap: 5px; animation: results-rise 0.4s var(--ease) both; }
-.results-sq { width: 21px; height: 21px; border-radius: 5px; }
-.results-path-note { font: 500 0.7rem/1 var(--mono); color: var(--ink-soft); margin-left: 8px; white-space: nowrap; }
+.results-stat-v { font: 600 2rem/1.1 var(--serif); margin-top: 8px; font-variant-numeric: tabular-nums; }
+.results-stat-sub { font: 0.84rem/1.3 var(--sans); color: var(--ink-soft); margin-top: 4px; }
+.results-stat-sub:empty { display: none; }
+/* Numbers live under the groups: your result, your solve path, then the class. */
+.results-numbers { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--panel-edge); }
+.results-numbers-title { font: 600 1.2rem/1.2 var(--serif); margin: 0 2px 12px; }
+.results-path-block { justify-content: flex-start; }
+.results-path { display: grid; gap: 7px; margin-top: 12px; }
+.results-path-row { display: flex; align-items: center; gap: 7px; animation: results-rise 0.4s var(--ease) both; }
+.results-sq { width: 34px; height: 34px; border-radius: 7px; flex: none; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12); }
+.results-path-note { font: 500 0.82rem/1 var(--mono); color: var(--ink-soft); margin-left: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .results-path-note.is-bad { color: var(--danger); }
-.results-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+@media (max-width: 720px) {
+  .results-me { grid-template-columns: minmax(0, 1fr); }
+  .results-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .results-stat { padding: 11px 13px; }
+  .results-stat-v { font-size: 1.4rem; }
+  .results-sq { width: 32px; height: 32px; }
 }
-.results-actions .btn { min-height: 44px; }
-.results-actions #btn-share { grid-column: 1 / -1; }
+
+/* Bottom buttons: icons. Desktop shows the name as a tooltip on hover or
+   keyboard focus; phones and touch screens show a small label under each icon. */
+.results-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--panel-edge);
+}
+.results-actions .icon-btn {
+  position: relative;
+  width: 46px; height: 46px; min-height: 0;
+  padding: 0;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  border-radius: 12px;
+}
+.icon-btn-svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.icon-btn-label { display: none; font: 600 0.68rem/1 var(--sans); white-space: nowrap; }
+.results-actions .icon-btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%; bottom: calc(100% + 8px);
+  transform: translate(-50%, 4px);
+  background: var(--ink);
+  color: var(--card);
+  font: 600 0.76rem/1 var(--sans);
+  white-space: nowrap;
+  padding: 7px 9px;
+  border-radius: 7px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s, transform 0.12s;
+  z-index: 3;
+}
+.results-actions .icon-btn:hover::after,
+.results-actions .icon-btn:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+@media (hover: none), (max-width: 560px) {
+  .results-actions { gap: 6px; }
+  .results-actions .icon-btn { flex: 1 1 0; width: auto; max-width: 84px; height: 58px; }
+  .icon-btn-label { display: block; }
+  .results-actions .icon-btn::after { display: none; } /* the label is already on screen */
+}
+@media (prefers-reduced-motion: reduce) {
+  .results-actions .icon-btn::after { transition: none; }
+}
 .results-section-head {
   display: flex;
   justify-content: space-between;
@@ -1793,9 +1841,20 @@ div.result-placard-head { cursor: default; }
 .result-placard h3 { font: 600 1.1rem/1.25 var(--serif); margin: 0; }
 .result-placard-explanation { font-size: 0.85rem; color: var(--ink-soft); margin: 0; }
 .result-placard-credit { font-size: 0.72rem; color: var(--ink-soft); opacity: 0.85; margin: 0; }
-.result-placard-more { font: 600 0.75rem/1 var(--sans); color: color-mix(in srgb, var(--group-color) 45%, var(--ink)); margin-top: 4px; }
-.result-placard-more::before { content: "Open notes \2192"; }
-.result-placard[aria-expanded="true"] .result-placard-more::before { content: "Close notes \2191"; }
+.result-placard-more { display: inline-flex; align-items: center; gap: 7px; font: 600 0.75rem/1 var(--sans); color: color-mix(in srgb, var(--group-color) 45%, var(--ink)); margin-top: 4px; }
+.result-placard-more::before { content: "Open notes"; }
+.result-placard[aria-expanded="true"] .result-placard-more::before { content: "Close notes"; }
+/* Chevron: points down while closed, flips to point up when the notes are open. */
+.result-placard-more::after {
+  content: "";
+  width: 6px; height: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.2s var(--ease);
+}
+.result-placard[aria-expanded="true"] .result-placard-more::after { transform: translateY(2px) rotate(-135deg); }
+@media (prefers-reduced-motion: reduce) { .result-placard-more::after { transition: none; } }
 .result-placard-objects {
   display: grid;
   grid-template-columns: repeat(4, 70px);
@@ -1884,18 +1943,95 @@ div.result-placard-head { cursor: default; }
   .results-stamp.is-stamped, .results-path-row, .result-placard, .result-teach-row { animation: none; }
 }
 
+/* ── Contributor credit label (option C1: tilt + glare) ─────────────
+   Cream paper label on a glass slide end, iron-gall ink, a faint H&E smear.
+   Off the tier palette on purpose. Pointer position arrives as --px/--py
+   (-1..1) from one rAF-throttled handler in ui-play.js; only transform and
+   opacity animate. Anonymous rows use the quiet .is-anon line instead. */
+:root {
+  --cl-glass-a: rgba(186, 204, 220, 0.42); --cl-glass-b: rgba(226, 236, 244, 0.7); --cl-glass-edge: rgba(96, 120, 146, 0.55);
+  --cl-paper: #f8f3e3; --cl-line: rgba(80, 70, 40, 0.18); --cl-sig: #2b3a8c;
+  --cl-pop: cubic-bezier(.3, 1.6, .5, 1);
+}
+:root[data-theme="dark"] { --cl-glass-a: rgba(176, 196, 222, 0.16); --cl-glass-b: rgba(210, 222, 240, 0.3); --cl-glass-edge: rgba(190, 206, 230, 0.45); }
+.result-placard-credit.is-anon { display: block; font-style: italic; opacity: 0.7; }
+.credit-label { display: inline-block; align-self: flex-start; margin-top: 4px; max-width: 100%; transform-origin: left center; }
+.cl-slide {
+  --px: 0; --py: 0;
+  position: relative; display: flex; align-items: stretch; max-width: 100%; overflow: hidden; border-radius: 4px;
+  background: linear-gradient(115deg, var(--cl-glass-b), var(--cl-glass-a) 55%, var(--cl-glass-b));
+  border: 1px solid var(--cl-glass-edge);
+  box-shadow: 0 2px 7px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(255, 255, 255, .55);
+  transform: perspective(520px) rotate(-1.5deg) rotateX(calc(var(--py) * -10deg)) rotateY(calc(var(--px) * 10deg));
+  transition: transform .55s var(--cl-pop);
+  touch-action: manipulation;
+}
+.cl-slide.is-live { transition: transform .1s linear; }
+.cl-paper { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 4px 12px 2px 10px; color: #1f2440; text-align: left; }
+.cl-paper::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--cl-paper);
+  background-image: repeating-linear-gradient(0deg, transparent 0 9px, var(--cl-line) 9px 10px); border-right: 1px solid rgba(0, 0, 0, .12); }
+.cl-cap { font: 600 0.56rem/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: #6a6450; }
+.cl-sig { font: 400 1.02rem/1.15 var(--hand); color: var(--cl-sig); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cl-paper svg { display: block; width: 92px; height: 7px; margin-top: -2px; }
+.cl-paper path { fill: none; stroke: var(--cl-sig); stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: 120; stroke-dashoffset: 0; opacity: .8; }
+.cl-glass { position: relative; width: 38px; flex: none; }
+.cl-tissue { position: absolute; inset: -6px; z-index: 1; opacity: .5; pointer-events: none;
+  background:
+    radial-gradient(circle at 78% 40%, rgba(75, 63, 176, .55) 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 62%, rgba(75, 63, 176, .5) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 70%, rgba(75, 63, 176, .45) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 92% 30%, rgba(75, 63, 176, .45) 0 1.5px, transparent 2.5px),
+    radial-gradient(ellipse 40% 55% at 84% 50%, rgba(214, 69, 122, .38), transparent 70%); }
+.cl-glare { position: absolute; z-index: 3; width: 140%; height: 300%; left: -20%; top: -100%; opacity: 0; pointer-events: none; mix-blend-mode: soft-light;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .95), rgba(255, 255, 255, 0) 32%);
+  transform: translate(calc(var(--px) * 45%), calc(var(--py) * 25%)); transition: opacity .25s; }
+.cl-slide.is-hover .cl-glare { opacity: .9; }
+/* Entrance: flip in, then the signature writes itself (about 1.25 s, once). */
+.credit-label.is-waiting:not(.is-in) { opacity: 0; }
+.credit-label.is-in:not(.no-entrance) { animation: cl-in 0.6s var(--cl-pop) both; }
+.credit-label.is-in:not(.no-entrance) .cl-sig { animation: cl-write 0.55s 0.3s steps(14, end) both; }
+.credit-label.is-in:not(.no-entrance) .cl-paper path { animation: cl-line 0.45s 0.8s ease-out both; }
+@keyframes cl-in { 0% { opacity: 0; transform: perspective(300px) translateX(22px) rotateY(-75deg) rotate(6deg); } 100% { opacity: 1; transform: none; } }
+@keyframes cl-write { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes cl-line { from { stroke-dashoffset: 120; } to { stroke-dashoffset: 0; } }
+/* Touch: one short wiggle with a light sweep per tap. */
+.cl-slide.is-tap { animation: cl-wiggle .7s var(--ease); }
+.cl-slide.is-tap .cl-glare { animation: cl-sweep .7s ease-out; }
+@keyframes cl-wiggle { 0%, 100% { transform: perspective(520px) rotate(-1.5deg); } 30% { transform: perspective(520px) rotate(-1.5deg) rotateY(9deg) rotateX(-4deg); } 65% { transform: perspective(520px) rotate(-1.5deg) rotateY(-5deg) rotateX(2deg); } }
+@keyframes cl-sweep { 0% { opacity: 0; transform: translateX(-45%); } 40% { opacity: .9; } 100% { opacity: 0; transform: translateX(45%); } }
+/* "Your name could be here" invitation under the four groups. */
+.credit-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 16px 2px 0; font-size: 0.86rem; }
+.credit-cta[hidden] { display: none; }
+.credit-cta .cl-slide { transform: rotate(-1.5deg); }
+.credit-cta .cl-paper::before { border: 1.5px dashed rgba(80, 70, 40, .45); }
+.cl-blank { font: 400 1.02rem/1.2 var(--hand); color: #8b8572; }
+.credit-cta .cl-glass { display: grid; place-items: center; font: 600 1.1rem/1 var(--sans); color: var(--ink-soft); }
+.credit-cta a { font-weight: 600; text-decoration: none; color: var(--accent); }
+.credit-cta a:hover { text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) {
+  .credit-label, .credit-label *, .cl-slide.is-tap, .cl-slide.is-tap * { animation: none !important; }
+  .credit-label.is-waiting:not(.is-in) { opacity: 1; }
+  .cl-slide, .cl-slide.is-live { transform: rotate(-1.5deg) !important; transition: none !important; }
+  .cl-slide * { transform: none !important; }
+  .cl-slide.is-hover .cl-glare { opacity: .5; }
+}
+
 @media (max-width: 720px) {
   .results-card { padding: 14px 12px 18px; }
   .results-hero { padding: 20px 16px 16px; }
-  .results-hero h2 { font-size: 1.55rem; padding-right: 0; margin-top: 46px; }
-  .results-stamp { right: 14px; top: 16px; font-size: 0.72rem; padding: 6px 8px; }
-  .results-path-wrap { grid-template-columns: 1fr; }
+  /* Phone: the stamp sits in its own band under the date line, never on it. */
+  .results-hero h2 { font-size: 1.55rem; padding-right: 0; margin-top: 58px; }
+  .results-stamp { right: 14px; top: 42px; font-size: 0.72rem; padding: 6px 8px; }
   .results-section-head { flex-direction: column; gap: 2px; }
   .result-placard-head { grid-template-columns: 1fr; }
   .result-placard-band { flex-direction: row; justify-content: space-between; padding: 9px 14px; }
   .result-placard-objects { grid-template-columns: repeat(4, 1fr); padding: 0 14px 12px; }
   .result-teach { padding: 4px 14px 12px; }
   .result-teach-row { grid-template-columns: 52px 1fr; gap: 12px; }
+}
+@media (max-width: 359px) { /* the date line wraps to two lines here */
+  .results-hero h2 { margin-top: 70px; }
+  .results-stamp { top: 54px; }
 }
 
 /* ── Article body (result-placard's optional long-form explanation) ──
@@ -2354,6 +2490,8 @@ body.preview-mode .play-header-title p { display: none; }
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
   z-index: 200;
   padding: 12px;
+  max-height: calc(100dvh - 90px); /* room for the open "About your data" text */
+  overflow-y: auto;
   animation: puzzle-select-in var(--dur) var(--ease);
 }
 .settings-panel .settings-group { margin-bottom: 10px; }
@@ -2948,12 +3086,15 @@ body.preview-mode .play-header-title p { display: none; }
   color: var(--accent);
 }
 .results-class-line { margin: 8px 0 12px; font: 600 1.05rem/1.3 var(--serif); color: var(--ink); font-variant-numeric: tabular-nums; }
+.results-class-since { margin: 2px 0 0; color: var(--ink-soft); font-size: 0.8rem; }
 .results-class-wait { margin: 8px 0 4px; color: var(--ink-soft); font-size: 0.88rem; }
 .results-class-chart .stats-row { grid-template-columns: 6.2em minmax(0, 1fr); }
 .results-class-hints { margin: 10px 0 0; font-size: 0.85rem; color: var(--ink-soft); }
-#results-class-everyone + .results-rate { border-top: 1px dashed var(--panel-edge); margin-top: 14px; padding-top: 12px; }
+#results-class-everyone + .results-rating { border-top: 1px dashed var(--panel-edge); margin-top: 14px; padding-top: 12px; }
+/* Bars and rating buttons share one five-column grid across the section, so button 1 sits under bar 1. */
+.rate-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: 100%; }
 .results-rate-q { margin: 0 0 8px; font: 600 0.95rem/1.3 var(--serif); color: var(--ink); }
-.results-rate-btns { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.results-rated:not([hidden]) + .results-rate { margin-top: 6px; }
 .rate-btn {
   min-height: 40px;
   min-width: 0;
@@ -2968,29 +3109,33 @@ body.preview-mode .play-header-title p { display: none; }
 .rate-btn:hover { border-color: var(--accent); }
 .rate-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rate-btn[aria-pressed="true"] { background: var(--eosin); border-color: var(--eosin); color: var(--eosin-ink); }
-.results-rate-skip { margin-top: 8px; font-size: 0.8rem; }
-.results-rated { margin-top: 12px; }
+.results-rate-skip { display: block; margin: 8px auto 0; font-size: 0.8rem; }
+.results-rated { margin-top: 4px; }
 .results-rated-line { margin: 0; font-size: 0.92rem; color: var(--ink); }
 .results-rated-line.is-wait { color: var(--ink-soft); font-size: 0.85rem; }
 .rate-dist {
   list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
-  max-width: 320px;
+  margin: 10px 0 0;
+  padding: 0 0 0;
+  border-bottom: 1px solid var(--panel-edge);
 }
-.rate-dist-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 58px; gap: 3px; }
-.rate-dist-bar { display: block; width: 70%; max-width: 30px; background: var(--tier-3); border-radius: 3px 3px 0 0; }
-.rate-dist-k { font: 500 0.66rem/1 var(--mono); color: var(--ink-soft); }
+/* column-reverse: the bar sits on the baseline, its count just above it. */
+.rate-dist-col { display: flex; flex-direction: column-reverse; align-items: center; justify-content: flex-start; height: 104px; gap: 4px; min-width: 0; }
+.rate-dist-bar { display: block; width: 72%; height: calc(var(--h, 6%) * 0.8); /* top 20% keeps room for the count */ background: var(--tier-3); border-radius: 4px 4px 0 0; }
+.rate-dist-k { font: 600 0.72rem/1 var(--mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .pcard-class { display: block; margin-top: 4px; font-size: 0.78rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .privacy-text { font-size: 0.88rem; line-height: 1.5; color: var(--ink); }
 .privacy-text p { margin: 0 0 10px; }
 .privacy-text ul { margin: 0 0 10px; padding-left: 1.2em; }
 .privacy-text li { margin: 2px 0; }
 .stats-settings-card { max-height: calc(100dvh - 32px); overflow-y: auto; }
-.settings-share-note { margin: 2px 0 0 1.9em; font-size: 0.78rem; line-height: 1.4; color: var(--ink-soft); }
+/* Collapsed "About your data" under the share-stats switch (in-game Settings + home Settings). */
+.settings-about { margin: 4px 0 0 1.9em; font-size: 0.82rem; }
+.settings-about > summary { cursor: pointer; color: var(--ink-soft); font-weight: 600; padding: 2px 0; }
+.settings-about > summary:hover { color: var(--ink); }
+.settings-about[open] > summary { margin-bottom: 6px; }
+.settings-about .privacy-text { font-size: 0.82rem; }
+.stats-settings-card .settings-about { margin-left: 0; }
 @media (max-width: 420px) {
   .results-class { padding: 12px; }
   .rate-btn { font-size: 0.74rem; }

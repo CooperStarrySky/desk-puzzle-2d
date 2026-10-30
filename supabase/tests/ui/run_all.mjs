@@ -4,8 +4,10 @@
 // layout A (rails, Database filters, previews, pills, phone), category cards
 // B2 (cards, school pill color, compact view, folding filters, detail rows), Studio,
 // Admin console + Settings, orphan-upload (S4) and live syncing + presence (B6,
-// through pg_server.mjs's Realtime stand-in) browser suites one after another,
-// then stops the server.
+// through pg_server.mjs's Realtime stand-in), clue pieces in the database and the
+// game's results-screen credit label, plus the results order, rating row and short
+// privacy line, and results icon buttons / notes chevron / hints tile / label sounds
+// browser suites one after another, then stops the server.
 // Needs Google Chrome and PGlite (PGLITE_MODULE, see ../db_harness.mjs).
 // SHOTS=<dir> also saves screenshots from the layout suite.
 import { spawn } from 'node:child_process';
@@ -15,7 +17,8 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || '4820';
 const SUITES = ['catdb_admin.e2e.mjs', 'catdb_roles.e2e.mjs', 'catdb_layout.e2e.mjs', 'plan_admin.e2e.mjs', 'plan_roles.e2e.mjs', 'plan_layout.e2e.mjs', 'plan_layout_a.e2e.mjs',
-  'cards_b2.e2e.mjs', 'studio.e2e.mjs', 'admin_owner.e2e.mjs', 'admin_roles.e2e.mjs', 'orphans.e2e.mjs', 'live_sync.e2e.mjs'];
+  'cards_b2.e2e.mjs', 'studio.e2e.mjs', 'admin_owner.e2e.mjs', 'admin_roles.e2e.mjs', 'orphans.e2e.mjs', 'live_sync.e2e.mjs',
+  'catdb_clues.e2e.mjs', 'results_credit.e2e.mjs', 'results_order_privacy.e2e.mjs', 'results_icons.e2e.mjs'];
 const env = Object.assign({}, process.env, { BASE: 'http://127.0.0.1:' + PORT });
 
 const server = spawn(process.execPath, [path.join(HERE, 'pg_server.mjs'), PORT], { env, stdio: ['ignore', 'pipe', 'inherit'] });

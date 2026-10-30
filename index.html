@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort 16 pathology clues into 4 hidden groups." />
   <meta name="twitter:image" content="https://pathologyconnections.org/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=44" />
+  <link rel="stylesheet" href="styles.css?v=48" />
 </head>
 <body>
   <div id="app">
@@ -36,7 +36,6 @@
           <nav class="site-head-actions" aria-label="Menu">
             <button id="btn-menu-help" class="btn btn-ghost btn-small" type="button">How to play</button>
             <button id="btn-menu-stats" class="btn btn-ghost btn-small btn-stats" type="button" aria-label="My stats" title="My stats"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="btn-stats-label">My stats</span></button>
-            <a class="btn btn-ghost btn-small head-submit" href="studio/?submit">Submit a category</a>
             <button id="btn-menu-theme" class="btn btn-ghost btn-small btn-icon" type="button" aria-label="Switch to dark theme" title="Switch to dark theme"><svg class="ico-moon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="ico-sun" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
           </nav>
         </div>
@@ -78,9 +77,8 @@
       <footer class="site-foot">
         <div class="menu-wrap site-foot-row">
           <p>Made by CMSRU students as a study tool. Not official course material and not medical advice.</p>
-          <a href="studio/?submit">Submit a category</a>
         </div>
-        <div class="menu-wrap"><p class="stats-notice">Finished games send anonymous results (no names) to show class totals. Turn this off in <button id="btn-notice-settings" class="link-btn" type="button">Settings</button>.</p></div>
+        <div class="menu-wrap"><p class="stats-notice">We count plays anonymously to show class stats. Details and opt-out in <button id="btn-notice-settings" class="link-btn" type="button">Settings</button>.</p></div>
       </footer>
     </section>
 
@@ -123,7 +121,7 @@
                   <input type="checkbox" id="toggle-share-stats" data-setting="shareStats" checked />
                   <span>Share my anonymous play stats</span>
                 </label>
-                <p class="settings-share-note">Finished games send anonymous results (no names) to show class totals. <button id="btn-whats-sent" class="link-btn" type="button">What's sent?</button></p>
+                <details class="settings-about" id="about-data-game"><summary>About your data</summary><div class="privacy-text" data-about-data></div></details>
               </div>
               <div class="overlay-actions">
                 <button id="btn-close-settings" class="btn btn-primary" type="button">Done</button>
@@ -264,50 +262,61 @@
           <p id="results-credit" class="results-credit" hidden></p>
           <p id="results-sub"></p>
           <div id="results-stamp" class="results-stamp" aria-hidden="true"></div>
-          <div class="results-stats">
-            <div class="results-stat"><div class="results-stat-k">Groups found</div><div id="results-found" class="results-stat-v"></div></div>
-            <div class="results-stat results-stat-hints"><div id="results-hints-k" class="results-stat-k">Hints</div><div id="results-hints" class="results-stat-v results-hint-chips"></div></div>
-          </div>
-          <div class="results-path-wrap">
-            <div id="results-path-block">
-              <div class="results-stat-k">Your solve</div>
-              <div id="results-path" class="results-path"></div>
-            </div>
-            <div class="results-actions">
-              <button id="btn-share" class="btn btn-primary" type="button">Share result</button>
-              <button id="btn-copy-anki" class="btn btn-ghost" type="button">Study these in Anki</button>
-              <button id="btn-results-stats" class="btn btn-ghost" type="button">My stats</button>
-              <button id="btn-play-again" class="btn btn-ghost" type="button">Play again</button>
-              <button id="btn-back-menu" class="btn btn-ghost" type="button">Back to menu</button>
-            </div>
-          </div>
-        </section>
-        <section id="results-class" class="results-class" aria-labelledby="results-class-title" hidden>
-          <div id="results-class-everyone" hidden>
-            <h3 id="results-class-title" class="results-class-title">How everyone did</h3>
-            <p id="results-class-line" class="results-class-line"></p>
-            <p id="results-class-wait" class="results-class-wait" hidden>Not enough players yet — check back later.</p>
-            <ol id="results-class-chart" class="stats-chart results-class-chart" aria-label="Standard games by wrong guesses, all players"></ol>
-            <p id="results-class-hints" class="results-class-hints"></p>
-          </div>
-          <div id="results-rate" class="results-rate" hidden>
-            <p id="results-rate-q" class="results-rate-q">How hard was this one?</p>
-            <div class="results-rate-btns" role="group" aria-labelledby="results-rate-q">
-              <button type="button" class="rate-btn" data-rate="1" aria-pressed="false">Easy</button>
-              <button type="button" class="rate-btn" data-rate="2" aria-pressed="false">Fair</button>
-              <button type="button" class="rate-btn" data-rate="3" aria-pressed="false">Tricky</button>
-              <button type="button" class="rate-btn" data-rate="4" aria-pressed="false">Hard</button>
-              <button type="button" class="rate-btn" data-rate="5" aria-pressed="false">Brutal</button>
-            </div>
-            <button id="btn-rate-skip" class="link-btn results-rate-skip" type="button">Skip</button>
-          </div>
-          <div id="results-rated" class="results-rated" aria-live="polite" hidden></div>
         </section>
         <div class="results-section-head">
           <h3>The four groups</h3>
           <p>Tap a group to open its teaching notes</p>
         </div>
         <div id="results-groups" class="results-groups"></div>
+        <p class="credit-cta" hidden><a href="studio/?submit">Your name could be here — submit a category →</a></p>
+        <!-- Numbers come after the learning: your result, your solve path, then the class. -->
+        <section class="results-numbers" aria-labelledby="results-numbers-title">
+          <h3 id="results-numbers-title" class="results-numbers-title">How you did</h3>
+          <!-- Your numbers: two small tiles beside (desktop) or above (phone) the solve grid. -->
+          <div id="results-me" class="results-me">
+            <div class="results-stats">
+              <div class="results-stat results-stat-found"><div class="results-stat-k">Groups found</div><div id="results-found" class="results-stat-v"></div></div>
+              <div class="results-stat results-stat-hints"><div id="results-hints-k" class="results-stat-k">Hints used</div><div id="results-hints" class="results-stat-v"></div><div id="results-hints-sub" class="results-stat-sub"></div></div>
+            </div>
+            <div id="results-path-block" class="results-stat results-path-block">
+              <div class="results-stat-k">Your solve</div>
+              <div id="results-path" class="results-path"></div>
+            </div>
+          </div>
+          <section id="results-class" class="results-class" aria-labelledby="results-class-title" hidden>
+            <div id="results-class-everyone" hidden>
+              <h3 id="results-class-title" class="results-class-title">How everyone did</h3>
+              <p id="results-class-since" class="results-class-since" hidden></p>
+              <p id="results-class-line" class="results-class-line"></p>
+              <p id="results-class-wait" class="results-class-wait" hidden>Not enough players yet — check back later.</p>
+              <ol id="results-class-chart" class="stats-chart results-class-chart" aria-label="Standard games by wrong guesses, all players"></ol>
+              <p id="results-class-hints" class="results-class-hints"></p>
+            </div>
+            <!-- Rating: how others rated it (shown after you vote or skip), with the 1-5 buttons lined up under the bars. -->
+            <div id="results-rating" class="results-rating" hidden>
+              <p id="results-rate-q" class="results-rate-q">How hard was this one?</p>
+              <div id="results-rated" class="results-rated" aria-live="polite" hidden></div>
+              <div id="results-rate" class="results-rate" hidden>
+                <div class="results-rate-btns rate-grid" role="group" aria-labelledby="results-rate-q">
+                  <button type="button" class="rate-btn" data-rate="1" aria-pressed="false">Easy</button>
+                  <button type="button" class="rate-btn" data-rate="2" aria-pressed="false">Fair</button>
+                  <button type="button" class="rate-btn" data-rate="3" aria-pressed="false">Tricky</button>
+                  <button type="button" class="rate-btn" data-rate="4" aria-pressed="false">Hard</button>
+                  <button type="button" class="rate-btn" data-rate="5" aria-pressed="false">Brutal</button>
+                </div>
+                <button id="btn-rate-skip" class="link-btn results-rate-skip" type="button">Skip</button>
+              </div>
+            </div>
+          </section>
+        </section>
+        <!-- Icon buttons: the name shows as a tooltip on hover/focus, and as a small label under the icon on phones and touch screens. -->
+        <div class="results-actions">
+          <button id="btn-share" class="btn btn-primary icon-btn" type="button" aria-label="Share result" data-tip="Share result"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 15V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span class="icon-btn-label" aria-hidden="true">Share</span></button>
+          <button id="btn-copy-anki" class="btn btn-ghost icon-btn" type="button" aria-label="Study these in Anki" data-tip="Study these in Anki"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="7" width="13" height="14" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v12"/><path d="m9.5 10.6.9 1.9 2.1.3-1.5 1.4.4 2.1-1.9-1-1.9 1 .4-2.1-1.5-1.4 2.1-.3z"/></svg><span class="icon-btn-label" aria-hidden="true">Anki</span></button>
+          <button id="btn-results-stats" class="btn btn-ghost icon-btn" type="button" aria-label="My stats" data-tip="My stats"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 21h18"/><path d="M6 17v-6"/><path d="M11 17V5"/><path d="M16 17v-9"/></svg><span class="icon-btn-label" aria-hidden="true">My stats</span></button>
+          <button id="btn-play-again" class="btn btn-ghost icon-btn" type="button" aria-label="Play again" data-tip="Play again"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 3v5h5"/></svg><span class="icon-btn-label" aria-hidden="true">Again</span></button>
+          <button id="btn-back-menu" class="btn btn-ghost icon-btn" type="button" aria-label="Back to menu" data-tip="Back to menu"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 11 9-8 9 8"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><span class="icon-btn-label" aria-hidden="true">Menu</span></button>
+        </div>
         <textarea id="share-fallback" class="share-fallback" readonly hidden aria-label="Share text, copy manually"></textarea>
       </div>
     </div>
@@ -324,17 +333,13 @@
       </div>
     </div>
 
-    <!-- ═══════════════════ MENU SETTINGS ═══════════════════ -->
-    <div id="overlay-menu-settings" class="overlay" hidden>
-      <div class="overlay-card stats-settings-card" role="dialog" aria-modal="true" aria-labelledby="menu-settings-title">
-        <h2 id="menu-settings-title">Share my anonymous play stats</h2>
-        <div class="privacy-text">
-          <p>When you finish a puzzle released after Oct 11, 2026, this browser sends:</p>
+    <!-- Full "About your data" text: one copy, filled into both Settings sections by src/stats.js. -->
+    <template id="tpl-about-data">
+          <p>When you finish a puzzle, this browser sends:</p>
           <ul>
             <li>which puzzle it was</li>
             <li>whether you solved it</li>
-            <li>how many guesses you made, and how many were wrong</li>
-            <li>which hints you used</li>
+            <li>how many guesses you made and how many were wrong, which clues you grouped together on each guess, and which hints you used and when — shown only as class totals</li>
             <li>whether casual mode was on</li>
             <li>your difficulty rating, if you give one</li>
           </ul>
@@ -342,11 +347,17 @@
           <p><strong>Never sent:</strong> your name, email, or school login. To limit spam, a scrambled version of your network address is kept for 24 hours, then deleted.</p>
           <p>The CMSRU Desk Puzzle group stores this in a private database. It's only used to show totals after you finish, like "64% solved." Nobody can see an individual player's results.</p>
           <p><strong>Turn this off</strong> and nothing is sent. Your My stats panel still works, because it lives only in this browser.</p>
-        </div>
+    </template>
+
+    <!-- ═══════════════════ MENU SETTINGS ═══════════════════ -->
+    <div id="overlay-menu-settings" class="overlay" hidden>
+      <div class="overlay-card stats-settings-card" role="dialog" aria-modal="true" aria-labelledby="menu-settings-title">
+        <h2 id="menu-settings-title">Settings</h2>
         <label class="toggle-row">
           <input type="checkbox" id="toggle-share-stats-menu" data-setting="shareStats" checked />
           <span>Share my anonymous play stats</span>
         </label>
+        <details class="settings-about" id="about-data-menu"><summary>About your data</summary><div class="privacy-text" data-about-data></div></details>
         <div class="overlay-actions">
           <button id="btn-close-menu-settings" class="btn btn-primary" type="button">Done</button>
         </div>
@@ -382,7 +393,7 @@
     }
   </script>
   <!-- Public Supabase address + publishable key, shared with the Studio (anonymous play stats). -->
-  <script src="studio/config.js?v=44"></script>
-  <script type="module" src="src/main.js?v=44"></script>
+  <script src="studio/config.js?v=48"></script>
+  <script type="module" src="src/main.js?v=48"></script>
 </body>
 </html>

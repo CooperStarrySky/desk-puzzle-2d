@@ -271,3 +271,34 @@ export function resetSoundLayer() {
   SOUND_TUNING.scrape = d.scrape;
   if (audio.master) audio.master.gain.value = d.master;
 }
+
+/* ── Glass clink for the "Submitted by" credit label ──────────────────
+   A short glassy tink: two slightly inharmonic sine partials, ~120 ms.
+   Takes (ctx, dest) so the same code runs in the credit-animations mockup. */
+export function glassClink(ctx, dest, vol) {
+  var t = ctx.currentTime + 0.004;
+  [[2870, 1, 0.12], [3790, 0.5, 0.08]].forEach(function (p) {
+    var osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = p[0] * (1 + (Math.random() - 0.5) * 0.012);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol * p[1], t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + p[2]);
+    osc.connect(g).connect(dest);
+    osc.start(t);
+    osc.stop(t + p[2] + 0.03);
+  });
+}
+/** The game's running AudioContext for UI sounds, or null. Respects the Sound
+    setting, never creates a context before the page has had a user gesture
+    (hover alone can't start audio), and never throws. */
+export function uiAudioCtx() {
+  try {
+    if (!state.settings.sound) return null;
+    var ua = navigator.userActivation;
+    if (!audio.ctx && ua && !ua.hasBeenActive) return null;
+    var ctx = audioCtx();
+    return ctx && ctx.state === 'running' ? ctx : null;
+  } catch (e) { return null; }
+}

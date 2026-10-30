@@ -2,16 +2,18 @@
  * stats-class-ui.js — class-wide stats on screen: the results screen's
  * "How everyone did" block and difficulty rating row, the menu card line,
  * and the share-text line. Numbers come from stats-core.js classSummary
- * (definitions there). Nothing shows for puzzles released on or before
- * 2026-10-11, in preview mode, or when the totals can't be loaded (3 s
- * limit, hidden silently).
+ * (definitions there). Every published puzzle shows them once enough
+ * players finish (CLASS_MIN). Puzzles released on or before 2026-10-11 only
+ * count finishes since class stats were turned on for them (2026-10-29), so
+ * their block carries LEGACY_CLASS_LABEL. Nothing shows in preview mode or
+ * when the totals can't be loaded (3 s limit, hidden silently).
  *
  * Imports: state.js, stats-core.js, stats-remote.js.
  * ════════════════════════════════════════════════════════════════════ */
 
 import { state, getFirstResult } from './state.js';
-import { isStatsEligible, classSummary, classSlot, fewerMistakesPct, menuStatsLine, RATING_LABELS, CLASS_MIN } from './stats-core.js';
-import { fetchClassStats, cachedClassStats, whenSent, statsSharingEnabled, getMyRating, rate, skipRating } from './stats-remote.js';
+import { isStatsEligible, isLegacyStatsPuzzle, LEGACY_CLASS_LABEL, classSummary, classSlot, fewerMistakesPct, menuStatsLine, RATING_LABELS, CLASS_MIN } from './stats-core.js';
+import { fetchClassStats, cachedClassStats, whenSent, statsSharingEnabled, hasCountedPlay, getMyRating, rate, skipRating } from './stats-remote.js';
 
 var renderToken = 0;
 var $ = function (id) { return document.getElementById(id); };
@@ -56,16 +58,16 @@ function drawRated(box, s) {
   line.appendChild(el('strong', '', 'Players rated it ' + s.ratingLabel));
   if (s.enough) line.appendChild(document.createTextNode(' · ' + s.solvedPct + '% solved'));
   box.appendChild(line);
-  var dist = el('ol', 'rate-dist');
+  var dist = el('ol', 'rate-dist rate-grid'); // same columns as the rating buttons below it
   dist.setAttribute('aria-label', 'Difficulty ratings');
   var max = Math.max.apply(null, s.ratingHist.concat([1]));
   RATING_LABELS.forEach(function (name, i) {
     var n = s.ratingHist[i];
     var li = el('li', 'rate-dist-col');
     var bar = el('span', 'rate-dist-bar');
-    bar.style.height = Math.max(6, Math.round((n / max) * 100)) + '%';
+    bar.style.setProperty('--h', Math.max(6, Math.round((n / max) * 100)) + '%'); // share of the bar area
     li.appendChild(bar);
-    li.appendChild(el('span', 'rate-dist-k', name));
+    li.appendChild(el('span', 'rate-dist-k', String(n))); // the button underneath names the column
     li.setAttribute('aria-label', name + ': ' + plural(n, 'rating'));
     dist.appendChild(li);
   });
@@ -77,7 +79,9 @@ function drawRating(puzzleId, s) {
   var rated = $('results-rated');
   if (!row || !rated) return;
   var mine = getMyRating(puzzleId);
-  var canVote = statsSharingEnabled();
+  // No vote without a counted finish (e.g. finished before stats counted
+  // this puzzle): the server would refuse it, so don't offer it.
+  var canVote = statsSharingEnabled() && hasCountedPlay(puzzleId);
   row.hidden = !canVote;
   if (canVote) {
     row.querySelectorAll('[data-rate]').forEach(function (b) {
@@ -99,6 +103,8 @@ function drawRating(puzzleId, s) {
   var reveal = !canVote || !!mine;
   rated.hidden = !reveal || (!canVote && !(s && s.ratingEnough));
   if (!rated.hidden) drawRated(rated, s);
+  var wrap = $('results-rating');
+  if (wrap) wrap.hidden = row.hidden && rated.hidden;
 }
 
 function refreshAfterSend(puzzleId) {
@@ -124,7 +130,7 @@ function drawEveryone(puzzleId, s) {
   if (!enough) return;
   line.textContent = s.plays + ' plays · ' + s.solvedPct + '% solved · avg ' + s.avgMistakes.toFixed(1) + ' wrong guesses';
   drawChart(chart, s, classSlot(getFirstResult(puzzleId)));
-  hints.textContent = s.hintPct + '% used a hint' + (s.hintPct && s.topHint ? ' · most used: ' + s.topHint : '');
+  hints.textContent = s.hintPct + '% of players used at least one hint' + (s.hintPct && s.topHint ? ' · most used: ' + s.topHint : '');
 }
 
 /** Fill the results screen's class block for a just-finished (or reopened) puzzle. */
@@ -137,6 +143,8 @@ export function renderResultsClass(puzzle) {
   if (state.previewMode || state.editorMode || !isStatsEligible(id)) return;
   var everyone = $('results-class-everyone');
   if (everyone) everyone.hidden = true;
+  var since = $('results-class-since');
+  if (since) { since.textContent = LEGACY_CLASS_LABEL; since.hidden = !isLegacyStatsPuzzle(id); }
   // Rating row first: it works even while the totals are loading or down.
   drawRating(id, undefined);
   sec.hidden = !statsSharingEnabled();
@@ -167,7 +175,7 @@ export function fillMenuClassLines(entries) {
   if (!ids.length) return;
   fetchClassStats(ids).then(function (map) {
     ids.forEach(function (id) {
-      var text = menuStatsLine(classSummary(map[id]));
+      var text = menuStatsLine(classSummary(map[id]), isLegacyStatsPuzzle(id));
       document.querySelectorAll('.pcard-class[data-class-for="' + id + '"]').forEach(function (n) {
         n.textContent = text;
         n.hidden = !text;

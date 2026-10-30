@@ -44,7 +44,7 @@ export function filteredPuzzles() {
 function statsHtml(p) {
   if (AR.statsErr) return '<p class="arch-note">Class stats could not be loaded: ' + esc(AR.statsErr) + '</p>';
   const s = classSummary(p.stats);
-  if (!s || !s.plays) return '<p class="arch-note">' + (isStatsEligible(p.id) ? 'No plays recorded yet. Class stats start counting from the first finish.' : 'Stats start with puzzles after Oct 11.') + '</p>';
+  if (!s || !s.plays) return '<p class="arch-note">' + (isStatsEligible(p.id) ? 'No plays recorded yet. Class stats start counting from the first finish.' : 'No class stats for this puzzle id.') + '</p>';
   const stat = (k, v) => '<div class="stat"><span class="eyebrow">' + k + '</span><b>' + esc(v) + '</b></div>';
   return '<div class="stats" aria-label="Class stats">' + stat('Plays', String(s.plays)) +
     stat('Solved', s.stdFinishes ? s.solvedPct + '%' : '–') + stat('Avg wrong guesses', s.stdFinishes ? s.avgMistakes.toFixed(1) : '–') +

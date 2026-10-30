@@ -137,8 +137,11 @@ export function bindStatsUi() {
   [els.btnMenuStats, els.btnResultsStats].forEach(function (b) { if (b) b.addEventListener('click', openStats); });
   if (els.btnCloseStats) els.btnCloseStats.addEventListener('click', closeStats);
   if (els.btnNoticeSettings) els.btnNoticeSettings.addEventListener('click', openMenuSettings);
-  var whatsSent = document.getElementById('btn-whats-sent'); // in-game Settings: full privacy text
-  if (whatsSent) whatsSent.addEventListener('click', openMenuSettings);
+  // Both Settings menus carry the full privacy text in a collapsed "About your data" section.
+  var aboutTpl = document.getElementById('tpl-about-data');
+  if (aboutTpl) document.querySelectorAll('[data-about-data]').forEach(function (box) {
+    if (!box.firstElementChild) box.appendChild(aboutTpl.content.cloneNode(true));
+  });
   if (els.btnCloseMenuSettings) els.btnCloseMenuSettings.addEventListener('click', closeMenuSettings);
   document.querySelectorAll('input[data-setting="shareStats"]').forEach(function (c) {
     c.addEventListener('change', function () {
