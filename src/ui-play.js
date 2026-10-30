@@ -16,7 +16,7 @@ import {
   fallbackColor, downloadJson, persistGame, scatterSpot,
 } from './state.js';
 
-import { playSound, pieceSound } from './audio.js';
+import { playSound, pieceSound, audio, uiAudioCtx, glassClink, glassSlideVoice } from './audio.js';
 
 import { TEXTURE_VARS, TEXTURE_VARIANTS, pickSkinTexVar } from './textures.js';
 import { classShareLine, renderResultsClass, hideResultsClass } from './stats-class-ui.js';
@@ -2274,6 +2274,33 @@ function clFlush() {
   var py = Math.max(-1, Math.min(1, ((q.y - r.top) / r.height) * 2 - 1));
   q.slide.style.setProperty('--px', px.toFixed(3));
   q.slide.style.setProperty('--py', py.toFixed(3));
+  // Glass-slide "shhh": its level follows how fast the tilt changes.
+  var now = performance.now(), last = q.slide._clLast;
+  q.slide._clLast = { px: px, py: py, t: now };
+  if (last && q.slide._clVoice && now > last.t) {
+    var speed = (Math.abs(px - last.px) + Math.abs(py - last.py)) / ((now - last.t) / 1000);
+    q.slide._clVoice.move(speed);
+  }
+}
+/* Credit-label sounds: quiet, through the game's master volume and Sound setting. */
+var clClinkAt = 0;
+function clClink() {
+  var ctx = uiAudioCtx();
+  var now = performance.now();
+  if (!ctx || now - clClinkAt < 250) return; // no machine-gun clinks on a jittery edge
+  clClinkAt = now;
+  try { glassClink(ctx, audio.master, 0.16); } catch (e) { /* audio blocked */ }
+}
+function clVoiceStart(slide) {
+  clVoiceStop(slide);
+  var ctx = uiAudioCtx();
+  if (!ctx) return;
+  try { slide._clVoice = glassSlideVoice(ctx, audio.master, 0.05); } catch (e) { slide._clVoice = null; }
+}
+function clVoiceStop(slide) {
+  if (slide._clVoice) { try { slide._clVoice.stop(); } catch (e) { /* gone */ } }
+  slide._clVoice = null;
+  slide._clLast = null;
 }
 function clRestart(node, cls, ms) {
   node.classList.remove(cls);
@@ -2304,7 +2331,8 @@ export function wireCreditLabels(root) {
     slide.addEventListener('pointerenter', function (e) {
       if (e.pointerType === 'touch') return;
       slide.classList.add('is-hover');
-      if (!clReduced()) slide.classList.add('is-live');
+      clClink();
+      if (!clReduced()) { slide.classList.add('is-live'); clVoiceStart(slide); }
     });
     slide.addEventListener('pointermove', function (e) {
       if (e.pointerType === 'touch' || clReduced()) return;
@@ -2315,6 +2343,7 @@ export function wireCreditLabels(root) {
       if (e.pointerType === 'touch') return;
       if (clQueued && clQueued.slide === slide) clQueued = null;
       slide.classList.remove('is-hover', 'is-live');
+      clVoiceStop(slide);
       slide.style.setProperty('--px', '0');
       slide.style.setProperty('--py', '0');
     });
@@ -2492,19 +2521,16 @@ export function showResultsForPuzzle(puzzle, opts) {
 
   var hintsObj = opts.hints || {};
   var hintDefs = [['labels', 'Label Images'], ['seeds', 'Seed the Trays'], ['category', 'Reveal a Category']];
-  var usedCount = 0;
-  if (els.resultsHints) {
-    els.resultsHints.innerHTML = '';
-    hintDefs.forEach(function (h) {
-      var chip = document.createElement('span');
-      chip.className = 'results-hint-chip' + (hintsObj[h[0]] ? '' : ' is-off');
-      chip.textContent = h[1];
-      if (hintsObj[h[0]]) usedCount++;
-      els.resultsHints.appendChild(chip);
-    });
-    if (!usedCount && opts.legacyHintsUsed) usedCount = opts.legacyHintsUsed;
+  // Hints tile: "Hints used / 1 of 3 / Label Images" — the count, out of how many
+  // the game offers, then which ones (or a short "none" note).
+  var usedNames = hintDefs.filter(function (h) { return hintsObj[h[0]]; }).map(function (h) { return h[1]; });
+  var usedCount = usedNames.length;
+  if (!usedCount && opts.legacyHintsUsed) usedCount = Math.min(opts.legacyHintsUsed, hintDefs.length);
+  if (els.resultsHintsK) els.resultsHintsK.textContent = 'Hints used';
+  if (els.resultsHints) els.resultsHints.textContent = usedCount + ' of ' + hintDefs.length;
+  if (els.resultsHintsSub) {
+    els.resultsHintsSub.textContent = usedNames.length ? usedNames.join(', ') : (usedCount ? '' : (won ? 'Solved without help' : 'None used'));
   }
-  if (els.resultsHintsK) els.resultsHintsK.textContent = 'Hints · ' + usedCount + ' used';
 
   // Solve path: one row of tier colors per guess.
   var attempts = opts.attempts || [];
@@ -2535,6 +2561,7 @@ export function showResultsForPuzzle(puzzle, opts) {
     });
   }
   if (els.resultsPathBlock) els.resultsPathBlock.hidden = !attempts.length;
+  if (els.resultsMe) els.resultsMe.classList.toggle('no-path', !attempts.length);
 
   els.resultsGroups.innerHTML = '';
   var ordered = puzzle.groups.slice().sort(function (a, b) { return a.tier - b.tier; });

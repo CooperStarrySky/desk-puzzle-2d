@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort 16 pathology clues into 4 hidden groups." />
   <meta name="twitter:image" content="https://pathologyconnections.org/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=46" />
+  <link rel="stylesheet" href="styles.css?v=47" />
 </head>
 <body>
   <div id="app">
@@ -272,13 +272,16 @@
         <!-- Numbers come after the learning: your result, your solve path, then the class. -->
         <section class="results-numbers" aria-labelledby="results-numbers-title">
           <h3 id="results-numbers-title" class="results-numbers-title">How you did</h3>
-          <div class="results-stats">
-            <div class="results-stat"><div class="results-stat-k">Groups found</div><div id="results-found" class="results-stat-v"></div></div>
-            <div class="results-stat results-stat-hints"><div id="results-hints-k" class="results-stat-k">Hints</div><div id="results-hints" class="results-stat-v results-hint-chips"></div></div>
-          </div>
-          <div id="results-path-block">
-            <div class="results-stat-k">Your solve</div>
-            <div id="results-path" class="results-path"></div>
+          <!-- Your numbers: two small tiles beside (desktop) or above (phone) the solve grid. -->
+          <div id="results-me" class="results-me">
+            <div class="results-stats">
+              <div class="results-stat results-stat-found"><div class="results-stat-k">Groups found</div><div id="results-found" class="results-stat-v"></div></div>
+              <div class="results-stat results-stat-hints"><div id="results-hints-k" class="results-stat-k">Hints used</div><div id="results-hints" class="results-stat-v"></div><div id="results-hints-sub" class="results-stat-sub"></div></div>
+            </div>
+            <div id="results-path-block" class="results-stat results-path-block">
+              <div class="results-stat-k">Your solve</div>
+              <div id="results-path" class="results-path"></div>
+            </div>
           </div>
           <section id="results-class" class="results-class" aria-labelledby="results-class-title" hidden>
             <div id="results-class-everyone" hidden>
@@ -306,12 +309,13 @@
             </div>
           </section>
         </section>
+        <!-- Icon buttons: the name shows as a tooltip on hover/focus, and as a small label under the icon on phones and touch screens. -->
         <div class="results-actions">
-          <button id="btn-share" class="btn btn-primary" type="button">Share result</button>
-          <button id="btn-copy-anki" class="btn btn-ghost" type="button">Study these in Anki</button>
-          <button id="btn-results-stats" class="btn btn-ghost" type="button">My stats</button>
-          <button id="btn-play-again" class="btn btn-ghost" type="button">Play again</button>
-          <button id="btn-back-menu" class="btn btn-ghost" type="button">Back to menu</button>
+          <button id="btn-share" class="btn btn-primary icon-btn" type="button" aria-label="Share result" data-tip="Share result"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 15V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span class="icon-btn-label" aria-hidden="true">Share</span></button>
+          <button id="btn-copy-anki" class="btn btn-ghost icon-btn" type="button" aria-label="Study these in Anki" data-tip="Study these in Anki"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="7" width="13" height="14" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v12"/><path d="m9.5 10.6.9 1.9 2.1.3-1.5 1.4.4 2.1-1.9-1-1.9 1 .4-2.1-1.5-1.4 2.1-.3z"/></svg><span class="icon-btn-label" aria-hidden="true">Anki</span></button>
+          <button id="btn-results-stats" class="btn btn-ghost icon-btn" type="button" aria-label="My stats" data-tip="My stats"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 21h18"/><path d="M6 17v-6"/><path d="M11 17V5"/><path d="M16 17v-9"/></svg><span class="icon-btn-label" aria-hidden="true">My stats</span></button>
+          <button id="btn-play-again" class="btn btn-ghost icon-btn" type="button" aria-label="Play again" data-tip="Play again"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 3v5h5"/></svg><span class="icon-btn-label" aria-hidden="true">Again</span></button>
+          <button id="btn-back-menu" class="btn btn-ghost icon-btn" type="button" aria-label="Back to menu" data-tip="Back to menu"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 11 9-8 9 8"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><span class="icon-btn-label" aria-hidden="true">Menu</span></button>
         </div>
         <textarea id="share-fallback" class="share-fallback" readonly hidden aria-label="Share text, copy manually"></textarea>
       </div>
@@ -389,7 +393,7 @@
     }
   </script>
   <!-- Public Supabase address + publishable key, shared with the Studio (anonymous play stats). -->
-  <script src="studio/config.js?v=46"></script>
-  <script type="module" src="src/main.js?v=46"></script>
+  <script src="studio/config.js?v=47"></script>
+  <script type="module" src="src/main.js?v=47"></script>
 </body>
 </html>

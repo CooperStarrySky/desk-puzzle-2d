@@ -130,7 +130,7 @@ function drawEveryone(puzzleId, s) {
   if (!enough) return;
   line.textContent = s.plays + ' plays · ' + s.solvedPct + '% solved · avg ' + s.avgMistakes.toFixed(1) + ' wrong guesses';
   drawChart(chart, s, classSlot(getFirstResult(puzzleId)));
-  hints.textContent = s.hintPct + '% used a hint' + (s.hintPct && s.topHint ? ' · most used: ' + s.topHint : '');
+  hints.textContent = s.hintPct + '% of players used at least one hint' + (s.hintPct && s.topHint ? ' · most used: ' + s.topHint : '');
 }
 
 /** Fill the results screen's class block for a just-finished (or reopened) puzzle. */

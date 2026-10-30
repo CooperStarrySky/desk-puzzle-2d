@@ -5,7 +5,7 @@
 // 375 px phone the "Case closed" stamp no longer covers the date line.
 // Privacy: the home page shows one short line; the full "About your data" text
 // sits collapsed in both Settings menus, next to the share switch.
-// Rating buttons line up under the class rating bars; the bottom buttons are normal size.
+// Rating buttons line up under the class rating bars; the bottom buttons are compact icon buttons in one row.
 // SHOTS=<dir> saves privacy-short.png and privacy-settings.png.
 import fs from 'node:fs';
 import { page, check, summary, BASE, stubGameStats } from './lib.mjs';
@@ -115,8 +115,9 @@ for (const [w, h, mobile, dark] of [[1100, 900, false, false], [375, 760, true, 
   check(`G3 ${tag}: chart spans the section, centered`, al.span > 0.9 && al.mid < 2, al);
   check(`G4 ${tag}: your vote is marked`, (await P.attr('#results-rate [data-rate="4"]', 'aria-pressed')) === 'true');
   const btns = await P.js(`[...document.querySelectorAll('.results-actions .btn')].filter((b) => !b.hidden).map((b) => { const r = b.getBoundingClientRect(); return { id: b.id, w: Math.round(r.width), h: Math.round(r.height), t: Math.round(r.top) }; })`);
-  check(`G5 ${tag}: bottom buttons are normal size`, btns.every((b) => b.h <= 44) && btns.find((b) => b.id === 'btn-share').w <= (mobile ? 200 : 180), btns);
-  check(`G5 ${tag}: buttons share rows (not one per line)`, new Set(btns.map((b) => b.t)).size <= (mobile ? 3 : 1), btns);
+  // Icon buttons (v2): small squares on desktop, icon + short label on phones; one row either way.
+  check(`G5 ${tag}: bottom buttons are compact icon buttons`, btns.every((b) => b.h <= (mobile ? 64 : 48)) && btns.find((b) => b.id === 'btn-share').w <= (mobile ? 90 : 52), btns);
+  check(`G5 ${tag}: buttons share one row`, new Set(btns.map((b) => b.t)).size === 1, btns);
   check(`G6 ${tag}: fits the width`, (await P.overflow()) <= 0, await P.overflow());
   check(`G7 ${tag}: no console errors`, P.errors.length === 0, P.errors);
   P.close();

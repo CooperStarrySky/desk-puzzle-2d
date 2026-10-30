@@ -147,7 +147,7 @@ export function cacheEls() {
     'btn-close-settings',
     'overlay-help', 'btn-close-help',
     'overlay-results', 'results-title', 'results-sub', 'results-hints', 'results-groups',
-    'results-eyebrow', 'results-credit', 'results-stamp', 'results-found', 'results-hints-k', 'results-path', 'results-path-block',
+    'results-eyebrow', 'results-credit', 'results-stamp', 'results-found', 'results-hints-k', 'results-path', 'results-path-block', 'results-hints-sub', 'results-me',
     'btn-share', 'btn-copy-anki', 'btn-results-stats', 'btn-menu-stats', 'overlay-stats', 'stats-body',
     'btn-close-stats', 'overlay-menu-settings', 'btn-close-menu-settings', 'btn-notice-settings', 'btn-play-again', 'btn-back-menu', 'share-fallback',
     'error-message', 'btn-error-menu', 'layout-panel', 'reveal-note',
