@@ -1,0 +1,273 @@
+{
+  "id": "trick-or-toxin-2026-10-30",
+  "title": "Trick or Toxin",
+  "date": "2026-10-30",
+  "machines": [
+    "scope",
+    "lightbox"
+  ],
+  "groups": [
+    {
+      "id": "g-bacterial-virulence-factors",
+      "name": "Bacterial virulence factors",
+      "tier": 1,
+      "explanation": "These are all virulence factors that allow bacteria to invade and damage a host cell and organism.",
+      "article": [
+        {
+          "type": "text",
+          "text": "<i>Images: https://en.wikipedia.org/wiki/Endospore_staining</i>"
+        }
+      ],
+      "credit": {
+        "anonymous": true
+      },
+      "itemIds": [
+        "m",
+        "a-b",
+        "bacterial-endospore",
+        "dnase"
+      ]
+    },
+    {
+      "id": "g-lysosomal-storage-diseases",
+      "name": "Lysosomal storage diseases",
+      "tier": 2,
+      "explanation": "Each of these are signs and symptoms of glycogen storage diseases",
+      "article": [
+        {
+          "type": "text",
+          "text": "<i>Images: https://imagebank.hematology.org/image/63050/gaucherdisease; https://en.wikipedia.org/wiki/Cherry-red_spot; https://medizzy.com/feed/35562441</i>"
+        }
+      ],
+      "credit": {
+        "name": "Jacob"
+      },
+      "itemIds": [
+        "wrinkled-tissue-paper-macrophages",
+        "cherry-red-macula",
+        "autosomal-recessive",
+        "hepatosplenomegaly"
+      ]
+    },
+    {
+      "id": "g-things-that-are-pin-related",
+      "name": "Things that are \"pin\" related",
+      "tier": 3,
+      "explanation": "These four clues all have the word \"pin\" in common, either in their description, or in their names.",
+      "article": [
+        {
+          "type": "text",
+          "text": "<i>Images: https://en.wikipedia.org/wiki/Miosis#/media/File:Human_eye_in_bright_light.jpg; https://en.wikipedia.org/wiki/Petechia#/media/File:Idiopathic_petechia_(cropped).jpg</i>"
+        }
+      ],
+      "credit": {
+        "name": "John Liu",
+        "line": "MS2"
+      },
+      "itemIds": [
+        "paresthesias",
+        "pinworm",
+        "miosis",
+        "petechiae"
+      ]
+    },
+    {
+      "id": "g-conditions-of-the-cytoskeleton",
+      "name": "Conditions of the CytoSKELETON",
+      "tier": 4,
+      "explanation": "Each of these slides or images could result from a mutation of a gene that contributes to the cytoskeleton",
+      "article": [
+        {
+          "type": "text",
+          "text": "<i>Images: Wikipedia; Radiopedia</i>"
+        }
+      ],
+      "credit": {
+        "anonymous": true
+      },
+      "itemIds": [
+        "spherocytes",
+        "wasp-mutation",
+        "situs-inversus-totalis-in-kartaganer-syndrome",
+        "normal-heart-exam-infertility-and-bronchiectasis"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "m",
+      "label": "M",
+      "zone": "corkboard",
+      "info": {
+        "title": "M",
+        "text": ""
+      },
+      "note": "M protein is a virulence factor found in Strep pyogenes. It demonstrates molecular mimicry of the heart, and is involved in the pathogenesis of rheumatic fever."
+    },
+    {
+      "id": "a-b",
+      "label": "A-B",
+      "zone": "photo",
+      "info": {
+        "title": "A-B",
+        "text": "",
+        "image": "puzzles/trick-or-toxin-2026-10-30/a-b-info.webp"
+      },
+      "note": "A-B toxins are a type of multimeric exotoxin produced by bacteria. B stands for the binding subunit of the toxin allowing for intracellular entry. A stands for the action subunit, which promotes cellular injury."
+    },
+    {
+      "id": "bacterial-endospore",
+      "label": "Bacterial Endospore",
+      "zone": "photo",
+      "info": {
+        "title": "Bacterial Endospore",
+        "text": "",
+        "image": "puzzles/trick-or-toxin-2026-10-30/bacterial-endospore-info.webp"
+      },
+      "note": "Endospores are produced by some bacteria, allowing them to stay dormant and resist heat and chemicals. This is a Schaeffer-Fulton stain of Bacillus, and the arrow is pointing to the endospore, colored green.."
+    },
+    {
+      "id": "dnase",
+      "label": "DNAse",
+      "zone": "corkboard",
+      "info": {
+        "title": "DNAse",
+        "text": ""
+      },
+      "note": "DNAses are a mechanism of bacterial immune evasion. They destroy neurophil extracellular traps (NETs), which are made mostly from neurophil DNA, which trap bacteria."
+    },
+    {
+      "id": "wrinkled-tissue-paper-macrophages",
+      "label": "\"Wrinkled tissue paper\" macrophages",
+      "zone": "rack",
+      "info": {
+        "title": "\"Wrinkled tissue paper\" macrophages",
+        "text": ""
+      },
+      "scope": {
+        "image": "puzzles/trick-or-toxin-2026-10-30/wrinkled-tissue-paper-macrophages-scope.webp"
+      },
+      "note": "Gaucher cells have a characteristic \"wrinkled tissue paper\" appearance under the microscope"
+    },
+    {
+      "id": "cherry-red-macula",
+      "label": "Cherry red macula",
+      "zone": "photo",
+      "info": {
+        "title": "Cherry red macula",
+        "text": "",
+        "image": "puzzles/trick-or-toxin-2026-10-30/cherry-red-macula-info.webp"
+      },
+      "note": "The cherry red macula is a sign of Tay-Sachs and Niemann-Pick diseases"
+    },
+    {
+      "id": "autosomal-recessive",
+      "label": "Autosomal recessive",
+      "zone": "corkboard",
+      "info": {
+        "title": "Autosomal recessive",
+        "text": ""
+      },
+      "note": "Lysosomal storage diseases typically follow an autosomal recessive inheritance pattern"
+    },
+    {
+      "id": "hepatosplenomegaly",
+      "label": "Hepatosplenomegaly",
+      "zone": "photo",
+      "info": {
+        "title": "Hepatosplenomegaly",
+        "text": "",
+        "image": "puzzles/trick-or-toxin-2026-10-30/hepatosplenomegaly-info.webp"
+      },
+      "note": "Several lysosomal storage diseases can cause hepatosplenomegaly"
+    },
+    {
+      "id": "paresthesias",
+      "label": "Paresthesias",
+      "zone": "corkboard",
+      "info": {
+        "title": "Paresthesias",
+        "text": ""
+      },
+      "note": "Paresthesias refer to a \"pins and needles\" sensation on the skin"
+    },
+    {
+      "id": "pinworm",
+      "label": "Pinworm",
+      "zone": "rack",
+      "info": {
+        "title": "Pinworm",
+        "text": ""
+      },
+      "scope": {
+        "image": "puzzles/trick-or-toxin-2026-10-30/pinworm-scope.webp"
+      }
+    },
+    {
+      "id": "miosis",
+      "label": "Miosis",
+      "zone": "photo",
+      "info": {
+        "title": "Miosis",
+        "text": "",
+        "image": "puzzles/trick-or-toxin-2026-10-30/miosis-info.webp"
+      },
+      "note": "Miosis can also be referred to as \"pinpoint pupils\""
+    },
+    {
+      "id": "petechiae",
+      "label": "Petechiae",
+      "zone": "photo",
+      "info": {
+        "title": "Petechiae",
+        "text": "",
+        "image": "puzzles/trick-or-toxin-2026-10-30/petechiae-info.webp"
+      },
+      "note": "Petechiae are \"pinpoint\"-sized red, purple, or brown spots that are flat and painless"
+    },
+    {
+      "id": "spherocytes",
+      "label": "Spherocytes",
+      "zone": "rack",
+      "info": {
+        "title": "Spherocytes",
+        "text": ""
+      },
+      "scope": {
+        "image": "puzzles/trick-or-toxin-2026-10-30/spherocytes-scope.webp"
+      },
+      "note": "This blood smear shows spherocytes that can be found in conditions such as Hereditary Spherocytosis or Autoimmune Hemolytic Anemia. Hereditary Spherocytosis results from mutations in proteins such as ankyrin or spectrin which are found in the cytoskeleton."
+    },
+    {
+      "id": "wasp-mutation",
+      "label": "WASp mutation",
+      "zone": "corkboard",
+      "info": {
+        "title": "WASp mutation",
+        "text": ""
+      },
+      "note": "The WASp gene is mutated in the genetic conditions of Wiscott-Aldrich syndrome. The Wiscott-Aldrich protein regulates actin organization in the cytoskeleton. It is an X-linked condition that results in immunodeficiency as a result of impaired CD8+ T cell and NK cell function."
+    },
+    {
+      "id": "situs-inversus-totalis-in-kartaganer-syndrome",
+      "label": "Situs inversus totalis (in Kartaganer syndrome)",
+      "zone": "tubes",
+      "info": {
+        "title": "Situs inversus totalis (in Kartaganer syndrome)",
+        "text": "",
+        "image": "puzzles/trick-or-toxin-2026-10-30/situs-inversus-totalis-in-kartaganer-syndrome-info.webp"
+      },
+      "note": "Situs inversus totalis is total flipping of organs in the chest and abdomen. It can result from mutations in dynein protein which are an important motor proteins of the cytoskeleton causing Kartagener syndrome or PCD. Kartagener syndrome would show the flipped X-ray as shown."
+    },
+    {
+      "id": "normal-heart-exam-infertility-and-bronchiectasis",
+      "label": "Normal heart exam, infertility, and bronchiectasis.",
+      "zone": "corkboard",
+      "info": {
+        "title": "Normal heart exam, infertility, and bronchiectasis.",
+        "text": ""
+      },
+      "note": "Signs and symptoms of primary ciliary dyskinesia, which can result from mutations in cytoskeleton motor protein dynein. Unlike Kartagner syndrome the internal organs are not flipped."
+    }
+  ]
+}
