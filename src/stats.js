@@ -75,11 +75,11 @@ function renderStats(s, hl) {
   });
   body.appendChild(nums);
 
-  body.appendChild(el('h3', 'stats-chart-title', 'Wrong guesses per game'));
+  body.appendChild(el('h3', 'stats-chart-title', 'Guesses per game'));
   var rows = [[0, '0', s.chart[0]], [1, '1', s.chart[1]], [2, '2', s.chart[2]], [3, '3', s.chart[3]], ['lost', 'Not solved', s.notSolved]];
   var max = Math.max.apply(null, rows.map(function (r) { return r[2]; }).concat([1]));
   var chart = el('ol', 'stats-chart');
-  chart.setAttribute('aria-label', 'Standard games by wrong guesses');
+  chart.setAttribute('aria-label', 'Standard games by guesses');
   rows.forEach(function (r) {
     var li = el('li', 'stats-row' + (r[0] === 'lost' ? ' is-lost' : '') + (hl !== null && hl === r[0] ? ' is-you' : ''));
     li.appendChild(el('span', 'stats-row-k', r[1]));

@@ -338,15 +338,15 @@ function setMeta(number, dateText, pieces) {
   meta.textContent = parts.join(' · ');
 }
 
-/* ── Live line: real class totals only, never below CLASS_MIN ─────── */
+/* ── Live line: real class totals only (CLASS_MIN), refreshed every 30 s ── */
 
-var liveFor = null;
-function showLive(puzzleId, animate) {
+var liveFor = null, liveTimer = 0;
+function showLive(puzzleId, animate, fresh) {
   var line = document.getElementById('hero-live');
   if (!line) return;
   if (liveFor !== puzzleId) { line.hidden = true; liveFor = puzzleId; }
   if (!isStatsEligible(puzzleId) || state.previewMode || state.editorMode) return;
-  fetchClassStats([puzzleId]).then(function (map) {
+  fetchClassStats([puzzleId], { fresh: !!fresh }).then(function (map) {
     if (liveFor !== puzzleId) return;
     var sum = classSummary(map[puzzleId]);
     if (!sum || !sum.enough || sum.stdFinishes < CLASS_MIN) { line.hidden = true; return; }
@@ -451,6 +451,8 @@ export function renderHero(entry, number, dateText, loadPuzzle) {
   var started = intro();
   if (!started) { mini && mini.classList.remove('desk-wait'); waiting = false; }
   showLive(entry ? entry.id : '', started);
+  clearInterval(liveTimer);
+  liveTimer = setInterval(function () { if (!document.hidden && liveFor) showLive(liveFor, false, true); }, 30000);
 
   if (!wantDesk) return;
   if (desk && desk.id === entry.id && desk.mini === mini) {

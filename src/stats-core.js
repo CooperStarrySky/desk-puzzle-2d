@@ -226,7 +226,7 @@ export function computeStats(entries, saves, firsts) {
  * ──────────────────────────────────────────────────────────────────── */
 
 export var STATS_SINCE = '2026-10-11';
-export var CLASS_MIN = 10; // show nothing below 10 standard finishes / 10 ratings
+export var CLASS_MIN = 1; // show as soon as anyone has finished / rated (Thirth, 2026-10-31)
 // Four options, no middle: every rating leans easy or hard (5-point ratings were retired 2026-10-30).
 export var RATING_LABELS = ['Very easy', 'Easy', 'Difficult', 'Brutal'];
 var STATS_ID_RE = /^[a-z0-9-]+-(\d{4}-\d{2}-\d{2})$/;
@@ -356,7 +356,7 @@ export function menuStatsLine(summary, legacy) {
   if (!summary) return '';
   var parts = [];
   if (summary.enough) {
-    parts.push(summary.plays + ' plays');
+    parts.push(summary.plays + (summary.plays === 1 ? ' play' : ' plays'));
     parts.push(summary.solvedPct + '% solved');
   }
   if (summary.ratingEnough) parts.push('Rated ' + summary.ratingLabel);
