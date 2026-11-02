@@ -58,7 +58,7 @@ const textRect = (P, sel) => P.js(`(() => { const g = document.createRange(); g.
   const b = g.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; })()`);
 const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
-const SEQ = ['.results-hero', '#results-groups', '.credit-cta', '.results-numbers', '#results-found', '#results-path', '#results-class', '#results-rate', '.results-actions', '#btn-share', '#btn-play-again'];
+const SEQ = ['.results-hero', '#results-groups', '.results-numbers', '#results-found', '#results-path', '#results-class', '#results-rate', '.results-actions', '#btn-share', '#btn-play-again'];
 for (const [w, h, mobile] of [[1100, 900, false], [375, 760, true]]) {
   for (const dark of [false, true]) {
     const tag = (mobile ? 'phone ' : 'desktop ') + (dark ? 'dark' : 'light');

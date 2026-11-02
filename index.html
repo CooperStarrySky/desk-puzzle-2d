@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort 16 pathology clues into 4 hidden groups." />
   <meta name="twitter:image" content="https://pathologyconnections.org/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=54" />
+  <link rel="stylesheet" href="styles.css?v=55" />
   <script>
     /* Home intro start state, set before first paint (src/home-hero.js plays it). */
     (function () {
@@ -280,7 +280,6 @@
           <p>Tap a group to open its teaching notes</p>
         </div>
         <div id="results-groups" class="results-groups"></div>
-        <p class="credit-cta" hidden><a href="studio/?submit">Your name could be here — submit a category →</a></p>
         <!-- Numbers come after the learning: your result, your solve path, then the class. -->
         <section class="results-numbers" aria-labelledby="results-numbers-title">
           <h3 id="results-numbers-title" class="results-numbers-title">How you did</h3>
@@ -327,6 +326,8 @@
           <button id="btn-results-stats" class="btn btn-ghost icon-btn" type="button" aria-label="My stats" data-tip="My stats"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 21h18"/><path d="M6 17v-6"/><path d="M11 17V5"/><path d="M16 17v-9"/></svg><span class="icon-btn-label" aria-hidden="true">My stats</span></button>
           <button id="btn-play-again" class="btn btn-ghost icon-btn" type="button" aria-label="Play again" data-tip="Play again"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 3v5h5"/></svg><span class="icon-btn-label" aria-hidden="true">Again</span></button>
           <button id="btn-back-menu" class="btn btn-ghost icon-btn" type="button" aria-label="Back to menu" data-tip="Back to menu"><svg class="icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 11 9-8 9 8"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><span class="icon-btn-label" aria-hidden="true">Menu</span></button>
+          <!-- Same "Submitted by YOU" slide as the home page: the whole slide opens the Studio; the name shows as a tooltip. -->
+          <a id="btn-results-submit" class="credit-label results-submit" href="studio/?submit" aria-label="Submit your own category" data-tip="Submit your own category"><span class="cl-slide" aria-hidden="true"><span class="cl-tissue"></span><span class="cl-paper"><span class="cl-cap">Submitted by</span><span class="cl-sig">YOU</span><svg viewBox="0 0 92 7"><path d="M2 5 C 14 1, 22 7, 34 4 S 58 1, 70 4 S 84 6, 90 2"/></svg></span><span class="cl-glass"></span><span class="cl-glare"></span></span></a>
         </div>
         <textarea id="share-fallback" class="share-fallback" readonly hidden aria-label="Share text, copy manually"></textarea>
       </div>
@@ -404,7 +405,7 @@
     }
   </script>
   <!-- Public Supabase address + publishable key, shared with the Studio (anonymous play stats). -->
-  <script src="studio/config.js?v=54"></script>
-  <script type="module" src="src/main.js?v=54"></script>
+  <script src="studio/config.js?v=55"></script>
+  <script type="module" src="src/main.js?v=55"></script>
 </body>
 </html>

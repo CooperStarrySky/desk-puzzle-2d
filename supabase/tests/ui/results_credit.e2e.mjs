@@ -72,8 +72,12 @@ for (const dark of [false, true]) {
   check(`R2 ${tag}: anonymous group -> quiet line, no label`, (await P.text(placard(1) + ' .result-placard-credit.is-anon')) === 'Category by an anonymous classmate' && !(await P.count(placard(1) + ' .credit-label')));
   check(`R2 ${tag}: anonymous line never animates`, (await P.js(`document.querySelector('${placard(1)} .is-anon').getAnimations().length`)) === 0);
   check(`R3 ${tag}: house group -> no credit at all`, !(await P.count(placard(2) + ' .credit-label, ' + placard(2) + ' .result-placard-credit')));
-  check(`R4 ${tag}: CTA shown with link to the Studio`, (await P.visible('.credit-cta')) && /(^|\/)studio\/\?submit$/.test(await P.attr('.credit-cta a', 'href')), await P.attr('.credit-cta a', 'href'));
-  check(`R4 ${tag}: CTA has the blank dashed label`, /your name here/.test(await P.text('.credit-cta .credit-label.is-blank')) && (await P.attr('.credit-cta .credit-label', 'aria-hidden')) === 'true');
+  const sub = '.results-actions a#btn-results-submit';
+  check(`R4 ${tag}: "Submitted by YOU" slide sits at the end of the bottom row and opens the Studio`, (await P.visible(sub)) && /(^|\/)studio\/\?submit$/.test(await P.attr(sub, 'href')) && (await P.js(`document.querySelector('.results-actions').lastElementChild.id`)) === 'btn-results-submit', await P.attr(sub, 'href'));
+  check(`R4 ${tag}: slide reads "Submitted by YOU", tooltip says submit your own category`, /Submitted by\s*YOU/.test(await P.text(sub)) && (await P.attr(sub, 'data-tip')) === 'Submit your own category' && (await P.attr(sub, 'aria-label')) === 'Submit your own category');
+  const sizes = await P.js(`(() => { const r = document.querySelector('${sub} .cl-slide').getBoundingClientRect(); const h = document.querySelector('#home-invite .cl-slide'); h.closest('#home-invite').hidden = false; const q = h.getBoundingClientRect(); return { rw: Math.round(r.width), rh: Math.round(r.height), hw: Math.round(q.width), hh: Math.round(q.height) }; })()`);
+  check(`R4 ${tag}: same size as the home page slide`, sizes.rw > 0 && Math.abs(sizes.rw - sizes.hw) <= 1 && Math.abs(sizes.rh - sizes.hh) <= 1, sizes);
+  check(`R4 ${tag}: the old link line is gone`, !(await P.count('.credit-cta')));
   check(`R5 ${tag}: stats, stamp and share still there`, (await P.text('#results-found')) === '4 / 4' && (await P.text('#results-stamp')) === 'Case closed' && (await P.visible('#btn-share')) && (await P.count('#results-path .results-path-row')) === 1);
   // Entrance plays once it is on screen.
   const box = await slideBox(P);
@@ -92,7 +96,7 @@ for (const dark of [false, true]) {
   await mouse(P, 5, 5); await P.sleep(800);
   const back = await slideState(P);
   check(`R7 ${tag}: springs back on leave`, !back.hover && back.px === '0' && back.t === rest.t, { rest, back });
-  if (SHOTS) { await P.js(`document.querySelector('.credit-cta').scrollIntoView({ block: 'end' })`); await P.sleep(1600); await P.shot(SHOTS + '/results-credit-cta-' + tag + '.png'); }
+  if (SHOTS) { await P.js(`document.querySelector('#btn-results-submit').scrollIntoView({ block: 'end' })`); await P.sleep(1600); await P.shot(SHOTS + '/results-credit-cta-' + tag + '.png'); }
   check(`R9 ${tag}: no school wording on the results screen (one school publishes)`, !/school/i.test(await P.js('document.getElementById("overlay-results").innerText')));
   check(`R8 ${tag}: no console errors`, P.errors.length === 0, P.errors);
   P.close();
