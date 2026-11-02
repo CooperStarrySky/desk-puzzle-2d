@@ -1857,14 +1857,41 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
 }
 .results-actions .icon-btn:hover::after,
 .results-actions .icon-btn:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+/* "Submitted by YOU" slide at the end of the row: same size and hover as the
+   home page's, with the same tooltip as the icons. */
+.results-actions .results-submit { position: relative; align-self: center; margin: 0 0 0 8px; border-radius: 6px; text-decoration: none; color: inherit; flex: none; }
+.results-actions .results-submit[hidden] { display: none; }
+.results-actions .results-submit .cl-sig { letter-spacing: 0.04em; }
+.results-actions .results-submit:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; }
+.results-actions .results-submit:focus-visible .cl-glare { opacity: 0.9; }
+.results-actions .results-submit::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%; bottom: calc(100% + 8px);
+  transform: translate(-50%, 4px);
+  background: var(--ink);
+  color: var(--card);
+  font: 600 0.76rem/1 var(--sans);
+  white-space: nowrap;
+  padding: 7px 9px;
+  border-radius: 7px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s, transform 0.12s;
+  z-index: 3;
+}
+.results-actions .results-submit:hover::after,
+.results-actions .results-submit:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
 @media (hover: none), (max-width: 560px) {
-  .results-actions { gap: 6px; }
+  .results-actions { gap: 6px; flex-wrap: wrap; }
+  .results-actions .results-submit { flex-basis: 100%; display: flex; justify-content: center; margin: 10px 0 0; }
+  .results-actions .results-submit::after { display: none; }
   .results-actions .icon-btn { flex: 1 1 0; width: auto; max-width: 84px; height: 58px; }
   .icon-btn-label { display: block; }
   .results-actions .icon-btn::after { display: none; } /* the label is already on screen */
 }
 @media (prefers-reduced-motion: reduce) {
-  .results-actions .icon-btn::after { transition: none; }
+  .results-actions .icon-btn::after, .results-actions .results-submit::after { transition: none; }
 }
 .results-section-head {
   display: flex;
@@ -2083,14 +2110,6 @@ div.result-placard-head { cursor: default; }
 @keyframes cl-wiggle { 0%, 100% { transform: perspective(520px) rotate(-1.5deg); } 30% { transform: perspective(520px) rotate(-1.5deg) rotateY(9deg) rotateX(-4deg); } 65% { transform: perspective(520px) rotate(-1.5deg) rotateY(-5deg) rotateX(2deg); } }
 @keyframes cl-sweep { 0% { opacity: 0; transform: translateX(-45%); } 40% { opacity: .9; } 100% { opacity: 0; transform: translateX(45%); } }
 /* "Your name could be here" invitation under the four groups. */
-.credit-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 16px 2px 0; font-size: 0.86rem; }
-.credit-cta[hidden] { display: none; }
-.credit-cta .cl-slide { transform: rotate(-1.5deg); }
-.credit-cta .cl-paper::before { border: 1.5px dashed rgba(80, 70, 40, .45); }
-.cl-blank { font: 400 1.02rem/1.2 var(--hand); color: #8b8572; }
-.credit-cta .cl-glass { display: grid; place-items: center; font: 600 1.1rem/1 var(--sans); color: var(--ink-soft); }
-.credit-cta a { font-weight: 600; text-decoration: none; color: var(--accent); }
-.credit-cta a:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) {
   .credit-label, .credit-label *, .cl-slide.is-tap, .cl-slide.is-tap * { animation: none !important; }
   .credit-label.is-waiting:not(.is-in) { opacity: 1; }

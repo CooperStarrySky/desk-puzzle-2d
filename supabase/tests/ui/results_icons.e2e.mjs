@@ -119,7 +119,10 @@ const mouse = (P, p) => P.send('Input.dispatchMouseEvent', { type: 'mouseMoved',
 // No Anki cards in the puzzle: the Anki button is not shown at all, and the row stays centered.
 // Teaching notes start collapsed. With Anki note ids the button comes back.
 const balance = (P) => P.js(`(() => { const row = document.querySelector('.results-actions').getBoundingClientRect(); const bs = [...document.querySelectorAll('.results-actions button')].filter((b) => b.offsetParent !== null).map((b) => b.getBoundingClientRect());
-  return { n: bs.length, left: Math.round(bs[0].left - row.left), right: Math.round(row.right - bs[bs.length - 1].right), rows: new Set(bs.map((b) => Math.round(b.top))).size }; })()`);
+  // The "Submitted by YOU" slide ends the row on desktop (it wraps under the icons on phones), so it counts toward the balance only when it shares their row.
+  const sub = document.getElementById('btn-results-submit'), sr = sub && sub.offsetParent !== null ? sub.querySelector('.cl-slide').getBoundingClientRect() : null;
+  const end = sr && sr.top < bs[0].bottom && sr.bottom > bs[0].top ? sr.right : bs[bs.length - 1].right;
+  return { n: bs.length, left: Math.round(bs[0].left - row.left), right: Math.round(row.right - end), rows: new Set(bs.map((b) => Math.round(b.top))).size }; })()`);
 for (const [w, h, mobile] of [[1280, 900, false], [390, 844, true]]) {
   const tag = mobile ? 'phone' : 'desktop';
   const P = await results({ width: w, height: h, mobile });

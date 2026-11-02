@@ -2550,11 +2550,11 @@ export function showResultsForPuzzle(puzzle, opts) {
     els.resultsGroups.appendChild(buildResultPlacard(puzzle, g, solvedGroupIds, i));
   });
   wireCreditLabels(els.resultsGroups);
-  // "Your name could be here" invitation: real games only, not the editor preview.
-  var cta = els.overlayResults.querySelector('.credit-cta');
-  if (cta) {
-    if (!cta.querySelector('.credit-label')) cta.insertBefore(buildCreditLabel('', true), cta.firstChild);
-    cta.hidden = !!state.previewMode;
+  // "Submitted by YOU" slide in the bottom row: real games only, not the editor preview.
+  var submit = document.getElementById('btn-results-submit');
+  if (submit) {
+    submit.hidden = !!state.previewMode;
+    wireCreditLabels(submit.parentNode);
   }
 
   hideResultsClass(); // showResults fills it in for real games only
