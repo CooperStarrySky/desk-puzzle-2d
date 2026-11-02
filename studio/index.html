@@ -126,7 +126,7 @@ textarea.input { resize: vertical; min-height: 70px; }
 @media (max-width: 1060px) { .editor { grid-template-columns: minmax(0, 1fr); } }
 .sidecard { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 @media (min-width: 1061px) { .sidecard { position: sticky; top: 72px; max-height: calc(100vh - 84px); overflow-y: auto; } }
-.clue { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); }
+.clue { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); }
 @media (max-width: 560px) { .clue { grid-template-columns: minmax(0, 1fr); } }
 .field .opt { font-style: normal; font-weight: 500; color: var(--ink-faint); }
 /* Required marker: red star after the label; fades once the field is filled in. */
@@ -139,6 +139,19 @@ h2 .req-mark { font-size: 0.85em; }
 .clue-num { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
 .drops { display: flex; flex-direction: column; gap: 6px; }
 @media (max-width: 560px) { .drops { flex-direction: row; } .drops .drop { flex: 1; } }
+/* The clue's real piece (studio/piece.html sizes its frame to the piece). */
+.piece-slot { position: relative; display: grid; place-items: center; border-radius: var(--r-s); }
+.piece-frame { display: block; border: 0; width: 200px; height: 220px; background: transparent; color-scheme: normal; }
+.piece-slot.is-pic { cursor: pointer; }
+.piece-slot.is-pic .piece-frame { pointer-events: none; }
+.piece-slot.is-pic::after { content: ''; position: absolute; inset: 2px; border: 1.5px dashed transparent; border-radius: var(--r-s); pointer-events: none; transition: border-color .15s; }
+.piece-slot.is-pic:hover::after, .piece-slot.is-pic:focus-visible::after { border-color: var(--accent); }
+.piece-slot.is-pic:focus-visible { outline: none; }
+.piece-slot.over::after { border-color: var(--accent); background: var(--accent-soft); opacity: .6; }
+.piece-slot .drop-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: max-content; max-width: 170px; padding: 4px 8px; border-radius: 6px;
+  background: rgba(20, 22, 30, .72); color: #fff; font-size: 0.7rem; line-height: 1.3; text-align: center; pointer-events: none; }
+.piece-slot .rm { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 0.8rem; line-height: 1; display: grid; place-items: center; z-index: 2; }
+.write-hint { margin: 2px 0 0; }
 .drop { position: relative; border: 1.5px dashed var(--panel-edge); border-radius: var(--r-s); min-height: 96px; display: grid; place-items: center; text-align: center; font-size: 0.74rem; line-height: 1.3; color: var(--ink-faint); padding: 6px; background: var(--paper); width: 100%; }
 button.drop { cursor: pointer; }
 .drop.text-only { cursor: default; border-style: dotted; }
@@ -255,10 +268,7 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
       <div class="stack" style="--gap:16px" id="ebody"></div>
       <aside class="sidecard">
         <div class="placard stack" style="--gap:10px">
-          <div class="tabs prev-tabs" role="tablist" aria-label="Preview">
-            <button role="tab" type="button" id="pv-desk" data-pv="desk" aria-selected="true">Desk</button>
-            <button role="tab" type="button" id="pv-results" data-pv="results" aria-selected="false">Results screen</button>
-          </div>
+          <span class="eyebrow">Results screen preview</span>
           <iframe class="pv-frame" id="pv-frame" title="Live preview" src="preview.html" tabindex="-1"></iframe>
           <p class="hint" id="pv-hint"></p></div>
         <div class="placard stack" style="--gap:10px"><span class="eyebrow">Ready to send?</span><ul class="checklist" id="checks"></ul>
@@ -932,18 +942,23 @@ function confirmModal(title, text, okLabel) {
 }
 /* ===== Rendering: the editor (both modes) ===== */
 const IMAGE_SLOT = { photo: 'Photo', rack: 'Microscope view', tubes: 'X-ray image' };
+/* Each clue shows its real game piece (studio/piece.html), at game size. Text
+   pieces are written on directly; a picture piece is the drop target itself. */
+function pieceFrame(ii, writable) {
+  return '<iframe class="piece-frame" data-pf="' + ii + '" src="piece.html?i=' + ii + '" title="Clue ' + (ii + 1) + (writable ? ': write on the piece' : ': the piece') + '"' +
+    (writable ? '' : ' tabindex="-1" aria-hidden="true"') + '></iframe>';
+}
 function dropHtml(I, ii) {
   const f = picField(I.zone);
-  if (!f) return '<div class="drop text-only">Text clue<br>(no image)</div>';
+  if (!f) return '<div class="piece-slot is-text">' + pieceFrame(ii, true) + '</div>';
   const label = IMAGE_SLOT[I.zone], src = I[f];
-  const shape = 'aspect-ratio:' + ZONE_ASPECT[I.zone].toFixed(4);
   if (src) {
-    return '<div class="drop has" role="button" tabindex="0" data-drop="' + ii + '" style="' + shape + ';background-image:' + esc(cssUrl(src)) + '" aria-label="' + esc(label) + ': replace image">' +
+    return '<div class="piece-slot is-pic has" role="button" tabindex="0" data-drop="' + ii + '" aria-label="' + esc(label) + ': replace image">' + pieceFrame(ii, false) +
       '<button type="button" class="rm" data-rm="' + ii + '" aria-label="Remove ' + esc(label.toLowerCase()) + '">✕</button></div>' +
       '<button type="button" class="btn small" data-crop="' + ii + '">Crop</button>';
   }
-  return '<div class="drop" role="button" tabindex="0" data-drop="' + ii + '" style="' + shape + '" aria-label="' + esc(label) + ': add image">' +
-    esc(label) + '<br>Drop, paste, or click</div>';
+  return '<div class="piece-slot is-pic" role="button" tabindex="0" data-drop="' + ii + '" aria-label="' + esc(label) + ': add image">' + pieceFrame(ii, false) +
+    '<span class="drop-hint">' + esc(label) + '<br>Drop, paste, or click</span></div>';
 }
 /** Red star for a required field (screen readers get aria-required on the control instead). */
 const REQ = '<span class="req-mark" aria-hidden="true">*</span>';
@@ -960,7 +975,8 @@ function clueHtml(I, ii, noPatient) {
     '<div class="stack" style="--gap:8px">' +
     '<div class="row" style="--gap:8px"><span class="clue-num">' + n + '</span>' +
     '<select class="input" data-f="zone" data-i="' + ii + '" style="width:190px; flex:none" aria-label="' + n + ': kind of piece" aria-required="true">' + opts + '</select></div>' +
-    '<label class="field"><span>' + fieldLabel + REQ + '</span><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="' + ph + '" maxlength="' + SEND_LIMITS.label + '" aria-required="true"></label>' +
+    (img ? '<label class="field"><span>' + fieldLabel + REQ + '</span><input class="input" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '" placeholder="' + ph + '" maxlength="' + SEND_LIMITS.label + '" aria-required="true"></label>'
+      : '<div class="field"><span>' + fieldLabel + REQ + '</span><input type="hidden" data-f="label" data-i="' + ii + '" value="' + esc(I.label) + '"><p class="hint write-hint">Click the ' + esc(ZONE_NAMES[I.zone].toLowerCase()) + ' and write on it.</p></div>') +
     (img ? '<p class="hint">Players don’t see this while solving unless they use the “Label Images” hint, which tags the piece with it. It’s shown under the image on the results screen.</p>' +
       '<label class="field"><span>Image source' + (hasPic ? REQ : ' <em class="opt">(needed with an image)</em>') + '</span><input class="input" data-f="credit" data-i="' + ii + '" value="' + esc(I.credit) + '" placeholder="' + esc(ex.source || CLUE_EXAMPLES.photo.source) + '" aria-label="' + n + ': image source"' + picReq + '></label>' +
       '<label class="check"><input type="checkbox" data-np="' + ii + '"' + (noPatient[ii] ? ' checked' : '') + picReq + '><span>No patient can be identified in this image (no faces, names, dates, or record numbers)' + (hasPic ? REQ : '') + '</span></label>' : '') +
@@ -1036,8 +1052,39 @@ function refreshReq() {
     m.classList.toggle('filled', done);
   });
 }
+/* ===== Each clue's piece (studio/piece.html) ===== */
+function pieceMsg(ii) {
+  const I = groupAt(curGi()).items[ii], f = picField(I.zone), src = f ? I[f] || '' : '';
+  const item = { id: 'studio-clue-' + (ii + 1), zone: I.zone, label: I.label || '', info: { title: I.label || '' } };
+  if (I.zone !== 'rack' && src) item.info.image = src;
+  const ex = CLUE_EXAMPLES[I.zone] || CLUE_EXAMPLES.corkboard;
+  return { type: 'dp-piece', item, image: I.zone === 'rack' ? src : '', max: SEND_LIMITS.label,
+    placeholder: 'e.g. ' + ex.label, aria: 'Clue ' + (ii + 1) + ': what’s written on it',
+    theme: document.documentElement.getAttribute('data-theme') };
+}
+function postPiece(ii) {
+  const f = $('#ebody [data-pf="' + ii + '"]');
+  if (f && f.contentWindow) f.contentWindow.postMessage(pieceMsg(ii), location.origin);
+}
+function bindPieces() {
+  window.addEventListener('message', (ev) => {
+    if (ev.origin !== location.origin || !ev.data || !/^dp-piece-/.test(ev.data.type)) return;
+    const f = $$('#ebody .piece-frame').find((x) => x.contentWindow === ev.source);
+    if (!f) return;
+    const ii = Number(f.dataset.pf);
+    if (ev.data.type === 'dp-piece-ready') postPiece(ii);
+    else if (ev.data.type === 'dp-piece-size') { f.style.width = ev.data.w + 'px'; f.style.height = ev.data.h + 'px'; }
+    else if (ev.data.type === 'dp-piece-text') {
+      groupAt(curGi()).items[ii].label = String(ev.data.text || '');
+      const h = $('#ebody input[type="hidden"][data-f="label"][data-i="' + ii + '"]'); if (h) h.value = ev.data.text;
+      refreshReq(); bump();
+    }
+  });
+  // Image clues: the piece's caption/etched label follows the text box as it's typed.
+  $('#ebody').addEventListener('input', (e) => { if (e.target.dataset.f === 'label') postPiece(Number(e.target.dataset.i)); });
+}
 /* ===== Sidebar: live preview (the game's own pieces and results placards) + checklist ===== */
-let pvView = 'desk';
+let pvView = 'results'; // each clue shows its own piece now, so the sidebar shows the results screen
 let pvReady = false;
 let pvTimer = 0;
 /** The draft as the game would load it, with stand-in text where fields are still empty. */
@@ -1416,7 +1463,7 @@ cat = loadCategory(rawCat) || blankCategory();
 oldGroups = oldPuzzleGroups(rawPuz);
 // Old links: studio/?build (the retired full-puzzle mode) now opens the category form.
 if (new URLSearchParams(location.search).has('build')) { try { history.replaceState(null, '', location.pathname + '?submit'); } catch (e) { /* fine */ } }
-bindChrome(); bindEditor(); bindPreview(); bindOldPuzzle(); drawSent();
+bindChrome(); bindEditor(); bindPreview(); bindPieces(); bindOldPuzzle(); drawSent();
 drawOldPuzzle(); drawBody(); setPreviewView(pvView);
 loadSchools();
 loadTurnstile();
