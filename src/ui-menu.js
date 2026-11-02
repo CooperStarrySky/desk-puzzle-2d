@@ -413,7 +413,7 @@ export function onEngineChange() {
 export function onPhaseChange(p) {
   if (p === 'won') {
     playSound('win');
-    announce('You solved the puzzle with ' + state.game.mistakes + ' wrong guess' + (state.game.mistakes === 1 ? '' : 'es') + '.');
+    announce('You solved the puzzle in ' + (state.game.mistakes + 1) + ' guess' + (state.game.mistakes === 0 ? '' : 'es') + '.');
     setTimeout(showResults, 450);
   } else if (p === 'lost') {
     playSound('lose');

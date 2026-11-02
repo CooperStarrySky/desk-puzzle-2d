@@ -76,7 +76,7 @@ function renderStats(s, hl) {
   body.appendChild(nums);
 
   body.appendChild(el('h3', 'stats-chart-title', 'Guesses per game'));
-  var rows = [[0, '0', s.chart[0]], [1, '1', s.chart[1]], [2, '2', s.chart[2]], [3, '3', s.chart[3]], ['lost', 'Not solved', s.notSolved]];
+  var rows = [[0, '1', s.chart[0]], [1, '2', s.chart[1]], [2, '3', s.chart[2]], [3, '4', s.chart[3]], ['lost', 'Not solved', s.notSolved]]; // guesses = wrong guesses + 1
   var max = Math.max.apply(null, rows.map(function (r) { return r[2]; }).concat([1]));
   var chart = el('ol', 'stats-chart');
   chart.setAttribute('aria-label', 'Standard games by guesses');
@@ -88,7 +88,7 @@ function renderStats(s, hl) {
     bar.style.width = Math.max(8, Math.round((r[2] / max) * 100)) + '%';
     track.appendChild(bar);
     li.appendChild(track);
-    li.setAttribute('aria-label', (r[0] === 'lost' ? 'Not solved' : 'Solved with ' + r[1] + ' wrong guess' + (r[1] === '1' ? '' : 'es')) + ': ' + r[2]);
+    li.setAttribute('aria-label', (r[0] === 'lost' ? 'Not solved' : 'Solved in ' + r[1] + ' guess' + (r[1] === '1' ? '' : 'es')) + ': ' + r[2]);
     chart.appendChild(li);
   });
   body.appendChild(chart);

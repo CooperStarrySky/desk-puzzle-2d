@@ -33,7 +33,7 @@ function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
 
 function drawChart(list, s, mine) {
   list.innerHTML = '';
-  var rows = [[0, '0'], [1, '1'], [2, '2'], [3, '3'], [4, 'Not solved']];
+  var rows = [[0, '1'], [1, '2'], [2, '3'], [3, '4'], [4, 'Not solved']]; // guesses = wrong guesses + 1
   var max = Math.max.apply(null, s.hist.concat([1]));
   rows.forEach(function (r) {
     var n = s.hist[r[0]];
@@ -45,7 +45,7 @@ function drawChart(list, s, mine) {
     bar.style.width = Math.max(14, Math.round((n / max) * 100)) + '%';
     track.appendChild(bar);
     li.appendChild(track);
-    li.setAttribute('aria-label', (r[0] === 4 ? 'Not solved' : 'Solved with ' + (r[0] === 1 ? '1 wrong guess' : r[0] + ' wrong guesses')) + ': ' + pct + '% of players' + (mine === r[0] ? ' (you)' : ''));
+    li.setAttribute('aria-label', (r[0] === 4 ? 'Not solved' : 'Solved in ' + (r[0] + 1) + (r[0] === 0 ? ' guess' : ' guesses')) + ': ' + pct + '% of players' + (mine === r[0] ? ' (you)' : ''));
     list.appendChild(li);
   });
 }
@@ -131,7 +131,7 @@ function drawEveryone(puzzleId, s) {
   wait.hidden = enough;
   line.hidden = chart.hidden = hints.hidden = !enough;
   if (!enough) return;
-  line.textContent = plural(s.plays, 'play') + ' · ' + s.solvedPct + '% solved · avg ' + s.avgMistakes.toFixed(1) + ' guesses';
+  line.textContent = plural(s.plays, 'play') + ' · ' + s.solvedPct + '% solved' + (s.avgGuesses ? ' · avg ' + s.avgGuesses.toFixed(1) + ' guesses to solve' : '');
   drawChart(chart, s, classSlot(getFirstResult(puzzleId)));
   hints.textContent = s.hintPct + '% of players used at least one hint' + (s.hintPct && s.topHint ? ' · most used: ' + s.topHint : '');
 }
@@ -216,7 +216,7 @@ export function fillMenuClassLines(entries) {
 
 /* ── Share text ──────────────────────────────────────────────────── */
 
-/** "Fewer mistakes than X% of players" for the counted (first) finish, or ''. */
+/** "Fewer guesses than X% of players" for the counted (first) finish, or ''. */
 export function classShareLine(puzzleId) {
   if (!isStatsEligible(puzzleId)) return '';
   var row = cachedClassStats(puzzleId);

@@ -332,6 +332,8 @@ export function classSummary(row) {
     enough: n >= CLASS_MIN,
     solvedPct: n ? Math.round((Math.floor(Number(row.std_wins) || 0) / n) * 100) : 0,
     avgMistakes: n ? (hist[1] + 2 * hist[2] + 3 * hist[3] + 4 * hist[4]) / n : 0,
+    // Shown as "guesses": a clean solve is 1 guess, one wrong guess is 2, and so on (solvers only).
+    avgGuesses: (hist[0] + hist[1] + hist[2] + hist[3]) ? (hist[0] + 2 * hist[1] + 3 * hist[2] + 4 * hist[3]) / (hist[0] + hist[1] + hist[2] + hist[3]) : 0,
     hist: hist,
     hintPct: n ? Math.round(((Math.floor(Number(row.hint_any) || 0)) / n) * 100) : 0,
     topHint: hints[0].n > 0 ? hints[0].name : '',
