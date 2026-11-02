@@ -300,21 +300,20 @@
               <h3 id="results-class-title" class="results-class-title">How everyone did</h3>
               <p id="results-class-since" class="results-class-since" hidden></p>
               <p id="results-class-line" class="results-class-line"></p>
-              <p id="results-class-wait" class="results-class-wait" hidden>Not enough players yet — check back later.</p>
-              <ol id="results-class-chart" class="stats-chart results-class-chart" aria-label="Standard games by wrong guesses, all players"></ol>
+              <p id="results-class-wait" class="results-class-wait" hidden>No finishes yet.</p>
+              <ol id="results-class-chart" class="stats-chart results-class-chart" aria-label="Standard games by guesses, all players"></ol>
               <p id="results-class-hints" class="results-class-hints"></p>
             </div>
-            <!-- Rating: how others rated it (shown after you vote or skip), with the 1-5 buttons lined up under the bars. -->
+            <!-- Rating: how others rated it (shown after you vote or skip), with the 1-4 buttons (no middle option) lined up under the bars. -->
             <div id="results-rating" class="results-rating" hidden>
               <p id="results-rate-q" class="results-rate-q">How hard was this one?</p>
               <div id="results-rated" class="results-rated" aria-live="polite" hidden></div>
               <div id="results-rate" class="results-rate" hidden>
                 <div class="results-rate-btns rate-grid" role="group" aria-labelledby="results-rate-q">
-                  <button type="button" class="rate-btn" data-rate="1" aria-pressed="false">Easy</button>
-                  <button type="button" class="rate-btn" data-rate="2" aria-pressed="false">Fair</button>
-                  <button type="button" class="rate-btn" data-rate="3" aria-pressed="false">Tricky</button>
-                  <button type="button" class="rate-btn" data-rate="4" aria-pressed="false">Hard</button>
-                  <button type="button" class="rate-btn" data-rate="5" aria-pressed="false">Brutal</button>
+                  <button type="button" class="rate-btn" data-rate="1" aria-pressed="false">Very easy</button>
+                  <button type="button" class="rate-btn" data-rate="2" aria-pressed="false">Easy</button>
+                  <button type="button" class="rate-btn" data-rate="3" aria-pressed="false">Difficult</button>
+                  <button type="button" class="rate-btn" data-rate="4" aria-pressed="false">Brutal</button>
                 </div>
                 <button id="btn-rate-skip" class="link-btn results-rate-skip" type="button">Skip</button>
               </div>
@@ -405,7 +404,7 @@
     }
   </script>
   <!-- Public Supabase address + publishable key, shared with the Studio (anonymous play stats). -->
-  <script src="studio/config.js?v=52"></script>
+  <script src="studio/config.js?v=53"></script>
   <script type="module" src="src/main.js?v=53"></script>
 </body>
 </html>

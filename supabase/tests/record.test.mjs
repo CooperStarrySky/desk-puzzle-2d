@@ -121,7 +121,7 @@ const json = async (r) => ({ status: r.status, body: await r.json() });
   ok(r.status === 200 && db.st.plays[0].rating === 2, 'rating can be changed');
   r = await json(await handle(post({ event: 'rate', puzzleId: PID, anonId: '11111111-2222-4333-8444-555555555555', rating: 3 })));
   ok(r.status === 409 && db.st.plays[0].rating === 2, "another browser can't rate without its own finish");
-  for (const bad of [0, 6, 2.5, '3', null]) {
+  for (const bad of [0, 5, 6, 2.5, '3', null]) {
     r = await json(await handle(post({ event: 'rate', puzzleId: PID, anonId: ANON, rating: bad })));
     ok(r.status === 400, 'bad rating refused: ' + JSON.stringify(bad));
   }

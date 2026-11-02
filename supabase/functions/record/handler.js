@@ -11,7 +11,7 @@
 //     solveOrder: [group ids in solve order], revealedGroup: group id | null,
 //     hintAfter: { labels, seeds, category }  groups solved when each hint was
 //                first used (0-3), null when unused or unknown }
-//   { event: 'rate', puzzleId, anonId, rating: 1..5 }
+//   { event: 'rate', puzzleId, anonId, rating: 1..4 }
 // Any other key is refused, so nothing beyond the approved list can be stored.
 // A malformed OPTIONAL field is dropped (stored as null) and the rest of the
 // finish is still saved; a malformed required field refuses the whole event.
@@ -176,7 +176,7 @@ export function createHandler(deps) {
       if (typeof row === 'string') return fail(400, row);
     } else {
       if (!onlyKeys(b, RATE_KEYS)) return fail(400, 'unexpected field');
-      if (!isInt(b.rating, 1, 5)) return fail(400, 'bad rating');
+      if (!isInt(b.rating, 1, 4)) return fail(400, 'bad rating');
     }
 
     // ── Rate limit (after the cheap checks, so junk never fills the log) ──

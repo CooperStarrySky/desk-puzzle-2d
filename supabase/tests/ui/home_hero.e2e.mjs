@@ -13,7 +13,7 @@ if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 const reg = await (await fetch(BASE + '/puzzles/index.json')).json();
 const cur = reg.puzzles.find((p) => p.id === reg.current);
 const number = reg.puzzles.slice().sort((a, b) => a.date.localeCompare(b.date)).findIndex((p) => p.id === cur.id) + 1;
-const row = (n, wins, plays) => ({ puzzle_id: cur.id, plays, std_finishes: n, std_wins: wins, mistakes_hist: [wins, 0, 0, 0, n - wins], rating_hist: [0, 0, 0, 0, 0], hint_any: 0, hint_labels: 0, hint_seeds: 0, hint_category: 0 });
+const row = (n, wins, plays) => ({ puzzle_id: cur.id, plays, std_finishes: n, std_wins: wins, mistakes_hist: [wins, 0, 0, 0, n - wins], rating_hist: [0, 0, 0, 0], hint_any: 0, hint_labels: 0, hint_seeds: 0, hint_category: 0 });
 
 const stubs = [];
 const liveCount = () => stubs.reduce((n, c) => n + c.live, 0);
@@ -34,7 +34,7 @@ const mouse = (P, x, y) => P.send('Input.dispatchMouseEvent', { type: 'mouseMove
   check('A1 featured card names the same puzzle', ((await P.attr('#btn-play-featured', 'aria-label')) || '').endsWith(cur.title));
   const meta = await P.text('#hero-meta');
   check('A2 meta line: number, date, piece count', meta === `Puzzle ${number} · ${await P.js(`(${JSON.stringify(cur.date)}).replace(/^(\\d+)-(\\d+)-(\\d+)$/, (m, y, mo, d) => new Date(Date.UTC(+y, +mo - 1, +d)).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }))`)} · 16 clues`, meta);
-  check('A3 live line hidden below the class threshold', (await P.attr('#hero-live', 'hidden')) !== null && !(await P.visible('#hero-live')));
+  check('A3 live line shows with only a few players (no minimum)', (await P.attr('#hero-live', 'hidden')) === null && (await P.text('#hero-players')) === '7', await P.text('#hero-players'));
   check('A4 Play is the only hero button', (await P.count('.hero-copy button, .hero-copy a')) === 1 && (await P.text('.hero-copy #btn-play-today')) === 'Play');
   check('A4 no tagline, Submit button, or "Free, no sign-in"', !(await P.count('.hero .lede, .hero a[href*="studio"]')) && !/Free, no sign-in/.test(await P.js('document.body.innerText')));
   check('A4 How to play stays in the header only', (await P.count('#btn-menu-help')) === 1 && !/How to play/.test(await P.text('.hero')));

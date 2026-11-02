@@ -214,7 +214,7 @@ export function computeStats(entries, saves, firsts) {
  *   plays (all finishes, casual too), std_finishes, std_wins,
  *   mistakes_hist [won0, won1, won2, won3, lost] over standard finishes,
  *   hint_any/hint_labels/hint_seeds/hint_category over standard finishes,
- *   rating_n, rating_hist [1..5].
+ *   rating_n, rating_hist [1..4].
  * Definitions used on screen:
  *   % solved      std_wins / std_finishes
  *   avg mistakes  over standard finishes; a loss counts as 4 (it ends on
@@ -226,8 +226,9 @@ export function computeStats(entries, saves, firsts) {
  * ──────────────────────────────────────────────────────────────────── */
 
 export var STATS_SINCE = '2026-10-11';
-export var CLASS_MIN = 10; // show nothing below 10 standard finishes / 10 ratings
-export var RATING_LABELS = ['Easy', 'Fair', 'Tricky', 'Hard', 'Brutal'];
+export var CLASS_MIN = 1; // show as soon as anyone has finished / rated (Thirth, 2026-10-31)
+// Four options, no middle: every rating leans easy or hard (5-point ratings were retired 2026-10-30).
+export var RATING_LABELS = ['Very easy', 'Easy', 'Difficult', 'Brutal'];
 var STATS_ID_RE = /^[a-z0-9-]+-(\d{4}-\d{2}-\d{2})$/;
 
 export var LEGACY_CLASS_LABEL = 'From players since Oct 2026';
@@ -302,6 +303,12 @@ export function classSlot(rec) {
   return c.won ? Math.min(c.mistakes, CHART_MAX_MISTAKES) : 4;
 }
 
+function hist4(a) {
+  var out = [0, 0, 0, 0];
+  if (Array.isArray(a)) for (var i = 0; i < 4; i++) out[i] = Math.max(0, Math.floor(Number(a[i]) || 0));
+  return out;
+}
+
 function hist5(a) {
   var out = [0, 0, 0, 0, 0];
   if (Array.isArray(a)) for (var i = 0; i < 5; i++) out[i] = Math.max(0, Math.floor(Number(a[i]) || 0));
@@ -313,25 +320,27 @@ export function classSummary(row) {
   if (!row || typeof row !== 'object') return null;
   var n = Math.max(0, Math.floor(Number(row.std_finishes) || 0));
   var hist = hist5(row.mistakes_hist);
-  var rh = hist5(row.rating_hist);
+  var rh = hist4(row.rating_hist);
   var rn = rh.reduce(function (a, b) { return a + b; }, 0);
   var hints = [['labels', 'Label Images', row.hint_labels], ['seeds', 'Seed the Trays', row.hint_seeds], ['category', 'Reveal a Category', row.hint_category]]
     .map(function (h) { return { key: h[0], name: h[1], n: Math.max(0, Math.floor(Number(h[2]) || 0)) }; })
     .sort(function (a, b) { return b.n - a.n; });
-  var mean = rn ? (rh[0] + 2 * rh[1] + 3 * rh[2] + 4 * rh[3] + 5 * rh[4]) / rn : 0;
+  var mean = rn ? (rh[0] + 2 * rh[1] + 3 * rh[2] + 4 * rh[3]) / rn : 0;
   return {
     plays: Math.max(n, Math.floor(Number(row.plays) || 0)),
     stdFinishes: n,
     enough: n >= CLASS_MIN,
     solvedPct: n ? Math.round((Math.floor(Number(row.std_wins) || 0) / n) * 100) : 0,
     avgMistakes: n ? (hist[1] + 2 * hist[2] + 3 * hist[3] + 4 * hist[4]) / n : 0,
+    // Shown as "guesses": a clean solve is 1 guess, one wrong guess is 2, and so on (solvers only).
+    avgGuesses: (hist[0] + hist[1] + hist[2] + hist[3]) ? (hist[0] + 2 * hist[1] + 3 * hist[2] + 4 * hist[3]) / (hist[0] + hist[1] + hist[2] + hist[3]) : 0,
     hist: hist,
     hintPct: n ? Math.round(((Math.floor(Number(row.hint_any) || 0)) / n) * 100) : 0,
     topHint: hints[0].n > 0 ? hints[0].name : '',
     ratingN: rn,
     ratingHist: rh,
     ratingEnough: rn >= CLASS_MIN,
-    ratingLabel: rn ? RATING_LABELS[Math.min(4, Math.max(0, Math.round(mean) - 1))] : '',
+    ratingLabel: rn ? RATING_LABELS[Math.min(3, Math.max(0, Math.round(mean) - 1))] : '',
   };
 }
 
@@ -349,7 +358,7 @@ export function menuStatsLine(summary, legacy) {
   if (!summary) return '';
   var parts = [];
   if (summary.enough) {
-    parts.push(summary.plays + ' plays');
+    parts.push(summary.plays + (summary.plays === 1 ? ' play' : ' plays'));
     parts.push(summary.solvedPct + '% solved');
   }
   if (summary.ratingEnough) parts.push('Rated ' + summary.ratingLabel);

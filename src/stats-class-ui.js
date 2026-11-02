@@ -3,7 +3,7 @@
  * "How everyone did" block and difficulty rating row, the menu card line,
  * and the share-text line. Numbers come from stats-core.js classSummary
  * (definitions there). Every published puzzle shows them once enough
- * players finish (CLASS_MIN). Puzzles released on or before 2026-10-11 only
+ * anyone finishes (CLASS_MIN = 1), and refresh while on screen (LIVE_MS). Puzzles released on or before 2026-10-11 only
  * count finishes since class stats were turned on for them (2026-10-29), so
  * their block carries LEGACY_CLASS_LABEL. Nothing shows in preview mode or
  * when the totals can't be loaded (3 s limit, hidden silently).
@@ -12,10 +12,13 @@
  * ════════════════════════════════════════════════════════════════════ */
 
 import { state, getFirstResult } from './state.js';
-import { isStatsEligible, isLegacyStatsPuzzle, LEGACY_CLASS_LABEL, classSummary, classSlot, fewerMistakesPct, menuStatsLine, RATING_LABELS, CLASS_MIN } from './stats-core.js';
+import { isStatsEligible, isLegacyStatsPuzzle, LEGACY_CLASS_LABEL, classSummary, classSlot, fewerMistakesPct, menuStatsLine, RATING_LABELS } from './stats-core.js';
 import { fetchClassStats, cachedClassStats, whenSent, statsSharingEnabled, hasCountedPlay, getMyRating, rate, skipRating } from './stats-remote.js';
 
 var renderToken = 0;
+var LIVE_MS = 10000;       // results screen: re-read the totals every 10 s while it's open
+var MENU_LIVE_MS = 30000;  // menu cards: every 30 s
+var liveTimer = 0, menuTimer = 0;
 var $ = function (id) { return document.getElementById(id); };
 
 function el(tag, cls, text) {
@@ -30,7 +33,7 @@ function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
 
 function drawChart(list, s, mine) {
   list.innerHTML = '';
-  var rows = [[0, '0'], [1, '1'], [2, '2'], [3, '3'], [4, 'Not solved']];
+  var rows = [[0, '1'], [1, '2'], [2, '3'], [3, '4'], [4, 'Not solved']]; // guesses = wrong guesses + 1
   var max = Math.max.apply(null, s.hist.concat([1]));
   rows.forEach(function (r) {
     var n = s.hist[r[0]];
@@ -42,7 +45,7 @@ function drawChart(list, s, mine) {
     bar.style.width = Math.max(14, Math.round((n / max) * 100)) + '%';
     track.appendChild(bar);
     li.appendChild(track);
-    li.setAttribute('aria-label', (r[0] === 4 ? 'Not solved' : 'Solved with ' + (r[0] === 1 ? '1 wrong guess' : r[0] + ' wrong guesses')) + ': ' + pct + '% of players' + (mine === r[0] ? ' (you)' : ''));
+    li.setAttribute('aria-label', (r[0] === 4 ? 'Not solved' : 'Solved in ' + (r[0] + 1) + (r[0] === 0 ? ' guess' : ' guesses')) + ': ' + pct + '% of players' + (mine === r[0] ? ' (you)' : ''));
     list.appendChild(li);
   });
 }
@@ -51,7 +54,7 @@ function drawChart(list, s, mine) {
 function drawRated(box, s) {
   box.innerHTML = '';
   if (!s || !s.ratingEnough) {
-    box.appendChild(el('p', 'results-rated-line is-wait', 'Ratings show once ' + CLASS_MIN + ' players have rated this one.'));
+    box.appendChild(el('p', 'results-rated-line is-wait', 'No ratings yet.'));
     return;
   }
   var line = el('p', 'results-rated-line');
@@ -128,7 +131,7 @@ function drawEveryone(puzzleId, s) {
   wait.hidden = enough;
   line.hidden = chart.hidden = hints.hidden = !enough;
   if (!enough) return;
-  line.textContent = s.plays + ' plays · ' + s.solvedPct + '% solved · avg ' + s.avgMistakes.toFixed(1) + ' wrong guesses';
+  line.textContent = plural(s.plays, 'play') + ' · ' + s.solvedPct + '% solved' + (s.avgGuesses ? ' · avg ' + s.avgGuesses.toFixed(1) + ' guesses to solve' : '');
   drawChart(chart, s, classSlot(getFirstResult(puzzleId)));
   hints.textContent = s.hintPct + '% of players used at least one hint' + (s.hintPct && s.topHint ? ' · most used: ' + s.topHint : '');
 }
@@ -156,12 +159,30 @@ export function renderResultsClass(puzzle) {
     if (everyone) everyone.hidden = false;
     drawRating(id, s);
     sec.hidden = false;
+    startLive(id, token);
   });
+}
+
+/* Live totals: keep re-reading while this results screen is the one showing. */
+function startLive(id, token) {
+  clearInterval(liveTimer);
+  liveTimer = setInterval(function () {
+    if (token !== renderToken) { clearInterval(liveTimer); return; }
+    if (document.hidden) return;
+    fetchClassStats([id], { fresh: true }).then(function (map) {
+      if (token !== renderToken || !(id in map)) return;
+      var s = classSummary(map[id]);
+      drawEveryone(id, s);
+      var rated = $('results-rated');
+      if (rated && !rated.hidden) drawRated(rated, s);
+    });
+  }, LIVE_MS);
 }
 
 /** Results closed or reused for a preview: stop any late update. */
 export function hideResultsClass() {
   renderToken++;
+  clearInterval(liveTimer);
   var sec = $('results-class');
   if (sec) sec.hidden = true;
 }
@@ -173,23 +194,32 @@ export function fillMenuClassLines(entries) {
   if (state.previewMode || state.editorMode) return;
   var ids = (entries || []).map(function (e) { return e.id; }).filter(isStatsEligible);
   if (!ids.length) return;
-  fetchClassStats(ids).then(function (map) {
-    ids.forEach(function (id) {
-      var text = menuStatsLine(classSummary(map[id]), isLegacyStatsPuzzle(id));
-      document.querySelectorAll('.pcard-class[data-class-for="' + id + '"]').forEach(function (n) {
-        n.textContent = text;
-        n.hidden = !text;
+  var fill = function (fresh) {
+    return fetchClassStats(ids, { fresh: fresh }).then(function (map) {
+      ids.forEach(function (id) {
+        if (!(id in map)) return; // couldn't load: keep what's showing
+        var text = menuStatsLine(classSummary(map[id]), isLegacyStatsPuzzle(id));
+        document.querySelectorAll('.pcard-class[data-class-for="' + id + '"]').forEach(function (n) {
+          n.textContent = text;
+          n.hidden = !text;
+        });
       });
     });
-  });
+  };
+  fill(false);
+  clearInterval(menuTimer);
+  menuTimer = setInterval(function () {
+    if (document.hidden || !document.querySelector('.pcard-class')) return;
+    fill(true);
+  }, MENU_LIVE_MS);
 }
 
 /* ── Share text ──────────────────────────────────────────────────── */
 
-/** "Fewer mistakes than X% of players" for the counted (first) finish, or ''. */
+/** "Fewer guesses than X% of players" for the counted (first) finish, or ''. */
 export function classShareLine(puzzleId) {
   if (!isStatsEligible(puzzleId)) return '';
   var row = cachedClassStats(puzzleId);
   var pct = fewerMistakesPct(classSummary(row), classSlot(getFirstResult(puzzleId)));
-  return pct === null ? '' : 'Fewer wrong guesses than ' + pct + '% of players';
+  return pct === null ? '' : 'Fewer guesses than ' + pct + '% of players';
 }

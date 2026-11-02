@@ -2573,7 +2573,7 @@ export function showResults() {
   var won = game.phase === 'won';
   var solvedGroupIds = new Set(game.solved.map(function (s) { return s.groupId; }));
   var casualSuffix = game.casual ? ' Casual mode.' : '';
-  var guesses = game.attempts.length;
+  var guesses = game.mistakes + 1; // a clean solve is 1 guess, one wrong guess makes it 2
   showResultsForPuzzle(game.puzzle, {
     won: won,
     sub: won
@@ -2640,7 +2640,8 @@ export function buildShareText() {
   var lines = [];
   lines.push('Starry Sky Society Puzzle');
   lines.push(puzzle.title + (puzzle.date ? ', ' + puzzle.date : ''));
-  lines.push('Wrong guesses: ' + game.mistakes + (state.settings.casual ? ' (casual)' : '/' + MAX_MISTAKES));
+  var won = game.phase === 'won', g = game.mistakes + 1;
+  lines.push((won ? 'Solved in ' + g + ' guess' + (g === 1 ? '' : 'es') : 'Not solved') + (state.settings.casual ? ' (casual)' : ''));
   var hintEmojis = '';
   var hints = state.desk.hints || {};
   if (hints.labels) hintEmojis += '🏷️';

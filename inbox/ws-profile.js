@@ -17,6 +17,7 @@ export async function loadPeople() {
     S.sb.from('school_settings').select('school, comment_default, faculty_badge')]);
   const rows = (mine.data || []).filter((r) => r.active);
   S.owner = !own.error && (own.data || []).length > 0;
+  if (S.owner) markOwnerBrowser();
   if (!rows.length && !S.owner) return false;
   S.roles = {}; rows.forEach((r) => { S.roles[r.school] = r.role; });
   const ordered = rows.map((r) => r.school).sort((a, b) => (b === 'cmsru') - (a === 'cmsru') || (a < b ? -1 : 1));
@@ -30,6 +31,22 @@ export async function loadPeople() {
   if (S.myRow && !S.people.has(S.me)) S.people.set(S.me, Object.assign({ schools: ordered }, S.myRow));
   return true;
 }
+/* The site owner's own games shouldn't count in the public class stats. The game
+   keeps a random id per browser (dp2d:anon); signing in here tells the database
+   "this browser is the owner's", which leaves out its past and future plays.
+   Makes the id now if this browser hasn't played yet. Quiet on any failure. */
+function markOwnerBrowser() {
+  let id = null;
+  try {
+    id = localStorage.getItem('dp2d:anon');
+    if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      id = crypto.randomUUID();
+      localStorage.setItem('dp2d:anon', id);
+    }
+  } catch (e) { return; }
+  S.sb.rpc('mark_owner_browser', { p_anon: id }).then(() => {}, () => {});
+}
+
 export const needsProfile = () => !!S.myRow && !S.myRow.display_name;
 
 export function renderMe() {
