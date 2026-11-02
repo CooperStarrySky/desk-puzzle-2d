@@ -105,7 +105,7 @@ for (const [w, h, mobile, dark] of [[1100, 900, false, false], [375, 760, true, 
     (await import('/src/stats-class-ui.js')).renderResultsClass(p); return true; })()`);
   await P.waitFor('!document.getElementById("results-rate").hidden', 5000);
   check(`G1 ${tag}: before a vote the class ratings stay hidden (no swaying)`, (await P.js(`document.getElementById('results-rated').hidden`)) && (await P.count('#results-rate .rate-btn')) === 4);
-  await P.clickText('#results-rate button', 'Difficult');
+  await P.clickText('#results-rate button', 'Tough');
   await P.waitFor('!document.getElementById("results-rated").hidden && document.querySelectorAll(".rate-dist-col").length === 4', 5000);
   const al = await P.js(`(() => { const bars = [...document.querySelectorAll('.rate-dist-col')].map((x) => x.getBoundingClientRect()), btns = [...document.querySelectorAll('#results-rate .rate-btn')].map((x) => x.getBoundingClientRect()),
     sec = document.getElementById('results-class').getBoundingClientRect(), d = document.querySelector('.rate-dist').getBoundingClientRect();

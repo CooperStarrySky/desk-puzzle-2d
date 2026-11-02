@@ -228,7 +228,7 @@ export function computeStats(entries, saves, firsts) {
 export var STATS_SINCE = '2026-10-11';
 export var CLASS_MIN = 1; // show as soon as anyone has finished / rated (Thirth, 2026-10-31)
 // Four options, no middle: every rating leans easy or hard (5-point ratings were retired 2026-10-30).
-export var RATING_LABELS = ['Very easy', 'Easy', 'Difficult', 'Brutal'];
+export var RATING_LABELS = ['Easy', 'Moderate', 'Tough', 'Brutal'];
 var STATS_ID_RE = /^[a-z0-9-]+-(\d{4}-\d{2}-\d{2})$/;
 
 export var LEGACY_CLASS_LABEL = 'From players since Oct 2026';
