@@ -16,8 +16,6 @@ export var TEXTURE_VARS = {
   'sticky-pink.webp': '--tex-sticky-pink',
   'sticky-green.webp': '--tex-sticky-green',
   'sticky-orange.webp': '--tex-sticky-orange',
-  'sticky-2.webp': '--tex-sticky-2',
-  'sticky-3.webp': '--tex-sticky-3',
   'paper.webp': '--tex-paper',
   'paper-2.webp': '--tex-paper-2',
   'slide.webp': '--tex-slide',
@@ -29,7 +27,8 @@ export var TEXTURE_VARS = {
 };
 
 export var TEXTURE_VARIANTS = {
-  corkboard: ['sticky.webp', 'sticky-2.webp', 'sticky-3.webp'],
+  // Yellow twice as likely as each other color. sticky-2/-3 retired 2026-11-02 (Thirth: unrealistic AI-made curl).
+  corkboard: ['sticky.webp', 'sticky.webp', 'sticky-pink.webp', 'sticky-green.webp', 'sticky-orange.webp'],
   folder: ['paper.webp', 'paper-2.webp'],
   photo: ['photo.webp', 'photo-2.webp'],
   rx: ['rx.webp', 'rx-2.webp'],

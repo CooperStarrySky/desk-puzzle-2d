@@ -36,11 +36,13 @@ const reqState = () => P.js(`(() => {
     tier: star(q('.tier-pick')), label0: star(q('[data-f="label"][data-i="0"]')), school: star(q('#s-school')), consent: star(q('#s-consent')),
     credit: (() => { const m = q('[data-for="s-credit-grp"]'); return m ? (m.classList.contains('filled') ? 'filled' : 'red') : 'none'; })(),
     email: star(q('[data-k="c.email"]')), note0: star(q('[data-f="note"][data-i="0"]')), article: star(q('[data-k="g.articleText"]')),
-    aria: ['[data-k="g.name"]', '[data-k="g.explanation"]', '#s-tier-x', '#s-school', '#s-consent', '#s-credit-grp', '[data-f="label"][data-i="3"]', '[data-f="zone"][data-i="0"]']
-      .filter((s) => s !== '#s-tier-x').every((s) => q(s) && q(s).getAttribute('aria-required') === 'true') && q('.tier-pick').getAttribute('aria-required') === 'true',
+    aria: ['[data-k="g.name"]', '[data-k="g.explanation"]', '#s-tier-x', '#s-school', '#s-consent', '#s-credit-grp', '[data-f="zone"][data-i="0"]']
+      .filter((s) => s !== '#s-tier-x').every((s) => q(s) && q(s).getAttribute('aria-required') === 'true') && q('.tier-pick').getAttribute('aria-required') === 'true'
+      && (() => { const f = q('[data-pf="3"]'), l = f && f.contentDocument && f.contentDocument.querySelector('[contenteditable]'); return !!l && l.getAttribute('aria-required') === 'true' && l.getAttribute('role') === 'textbox'; })(),
     ariaOpt: [...document.querySelectorAll('[data-k="c.email"], [data-f="note"], [data-k="g.nids"]')].every((x) => !x.hasAttribute('aria-required')),
     red: getComputedStyle(q('.req-legend .req-mark')).color };
 })()`);
+await P.waitFor(`(() => { const f = document.querySelector('[data-pf="3"]'); return !!(f && f.contentDocument && f.contentDocument.querySelector('[contenteditable]')); })()`, 8000);
 let rq = await reqState();
 check('studio: "* = required" legend near the top', rq.legend, rq);
 check('studio: required labels carry a red star (name, explanation, difficulty, clue, school, credit, consent)', ['name', 'expl', 'tier', 'label0', 'school', 'consent', 'credit'].every((k) => rq[k] === 'red'), rq);
@@ -51,7 +53,20 @@ check('studio: star uses the danger red', /rgb\(192, 57, 47\)/.test(rq.red), rq.
 // Fill in one category.
 await P.type('[data-k="g.name"]', 'TEST: causes of clubbing (studio e2e)');
 await P.type('[data-k="g.explanation"]', 'Each causes digital clubbing.');
-for (let i = 0; i < 4; i++) await P.type(`[data-f="label"][data-i="${i}"]`, ['Lung cancer', 'Bronchiectasis', 'Cyanotic heart disease', 'IBD'][i]);
+// Text clues are written right on the piece (studio/piece.html), letter by letter.
+const writeOn = async (i, text) => {
+  await P.waitFor(`(() => { const f = document.querySelector('[data-pf="${i}"]'); return !!(f && f.contentDocument && f.contentDocument.querySelector('[contenteditable]')); })()`, 8000);
+  await P.js(`document.querySelector('[data-pf="${i}"]').contentDocument.querySelector('[contenteditable]').focus()`);
+  for (const ch of text) await P.send('Input.insertText', { text: ch });
+};
+const CLUES = ['Lung cancer', 'Bronchiectasis', 'Cyanotic heart disease', 'IBD'];
+for (let i = 0; i < 4; i++) await writeOn(i, CLUES[i]);
+await P.waitFor(`document.querySelector('[data-f="label"][data-i="3"]').value === 'IBD'`, 5000);
+const pc = await P.js(`(() => { const f = document.querySelector('[data-pf="0"]'), d = f.contentDocument, pc = d.querySelector('.piece');
+  return { cls: pc.className, text: d.querySelector('[contenteditable]').textContent, labels: [0, 1, 2, 3].map((i) => document.querySelector('[data-f="label"][data-i="' + i + '"]').value), w: f.offsetWidth, h: f.offsetHeight }; })()`);
+check('studio: each text clue shows its real sticky note, at a readable size', /piece-sticky/.test(pc.cls) && pc.w >= 150 && pc.h >= 150, pc);
+check('studio: writing on the note fills in the clue as you type', pc.text === 'Lung cancer' && pc.labels.join('|') === CLUES.join('|'), pc);
+check('studio: no plain text box for a written clue', (await P.count('input.input[data-f="label"][data-i="0"]')) === 0);
 await P.click('input[name="s-tier"][value="2"]');
 await P.click('input[name="s-credit"][value="anonymous"]');
 await P.click('#s-consent');
@@ -129,7 +144,7 @@ check('studio: photo clue without an image: source and no-patient box not starre
 await P.js(`(async () => { const cv = document.createElement('canvas'); cv.width = 40; cv.height = 30; const x = cv.getContext('2d'); x.fillStyle = '#c33'; x.fillRect(0, 0, 40, 30);
   const blob = await new Promise((r) => cv.toBlob(r, 'image/png')); const dt = new DataTransfer(); dt.items.add(new File([blob], 'john-d-test.png', { type: 'image/png' }));
   document.querySelector('[data-drop="0"]').dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })); })()`);
-await P.waitFor('!!document.querySelector(".drop.has[data-drop=\\"0\\"]")', 8000);
+await P.waitFor('!!document.querySelector(".piece-slot.has[data-drop=\\"0\\"]")', 8000);
 ps = await picStars();
 check('studio: once an image is added, source and no-patient box are starred and aria-required', ps.src && ps.np && ps.srcAria === 'true' && ps.npAria === 'true', ps);
 await P.click('[data-rm="0"]');

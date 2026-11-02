@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Studio clue piece · Desk Puzzle</title>
+<!-- One clue, drawn with the game's own piece code and CSS, at game size.
+     Text pieces (sticky note, paper, prescription) are written on directly:
+     the handwriting line is editable and every keystroke goes to the Studio.
+     Picture pieces (photo, X-ray, slide) show the empty piece or the image;
+     the Studio's drop target sits over this frame. -->
+<base href="../">
+<link rel="stylesheet" href="styles.css">
+<style>
+html, body, html[data-theme] body { min-height: 0; background: transparent !important; background-image: none !important; overflow: hidden; }
+body { margin: 0; }
+/* Same color-scheme as the Studio's frame element, or the browser paints an opaque backdrop behind the piece. */
+:root, :root[data-theme] { color-scheme: normal !important; }
+#stage { position: relative; width: var(--w, 200px); height: var(--h, 220px); }
+#stage .piece { left: 50%; top: 50%; max-width: none; cursor: default; transition: none; --rot: -1.5deg; }
+#stage .piece:focus-visible { outline: none; }
+/* Films are shown lit, the way they look on the light box. */
+#stage .film-lit { clip-path: none; }
+/* Writing on the piece */
+#stage .piece.is-writable { cursor: text; }
+#stage [contenteditable] { user-select: text; -webkit-user-select: text; outline: none; cursor: text; min-width: 2ch; caret-color: #1d2f6f; }
+#stage [contenteditable]:empty::before { content: attr(data-ph); opacity: 0.42; pointer-events: none; }
+#stage .piece.is-writable::after {
+  content: ''; position: absolute; inset: -5px; border-radius: 6px;
+  border: 1.5px dashed transparent; pointer-events: none; transition: border-color .15s;
+}
+#stage .piece.is-writable:hover::after { border-color: rgba(60, 70, 110, .35); }
+#stage .piece.is-writable.is-focus::after { border-color: var(--accent, #4b3fbf); }
+/* An empty film's stand-in writing stays on the film. */
+#stage .film-lit { overflow: hidden; }
+#stage .film-lit-label { overflow-wrap: anywhere; font-size: 0.82em; padding-inline: 8%; }
+/* A slide stays a plain slide; its (cropped) microscope view shows underneath it. */
+#stage .scope-view {
+  position: absolute; left: 50%; transform: translateX(-50%); border-radius: 8px; overflow: hidden;
+  background: #111318 center / cover no-repeat; box-shadow: 0 2px 8px rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(0, 0, 0, .25); pointer-events: none;
+}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module">
+import { state, els } from './src/state.js';
+import { buildPieces, fitOneLabel } from './src/ui-play.js';
+import { loadTextures, pickSkinTexVar } from './src/textures.js';
+import { mulberry32, hashString } from './src/state.js';
+
+const IDX = new URLSearchParams(location.search).get('i') || '0';
+const FIT = { corkboard: ['.piece-label', 3], folder: ['.piece-label', 4], rx: ['.rx-line', 3], photo: ['.photo-caption', 2] };
+const WRITABLE = { corkboard: '.piece-label', folder: '.piece-label', rx: '.rx-line' };
+const PAPER = { corkboard: 1, folder: 1, rx: 1 };
+// Bigger than on the desk, so the writing is easy to read while editing (slides are the smallest piece).
+const ZOOM = { corkboard: 1.9, folder: 1.75, rx: 1.75, photo: 1.75, tubes: 1.45, rack: 2.3 };
+let last = null, ed = null;
+
+function post(msg) { parent.postMessage(Object.assign({ i: IDX }, msg), location.origin); }
+
+function texture(item, el) {
+  if (!state.textures) return;
+  const skin = el.querySelector('.piece-skin');
+  if (skin && !skin.style.getPropertyValue('--skin-tex')) {
+    const tex = pickSkinTexVar(item, mulberry32(hashString(item.id)));
+    if (tex) skin.style.setProperty('--skin-tex', tex);
+  }
+  const has = PAPER[item.zone] ? !!(skin && skin.style.getPropertyValue('--skin-tex'))
+    : state.textures.has({ rack: 'slide.webp', tubes: 'film.webp' }[item.zone]);
+  el.classList.toggle('textured', !!has);
+}
+
+function fit(item, el) {
+  const f = FIT[item.zone];
+  const t = f && el.querySelector(f[0]);
+  if (t && t.textContent) fitOneLabel(t, f[1], item);
+  else if (t) t.style.removeProperty('--fit-scale');
+}
+
+function size(el, view) {
+  // Room for the piece's rotated box, plus a little air for the writing outline.
+  const r = el.getBoundingClientRect();
+  const w = Math.ceil(Math.max(r.width, el.offsetWidth) + 16);
+  let h = Math.ceil(Math.max(r.height, el.offsetHeight) + 16);
+  if (view) {
+    // The microscope view (same shape as in the game, 430 x 300) under the slide.
+    el.style.top = (h / 2) + 'px';
+    const vw = w - 16, vh = Math.round(vw * 300 / 430);
+    Object.assign(view.style, { top: h + 'px', width: vw + 'px', height: vh + 'px' });
+    h += vh + 8;
+  }
+  const st = document.getElementById('stage');
+  st.style.setProperty('--w', w + 'px'); st.style.setProperty('--h', h + 'px');
+  post({ type: 'dp-piece-size', w, h });
+}
+
+function draw(msg) {
+  last = msg;
+  document.documentElement.setAttribute('data-theme', msg.theme === 'dark' ? 'dark' : 'light');
+  const item = msg.item;
+  state.slideLetters = { [item.id]: 'A' };
+  state.game = { puzzle: { items: [item] } };
+  const layer = document.createElement('div');
+  els.pieceLayer = layer;
+  buildPieces();
+  // A <button> can't hold an editable line: same piece, as a plain element.
+  const btn = state.pieceEls[item.id], el = document.createElement('div');
+  el.className = btn.className;
+  el.setAttribute('style', btn.getAttribute('style') || '');
+  while (btn.firstChild) el.appendChild(btn.firstChild);
+  el.style.setProperty('--responsive-scale', String(ZOOM[item.zone] || 1.6));
+  texture(item, el);
+  const st = document.getElementById('stage');
+  st.innerHTML = '';
+  st.appendChild(el);
+  ed = null;
+  const sel = WRITABLE[item.zone];
+  if (sel) {
+    const line = el.querySelector(sel);
+    el.classList.add('is-writable');
+    line.setAttribute('contenteditable', 'plaintext-only');
+    if (line.contentEditable !== 'plaintext-only') line.setAttribute('contenteditable', 'true');
+    line.setAttribute('role', 'textbox');
+    line.setAttribute('aria-label', msg.aria || 'Clue');
+    line.setAttribute('aria-required', 'true');
+    line.setAttribute('spellcheck', 'true');
+    line.dataset.ph = msg.placeholder || 'Write the clue';
+    line.textContent = item.label;
+    el.addEventListener('mousedown', (e) => { if (e.target !== line) { e.preventDefault(); placeEnd(line); } });
+    line.addEventListener('focus', () => el.classList.add('is-focus'));
+    line.addEventListener('blur', () => el.classList.remove('is-focus'));
+    line.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); line.blur(); } });
+    line.addEventListener('input', () => {
+      let t = line.textContent.replace(/\s*\n\s*/g, ' ');
+      if (msg.max && t.length > msg.max) { t = t.slice(0, msg.max); line.textContent = t; placeEnd(line); }
+      if (!t.trim() && line.innerHTML) line.innerHTML = ''; // show the placeholder again
+      item.label = t;
+      fit(item, el);
+      post({ type: 'dp-piece-text', text: t });
+    });
+    ed = line;
+  }
+  fit(item, el);
+  let view = null;
+  if (item.zone === 'rack' && msg.image) {
+    view = document.createElement('span');
+    view.className = 'scope-view';
+    view.style.backgroundImage = 'url("' + msg.image + '")';
+    st.appendChild(view);
+  }
+  size(el, view);
+}
+function placeEnd(node) {
+  node.focus();
+  const r = document.createRange(); r.selectNodeContents(node); r.collapse(false);
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+
+window.addEventListener('message', (ev) => {
+  if (ev.origin !== location.origin || !ev.data) return;
+  if (ev.data.type === 'dp-piece-hello') { post({ type: 'dp-piece-ready' }); return; }
+  if (ev.data.type !== 'dp-piece') return;
+  // While someone writes on this note, don't redraw it under the caret.
+  if (ed && document.activeElement === ed && last && ev.data.item.zone === last.item.zone && ev.data.item.label === ed.textContent) return;
+  draw(ev.data);
+});
+const refit = () => { if (last && !(ed && document.activeElement === ed)) draw(last); };
+loadTextures(refit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+post({ type: 'dp-piece-ready' });
+</script>
+</body>
+</html>
