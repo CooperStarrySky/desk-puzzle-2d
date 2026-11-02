@@ -97,6 +97,15 @@ for (const dark of [false, true]) {
   const back = await slideState(P);
   check(`R7 ${tag}: springs back on leave`, !back.hover && back.px === '0' && back.t === rest.t, { rest, back });
   if (SHOTS) { await P.js(`document.querySelector('#btn-results-submit').scrollIntoView({ block: 'end' })`); await P.sleep(1600); await P.shot(SHOTS + '/results-credit-cta-' + tag + '.png'); }
+  // The "Submitted by YOU" slide in the bottom row: same tilt and clink on hover as the group slides.
+  const sb = await P.js(`(() => { const s = document.querySelector('#btn-results-submit .cl-slide'); s.scrollIntoView({ block: 'center' }); const r = s.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; })()`);
+  await P.js(`(() => { window.__clinks = 0; return true; })()`);
+  await mouse(P, 5, 5); await P.sleep(300);
+  await mouse(P, sb.x + sb.w * 0.85, sb.y + sb.h * 0.25); await P.sleep(50);
+  await mouse(P, sb.x + sb.w * 0.9, sb.y + sb.h * 0.25); await P.sleep(400);
+  const sh = await P.js(`(() => { const s = document.querySelector('#btn-results-submit .cl-slide'), a = s.closest('a'); return { hover: s.classList.contains('is-hover'), px: s.style.getPropertyValue('--px'), t: getComputedStyle(s).transform, wired: a.hasAttribute('data-wired')}; })()`);
+  check(`R10 ${tag}: bottom-row YOU slide tilts toward the pointer`, sh.hover && parseFloat(sh.px) > 0.5 && /matrix3d/.test(sh.t), sh);
+  await mouse(P, 5, 5); await P.sleep(300);
   check(`R9 ${tag}: no school wording on the results screen (one school publishes)`, !/school/i.test(await P.js('document.getElementById("overlay-results").innerText')));
   check(`R8 ${tag}: no console errors`, P.errors.length === 0, P.errors);
   P.close();

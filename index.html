@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort 16 pathology clues into 4 hidden groups." />
   <meta name="twitter:image" content="https://pathologyconnections.org/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=55" />
+  <link rel="stylesheet" href="styles.css?v=56" />
   <script>
     /* Home intro start state, set before first paint (src/home-hero.js plays it). */
     (function () {
@@ -405,7 +405,28 @@
     }
   </script>
   <!-- Public Supabase address + publishable key, shared with the Studio (anonymous play stats). -->
-  <script src="studio/config.js?v=55"></script>
-  <script type="module" src="src/main.js?v=55"></script>
+  <!-- Every game module carries the same ?v= as main.js, so a publish never mixes a new page with old cached modules. Bump all ?v= together. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "./src/audio.js": "./src/audio.js?v=56",
+      "./src/editor.js": "./src/editor.js?v=56",
+      "./src/engine.js": "./src/engine.js?v=56",
+      "./src/home-hero.js": "./src/home-hero.js?v=56",
+      "./src/idb-kv.js": "./src/idb-kv.js?v=56",
+      "./src/main.js": "./src/main.js?v=56",
+      "./src/state.js": "./src/state.js?v=56",
+      "./src/stats-class-ui.js": "./src/stats-class-ui.js?v=56",
+      "./src/stats-core.js": "./src/stats-core.js?v=56",
+      "./src/stats-remote.js": "./src/stats-remote.js?v=56",
+      "./src/stats.js": "./src/stats.js?v=56",
+      "./src/textures.js": "./src/textures.js?v=56",
+      "./src/ui-menu.js": "./src/ui-menu.js?v=56",
+      "./src/ui-play.js": "./src/ui-play.js?v=56"
+    }
+  }
+  </script>
+  <script src="studio/config.js?v=56"></script>
+  <script type="module" src="src/main.js?v=56"></script>
 </body>
 </html>
