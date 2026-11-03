@@ -285,8 +285,17 @@ export function buildPieceEl(item, opts) {
     if (PAPER_FAMILY[item.zone]) decoratePaperPiece(b, item, rng);
 
     if (item.zone === 'rack') {
-      // Slide: anonymous letter on the frosted end (A, B, C… — an
-      // identifier, never the readable clue). The clue itself needs the microscope.
+      // Slide: a faint seeded stain on the clear glass, and an anonymous letter
+      // on the frosted end (A, B, C… — an identifier, never the readable clue).
+      // The clue itself needs the microscope.
+      var glass = document.createElement('span'); // the clear glass area (lift blur + glint live here)
+      glass.className = 'slide-glass';
+      glass.setAttribute('aria-hidden', 'true');
+      var stain = document.createElement('span');
+      stain.className = 'slide-stain';
+      setSlideStain(stain.style, item.id);
+      glass.appendChild(stain);
+      b.appendChild(glass);
       var frost = document.createElement('span');
       frost.className = 'piece-frost';
       var letter = document.createElement('span');
@@ -356,6 +365,24 @@ export function buildPieceEl(item, opts) {
       b.appendChild(label);
     }
     return b;
+}
+
+/* A slide's stain, generated from its id (same every time, different per
+   slide): a stain family hue, size, shape, tilt and four nucleus dots, all as
+   CSS variables on a few gradients. Almost transparent, like a thin section. */
+var STAIN_FAMILIES = [[330, 285], [300, 260], [255, 250], [315, 290], [215, 300]]; // H&E pink, H&E purple, Giemsa, PAS, trichrome
+export function setSlideStain(style, id) {
+  var r = mulberry32(hashString(id + ':stain'));
+  var fam = STAIN_FAMILIES[Math.floor(r() * STAIN_FAMILIES.length)];
+  var pct = function (a, b) { return Math.round(a + r() * b) + '%'; };
+  style.setProperty('--st-hue', Math.round(fam[0] + (r() - 0.5) * 16));
+  style.setProperty('--st-nuc', Math.round(fam[1] + (r() - 0.5) * 12));
+  style.setProperty('--st-w', pct(32, 24));
+  style.setProperty('--st-h', pct(48, 30));
+  style.setProperty('--st-shape', pct(38, 24) + ' ' + pct(40, 20) + ' / ' + pct(38, 24) + ' ' + pct(40, 20));
+  style.setProperty('--st-tilt', Math.round((r() - 0.5) * 50) + 'deg');
+  style.setProperty('--st-dens', (0.14 + r() * 0.12).toFixed(2));
+  ['--st-n1', '--st-n2', '--st-n3', '--st-n4'].forEach(function (k) { style.setProperty(k, pct(20, 60) + ' ' + pct(20, 60)); });
 }
 
 /** The texture skin + "textured" class for a piece (same pick as the desk: seeded by the clue id). */
@@ -1442,6 +1469,7 @@ export function onPointerDown(ev) {
     wasDocked: wasDocked,
     wasWall: wasWall,
     isFilm: item.zone === 'tubes',
+    isSlide: item.zone === 'rack',
     wallRect: wallRect,
     wallY: wallRect.top + r.height / 2,
     filmHalfW: r.width / 2,
@@ -1488,8 +1516,30 @@ export function onPointerMove(ev) {
   // Films follow the cursor anywhere too; dropped away from a tray, they go back up onto the rail.
   d.el.style.left = p.x + 'px';
   d.el.style.top = p.y + 'px';
+  // A lifted slide's glint slides across the glass as it moves, and the slide
+  // swings a little with sideways speed, like one held by its edge.
+  if (d.isSlide) {
+    if (d.playRect.width) d.el.style.setProperty('--gx', clamp(p.x / d.playRect.width, 0, 1).toFixed(3));
+    if (d.lastX != null) d.swingTo = clamp((ev.clientX - d.lastX) * 0.5, -10, 10);
+    d.lastX = ev.clientX;
+    if (!d.swingLoop) startSwing(d);
+  }
   updateDropHot(p.x, p.y);
   if (d.isFilm) updateFilmLighting(); // light-through follows the drag live
+}
+
+/* The held slide's swing eases toward the drag's sideways speed and settles
+   back to level when the pointer stops. Ends with the drag (the drop resets --rot). */
+function startSwing(d) {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  d.swing = 0; d.swingTo = d.swingTo || 0; d.swingLoop = true;
+  (function step() {
+    if (state.drag !== d) return;
+    d.swing += (d.swingTo - d.swing) * 0.25;
+    d.swingTo *= 0.85;
+    d.el.style.setProperty('--rot', d.swing.toFixed(2) + 'deg');
+    requestAnimationFrame(step);
+  })();
 }
 
 export function updateDropHot(x, y) {

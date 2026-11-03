@@ -3260,3 +3260,51 @@ body.preview-mode .play-header-title p { display: none; }
 @media (max-width: 720px) {
   .result-placard-side { justify-content: flex-start; padding: 0 14px 10px; }
 }
+
+/* ── Slide glass: a faint seeded stain, and a lift when picked up ──────
+   --lift (0 resting, 1 held) is animated by CSS. Held higher, the glass
+   blurs what is really behind it (backdrop-filter, so trays, notes and
+   other slides all show through correctly), grows a little, drops a
+   softer shadow, and a glint follows it across the bench. */
+@property --lift { syntax: "<number>"; inherits: true; initial-value: 0; }
+/* The glass itself: the whole piece, or with the slide.webp texture (drawn
+   "contain", 312 x 95) just that band, centered. Its frosted end is the right 21%. */
+/* The slide's shadow is a box-shadow on the glass, not a filter on the piece:
+   a filter on the piece would stop the glass from blurring what is behind it. */
+.slide-glass { position: absolute; inset: 0; z-index: 0; overflow: hidden; border-radius: 2px; pointer-events: none;
+  box-shadow: 0 calc(3px + var(--lift) * 16px) calc(5px + var(--lift) * 12px) rgba(16, 14, 10, calc(.32 - var(--lift) * .1));
+  -webkit-backdrop-filter: blur(calc(var(--lift) * 1.1px)) brightness(calc(1 + var(--lift) * .04));
+  backdrop-filter: blur(calc(var(--lift) * 1.1px)) brightness(calc(1 + var(--lift) * .04)); }
+.piece-slide.textured .slide-glass { inset: auto 0; top: 50%; transform: translateY(-50%); aspect-ratio: 312 / 95; }
+.slide-glass::after {
+  content: ""; position: absolute; inset: 0; mix-blend-mode: screen;
+  background: linear-gradient(105deg, transparent calc(var(--gx, .5) * 100% - 16%), rgba(255, 255, 255, calc(var(--lift) * .3)) calc(var(--gx, .5) * 100% - 3%),
+    rgba(255, 255, 255, calc(var(--lift) * .42)) calc(var(--gx, .5) * 100%), transparent calc(var(--gx, .5) * 100% + 14%));
+}
+.slide-stain {
+  position: absolute;
+  /* centered in the clear glass, left of the frosted label end */
+  left: calc(39.5% - var(--st-w) / 2); top: calc(50% - var(--st-h) / 2); width: var(--st-w); height: var(--st-h);
+  border-radius: var(--st-shape); transform: rotate(var(--st-tilt)); opacity: var(--st-dens);
+  background:
+    radial-gradient(circle at var(--st-n1), hsl(var(--st-nuc) 55% 32% / .85) 0 1.2px, transparent 1.7px),
+    radial-gradient(circle at var(--st-n2), hsl(var(--st-nuc) 55% 32% / .8) 0 1px, transparent 1.5px),
+    radial-gradient(circle at var(--st-n3), hsl(var(--st-nuc) 55% 32% / .75) 0 1.1px, transparent 1.6px),
+    radial-gradient(circle at var(--st-n4), hsl(var(--st-nuc) 55% 32% / .7) 0 .9px, transparent 1.4px),
+    radial-gradient(ellipse at 50% 50%, hsl(var(--st-hue) 62% 70% / .9), hsl(var(--st-hue) 58% 76% / .5) 58%, hsl(var(--st-hue) 58% 76% / 0) 74%);
+}
+.piece-slide .piece-frost { position: relative; z-index: 1; }
+.piece-slide {
+  --lift: 0;
+  transition: left var(--dur) var(--ease), top var(--dur) var(--ease), transform var(--dur) var(--ease),
+    box-shadow var(--dur-fast), opacity var(--dur), --lift .34s cubic-bezier(.2, .9, .3, 1.15);
+}
+.piece-slide, body.has-textures .piece-slide.textured, body.has-textures .piece-slide.textured.is-dragging { filter: none; }
+.piece-slide.is-dragging {
+  --lift: 1;
+  --pc-scale: 1.13;
+  transition: --lift .34s cubic-bezier(.2, .9, .3, 1.15);
+}
+@media (prefers-reduced-motion: reduce) {
+  .piece-slide, .piece-slide.is-dragging { transition: none; }
+}
