@@ -1516,10 +1516,30 @@ export function onPointerMove(ev) {
   // Films follow the cursor anywhere too; dropped away from a tray, they go back up onto the rail.
   d.el.style.left = p.x + 'px';
   d.el.style.top = p.y + 'px';
-  // A lifted slide's glint slides across the glass as it moves.
-  if (d.isSlide && d.playRect.width) d.el.style.setProperty('--gx', clamp(p.x / d.playRect.width, 0, 1).toFixed(3));
+  // A lifted slide's glint slides across the glass as it moves, and the slide
+  // swings a little with sideways speed, like one held by its edge.
+  if (d.isSlide) {
+    if (d.playRect.width) d.el.style.setProperty('--gx', clamp(p.x / d.playRect.width, 0, 1).toFixed(3));
+    if (d.lastX != null) d.swingTo = clamp((ev.clientX - d.lastX) * 0.5, -10, 10);
+    d.lastX = ev.clientX;
+    if (!d.swingLoop) startSwing(d);
+  }
   updateDropHot(p.x, p.y);
   if (d.isFilm) updateFilmLighting(); // light-through follows the drag live
+}
+
+/* The held slide's swing eases toward the drag's sideways speed and settles
+   back to level when the pointer stops. Ends with the drag (the drop resets --rot). */
+function startSwing(d) {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  d.swing = 0; d.swingTo = d.swingTo || 0; d.swingLoop = true;
+  (function step() {
+    if (state.drag !== d) return;
+    d.swing += (d.swingTo - d.swing) * 0.25;
+    d.swingTo *= 0.85;
+    d.el.style.setProperty('--rot', d.swing.toFixed(2) + 'deg');
+    requestAnimationFrame(step);
+  })();
 }
 
 export function updateDropHot(x, y) {
