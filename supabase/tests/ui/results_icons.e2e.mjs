@@ -112,8 +112,8 @@ const mouse = (P, p) => P.send('Input.dispatchMouseEvent', { type: 'mouseMoved',
   check('I5 phone: tooltips off (label already on screen)', btns.every((b) => b.tip === 'none'), btns);
   check('I6 phone: all buttons in one row, tap-sized', new Set(btns.map((b) => b.t)).size === 1 && btns.every((b) => b.h >= 44 && b.h <= 64), btns);
   check('H2 phone: no hints used reads "0 of 3 / Solved without help"', (await P.text('#results-hints')) === '0 of 3' && (await P.text('#results-hints-sub')) === 'Solved without help');
-  const lay = await P.js(`(() => { const f = document.querySelector('.results-stat-found').getBoundingClientRect(), h = document.querySelector('.results-stat-hints').getBoundingClientRect(), p = document.getElementById('results-path-block').getBoundingClientRect(); return { pair: Math.abs(f.top - h.top) < 2, under: p.top > f.bottom, full: Math.abs(p.left - f.left) < 2 && Math.abs(p.right - h.right) < 2 }; })()`);
-  check('L2 phone: the two tiles share a row, solve grid full width under them', lay.pair && lay.under && lay.full, lay);
+  const lay = await P.js(`(() => { const h = document.querySelector('.results-stat-hints').getBoundingClientRect(), p = document.getElementById('results-path-block').getBoundingClientRect(); return { gone: !document.querySelector('.results-stat-found'), under: p.top > h.bottom, full: Math.abs(p.left - h.left) < 2 && Math.abs(p.right - h.right) < 2 }; })()`);
+  check('L2 phone: one hints tile (no Groups found), solve grid full width under it', lay.gone && lay.under && lay.full, lay);
   check('L3 phone: fits the width', (await P.overflow()) <= 0, await P.overflow());
   check('I9 phone: no console errors', P.errors.length === 0, P.errors);
   live += P.live();
