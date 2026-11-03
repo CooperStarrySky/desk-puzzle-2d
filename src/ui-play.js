@@ -19,7 +19,7 @@ import {
 import { playSound, pieceSound, audio, uiAudioCtx, glassClink } from './audio.js';
 
 import { TEXTURE_VARS, TEXTURE_VARIANTS, pickSkinTexVar } from './textures.js';
-import { classShareLine, renderResultsClass, hideResultsClass } from './stats-class-ui.js';
+import { renderResultsClass, hideResultsClass } from './stats-class-ui.js';
 
 /* ── DOM-layer piece constants ───────────────────────────────────── */
 var PIECE_CLASS = {
@@ -2454,16 +2454,22 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
   }
   text.appendChild(h3);
   text.appendChild(explEl);
-  // Who submitted this category: a signed slide label for a named classmate,
-  // a quiet line for an anonymous one, nothing for house-written groups.
+  // Who submitted this category sits at the right end of the header row: a
+  // signed slide label for a named classmate, a quiet line for an anonymous
+  // one, nothing for house-written groups.
+  var creditBox = null;
   var creditLine = placardCreditText(puzzle, g);
-  if (creditLine) {
-    text.appendChild(buildCreditLabel(creditLine));
-  } else if (isAnonymousCredit(g && g.credit)) {
-    var anonEl = document.createElement('span');
-    anonEl.className = 'result-placard-credit is-anon';
-    anonEl.textContent = 'Category by an anonymous classmate';
-    text.appendChild(anonEl);
+  if (creditLine || isAnonymousCredit(g && g.credit)) {
+    creditBox = document.createElement('span');
+    creditBox.className = 'result-placard-side';
+    if (creditLine) {
+      creditBox.appendChild(buildCreditLabel(creditLine));
+    } else {
+      var anonEl = document.createElement('span');
+      anonEl.className = 'result-placard-credit is-anon';
+      anonEl.textContent = 'Category by an anonymous classmate';
+      creditBox.appendChild(anonEl);
+    }
   }
   if (!isPreview) {
     var more = document.createElement('span');
@@ -2471,24 +2477,10 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
     text.appendChild(more);
   }
 
-  var objs = document.createElement('span');
-  objs.className = 'result-placard-objects';
-  g.itemIds.forEach(function (id, i) {
-    var item = puzzle.items.find(function (it) { return it.id === id; });
-    if (!item) return;
-    var o = document.createElement('span');
-    o.className = 'result-obj';
-    o.appendChild(buildResultThumb(item, i + (index || 0)));
-    var lab = document.createElement('span');
-    lab.className = 'result-obj-label';
-    lab.textContent = item.label;
-    o.appendChild(lab);
-    objs.appendChild(o);
-  });
-
+  // The clue pictures live only in the opened notes (bigger there).
   head.appendChild(band);
   head.appendChild(text);
-  head.appendChild(objs);
+  if (creditBox) head.appendChild(creditBox);
   card.appendChild(head);
 
   // Body: teaching rows (play) or the editable article (editor preview).
@@ -2512,7 +2504,7 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
     }
   } else {
     var teach = document.createElement('div');
-    teach.className = 'result-teach';
+    teach.className = 'result-teach layout-grid'; // the four clues side by side, big
     resultTeachingRows(puzzle, g).forEach(function (row, i) {
       teach.appendChild(buildTeachRow(row, i));
     });
@@ -2701,22 +2693,8 @@ export function bindResultsEdit() {
 export function buildShareText() {
   var game = state.game;
   var puzzle = game.puzzle;
+  // Just the grid, the result, and the link (Thirth, 2026-11-02).
   var lines = [];
-  lines.push('Starry Sky Society Puzzle');
-  lines.push(puzzle.title + (puzzle.date ? ', ' + puzzle.date : ''));
-  var won = game.phase === 'won', g = game.mistakes + 1;
-  lines.push((won ? 'Solved in ' + g + ' guess' + (g === 1 ? '' : 'es') : 'Not solved') + (state.settings.casual ? ' (casual)' : ''));
-  var hintEmojis = '';
-  var hints = state.desk.hints || {};
-  if (hints.labels) hintEmojis += '🏷️';
-  if (hints.seeds) hintEmojis += '📌';
-  if (hints.category) hintEmojis += '📝';
-  // Fallback: old saves without hints block but with hintsUsed > 0.
-  if (!hintEmojis && state.desk.hintsUsed > 0) hintEmojis = String(state.desk.hintsUsed);
-  if (hintEmojis) lines.push('Hints: ' + hintEmojis);
-  var classLine = state.previewMode ? '' : classShareLine(puzzle.id);
-  if (classLine) lines.push(classLine);
-  lines.push('');
   game.attempts.forEach(function (attempt) {
     var row = attempt.itemIds.map(function (id) {
       var group = groupOfItem(puzzle, id);
@@ -2724,6 +2702,9 @@ export function buildShareText() {
     }).join('');
     lines.push(row);
   });
+  var won = game.phase === 'won', g = game.mistakes + 1;
+  lines.push((won ? 'Solved in ' + g + ' guess' + (g === 1 ? '' : 'es') : 'Not solved') + (state.settings.casual ? ' (casual)' : ''));
+  lines.push('pathologyconnections.org');
   return lines.join('\n');
 }
 
