@@ -334,7 +334,8 @@ export function freshDeskState(puzzle) {
   var filmIndex = 0;
   puzzle.items.forEach(function (item) {
     if (item.zone === 'tubes') {
-      desk.pos[item.id] = { fx: 0.12 + (filmIndex++ * 0.16), fy: 0.5 };
+      // The light box is at the rail's left end: films start from the right.
+      desk.pos[item.id] = { fx: 0.88 - (filmIndex++ * 0.16), fy: 0.5 };
     } else {
       desk.pos[item.id] = scatterSpot(rng);
     }
