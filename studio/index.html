@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>Puzzle Studio · Desk Puzzle</title>
+<title>Puzzle Studio · Pathology Connections</title>
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <script>/* set the theme before first paint (applyTheme below keeps it in sync) */
 try { var t = localStorage.getItem('dp2d:studio-theme'); if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', t); } catch (e) {}
@@ -128,6 +128,8 @@ textarea.input { resize: vertical; min-height: 70px; }
 @media (min-width: 1061px) { .sidecard { position: sticky; top: 72px; max-height: calc(100vh - 84px); overflow-y: auto; } }
 .clue { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--panel-edge); border-radius: var(--r-m); background: var(--card); }
 @media (max-width: 560px) { .clue { grid-template-columns: minmax(0, 1fr); } }
+/* Example text in empty boxes is italic, so it never reads as already filled in. */
+.input::placeholder { font-style: italic; }
 .field .opt { font-style: normal; font-weight: 500; color: var(--ink-faint); }
 /* Required marker: red star after the label; fades once the field is filled in. */
 .req-mark { color: var(--danger); font-weight: 700; margin-left: 3px; transition: color 0.25s var(--ease, ease); }
@@ -234,9 +236,9 @@ details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 <body>
 <header class="site-head">
   <div class="wrap">
-    <a class="btn small ghost to-game" id="to-game" href="../" title="Back to the game">← Desk Puzzle</a>
+    <a class="btn small ghost to-game" id="to-game" href="../" title="Back to the game">← Pathology Connections</a>
     <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-      <span class="brand-name">Puzzle Studio<small>Desk Puzzle · Send a category</small></span></div>
+      <span class="brand-name">Puzzle Studio<small>Pathology Connections · Send a category</small></span></div>
     <div class="row" style="--gap:14px; margin-left:auto">
       <button class="btn small ghost" id="theme-btn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
     </div>

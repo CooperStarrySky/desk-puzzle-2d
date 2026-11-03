@@ -26,5 +26,5 @@ window.DESK_PUZZLE_CONFIG = {
 
   // Not used by the Studio any more (it has no download). Kept so older copies
   // of the Studio and the docs that mention it still make sense.
-  submitTo: 'the CMSRU Desk Puzzle group',
+  submitTo: 'the CMSRU Pathology Connections group',
 };

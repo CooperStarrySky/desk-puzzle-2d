@@ -522,7 +522,7 @@ export function syncHeader() {
   var puzzle = game.puzzle;
   els.puzzleTitle.textContent = puzzle.title;
   els.puzzleDate.textContent = puzzle.date || '';
-  document.title = puzzle.title + ' : Desk Puzzle';
+  document.title = puzzle.title + ' · Pathology Connections';
 
   els.mistakeTracker.innerHTML = '';
   var box = document.createElement('div');

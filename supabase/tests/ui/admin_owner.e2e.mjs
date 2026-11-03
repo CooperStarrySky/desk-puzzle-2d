@@ -17,7 +17,7 @@ const goAdmin = async () => { await P.js('location.hash = "#/admin"'); return P.
 
 check('O0 owner signs in', await P.signInAs(U.OWNER)); await P.settle();
 check('O0 Admin tab shown to the owner', /Admin/.test(await P.text('#ws-tabs')));
-check('O0 header says All schools', (await P.text('#brand-sub')) === 'Desk Puzzle · All schools');
+check('O0 header says All schools', (await P.text('#brand-sub')) === 'Pathology Connections · All schools');
 check('O1 console opens', await goAdmin());
 check('O1 eyebrow: site owner; 4 role cards', /site owner/.test(await P.text('#ws-main .eyebrow')) && (await P.count('.role-card')) === 4);
 check('O2 owner row first, then every school\'s people', /Site owner/.test(await P.text('#people tbody tr')) && (await P.count('#people tbody tr')) === 5);
