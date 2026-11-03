@@ -20,7 +20,7 @@
   <meta name="twitter:description" content="Sort 16 pathology clues into 4 hidden groups." />
   <meta name="twitter:image" content="https://pathologyconnections.org/og-image.png" />
 
-  <link rel="stylesheet" href="styles.css?v=57" />
+  <link rel="stylesheet" href="styles.css?v=58" />
   <script>
     /* Home intro start state, set before first paint (src/home-hero.js plays it). */
     (function () {
@@ -104,12 +104,14 @@
         <div class="hints-wrap">
           <button id="btn-hints" class="btn btn-primary" type="button"
                   aria-haspopup="menu" aria-expanded="false">Hints</button>
+          <!-- Once the puzzle is over, this takes the Hints button's place: it slides the results back up. -->
+          <button id="btn-see-results" class="btn see-results-btn" type="button" hidden>See results</button>
           <div id="hints-panel" class="hints-panel" hidden role="menu" aria-label="Hints"></div>
         </div>
         <div class="mistake-tracker" id="mistake-tracker" aria-label="Wrong guesses"></div>
         <div class="play-actions">
           <button id="btn-shuffle" class="btn btn-ghost" type="button">Shuffle</button>
-          <button id="btn-reset" class="btn btn-ghost" type="button" aria-label="Reset puzzle" title="Reset"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+          <button id="btn-reset" class="btn btn-ghost btn-restart" type="button" aria-label="Restart puzzle"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg><span id="btn-reset-label" class="btn-restart-label">Restart</span></button>
           <button id="btn-help" class="btn btn-ghost" type="button" aria-label="Help" title="Help"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17" stroke-width="2.5" stroke-linecap="round"/></svg></button>
           <div class="settings-wrap">
             <button id="btn-settings" class="btn btn-ghost" type="button" aria-label="Settings" title="Settings" aria-expanded="false"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
@@ -409,24 +411,24 @@
   <script type="importmap">
   {
     "imports": {
-      "./src/audio.js": "./src/audio.js?v=57",
-      "./src/editor.js": "./src/editor.js?v=57",
-      "./src/engine.js": "./src/engine.js?v=57",
-      "./src/home-hero.js": "./src/home-hero.js?v=57",
-      "./src/idb-kv.js": "./src/idb-kv.js?v=57",
-      "./src/main.js": "./src/main.js?v=57",
-      "./src/state.js": "./src/state.js?v=57",
-      "./src/stats-class-ui.js": "./src/stats-class-ui.js?v=57",
-      "./src/stats-core.js": "./src/stats-core.js?v=57",
-      "./src/stats-remote.js": "./src/stats-remote.js?v=57",
-      "./src/stats.js": "./src/stats.js?v=57",
-      "./src/textures.js": "./src/textures.js?v=57",
-      "./src/ui-menu.js": "./src/ui-menu.js?v=57",
-      "./src/ui-play.js": "./src/ui-play.js?v=57"
+      "./src/audio.js": "./src/audio.js?v=58",
+      "./src/editor.js": "./src/editor.js?v=58",
+      "./src/engine.js": "./src/engine.js?v=58",
+      "./src/home-hero.js": "./src/home-hero.js?v=58",
+      "./src/idb-kv.js": "./src/idb-kv.js?v=58",
+      "./src/main.js": "./src/main.js?v=58",
+      "./src/state.js": "./src/state.js?v=58",
+      "./src/stats-class-ui.js": "./src/stats-class-ui.js?v=58",
+      "./src/stats-core.js": "./src/stats-core.js?v=58",
+      "./src/stats-remote.js": "./src/stats-remote.js?v=58",
+      "./src/stats.js": "./src/stats.js?v=58",
+      "./src/textures.js": "./src/textures.js?v=58",
+      "./src/ui-menu.js": "./src/ui-menu.js?v=58",
+      "./src/ui-play.js": "./src/ui-play.js?v=58"
     }
   }
   </script>
-  <script src="studio/config.js?v=57"></script>
-  <script type="module" src="src/main.js?v=57"></script>
+  <script src="studio/config.js?v=58"></script>
+  <script type="module" src="src/main.js?v=58"></script>
 </body>
 </html>

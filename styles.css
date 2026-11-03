@@ -3242,3 +3242,43 @@ body.preview-mode .play-header-title p { display: none; }
   .results-class { padding: 12px; }
   .rate-btn { font-size: 0.74rem; }
 }
+
+/* ── End of game: "See results", Restart / Play again, results slide ── */
+/* Takes the Hints button's place once the puzzle is over: wider, in eosin pink. */
+.see-results-btn {
+  min-width: 9.5em;
+  background: var(--eosin);
+  border-color: var(--eosin);
+  color: var(--eosin-ink, #fff);
+  font-weight: 700;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--eosin) 45%, transparent);
+}
+.see-results-btn:hover { filter: brightness(1.06); }
+.see-results-btn[hidden] { display: none; }
+/* Restart is a labeled button during play; after the game it reads "Play again" and glows. */
+.play-actions .btn-restart { display: inline-flex; align-items: center; gap: 6px; }
+.btn-restart-label { font-weight: 600; }
+.play-actions .btn-restart.is-play-again {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  animation: play-again-glow 2.4s ease-in-out infinite;
+}
+@keyframes play-again-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent), 0 0 16px 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+}
+/* The results card rises in, and sinks out when you click outside it. */
+#overlay-results.is-opening { animation: results-scrim-in .22s ease-out both; }
+#overlay-results.is-opening .results-card { animation: results-card-in .34s cubic-bezier(.2, .9, .25, 1.05) both; }
+#overlay-results.is-closing { animation: results-scrim-out .26s ease-in both; pointer-events: none; }
+#overlay-results.is-closing .results-card { animation: results-card-out .26s cubic-bezier(.5, 0, .75, .3) both; }
+@keyframes results-scrim-in { from { background-color: transparent; } }
+@keyframes results-scrim-out { to { background-color: transparent; } }
+@keyframes results-card-in { from { opacity: 0; transform: translateY(48px) scale(.985); } }
+@keyframes results-card-out { to { opacity: 0; transform: translateY(64px) scale(.985); } }
+@media (prefers-reduced-motion: reduce) {
+  .play-actions .btn-restart.is-play-again { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+  #overlay-results.is-opening, #overlay-results.is-opening .results-card,
+  #overlay-results.is-closing, #overlay-results.is-closing .results-card { animation: none; }
+}

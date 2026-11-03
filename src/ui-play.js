@@ -158,11 +158,58 @@ export function showScreen(name) {
 export function showOverlay(el) { el.hidden = false; }
 export function hideOverlay(el) { el.hidden = true; }
 
+var GUIDE_SEEN_KEY = 'dp2d:guide-seen';
+function guideSeen() {
+  try {
+    if (localStorage.getItem(GUIDE_SEEN_KEY)) return true;
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i) || '';
+      // A save from another game (not the one opening now) or any finish.
+      if (k.indexOf('dp2d:first:') === 0) return true;
+      if (k.indexOf('dp2d:save3:') === 0 && !(state.game && k === 'dp2d:save3:' + state.game.puzzle.id)) return true;
+    }
+  } catch (e) { /* storage blocked: show it */ }
+  return false;
+}
+
+/* Results card slides up into view and back down out of it. Clicking outside
+   the card (or Esc) slides it away to show the finished desk; the top bar's
+   "See results" brings it back. */
+var resultsCloseT = 0;
+export function openResultsOverlay() {
+  var o = els.overlayResults;
+  if (!o) return;
+  clearTimeout(resultsCloseT);
+  o.classList.remove('is-closing');
+  showOverlay(o);
+  o.classList.remove('is-opening'); void o.offsetWidth; o.classList.add('is-opening');
+  syncHintsBtn();
+}
+export function closeResultsOverlay() {
+  var o = els.overlayResults;
+  if (!o || o.hidden || o.classList.contains('is-closing')) return;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  o.classList.remove('is-opening');
+  o.classList.add('is-closing');
+  clearTimeout(resultsCloseT);
+  resultsCloseT = setTimeout(function () {
+    o.classList.remove('is-closing');
+    hideOverlay(o);
+    syncHintsBtn();
+    if (els.btnSeeResults && !els.btnSeeResults.hidden) els.btnSeeResults.focus();
+  }, reduce ? 0 : 260);
+}
+
 /** Give every new game a short orientation, while leaving editor and preview
     surfaces uncluttered. The primary button receives focus so the modal is
     immediately usable by keyboard. */
-export function showClueGuide() {
+export function showClueGuide(force) {
   if (state.previewMode || state.editorMode || state.layoutMode) return;
+  if (force === true) { showOverlay(els.overlayHelp); requestAnimationFrame(function () { els.btnCloseHelp.focus(); }); return; }
+  // Only a browser's very first game: anyone who has opened or finished a
+  // puzzle before already knows. The ? button still opens it any time.
+  if (guideSeen()) return;
+  try { localStorage.setItem(GUIDE_SEEN_KEY, '1'); } catch (e) { /* ignore */ }
   showOverlay(els.overlayHelp);
   requestAnimationFrame(function () { els.btnCloseHelp.focus(); });
 }
@@ -392,6 +439,19 @@ export function syncHintsBtn() {
   var phase = state.game ? state.game.phase : null;
   var isOver = phase === 'won' || phase === 'lost';
   els.btnHints.disabled = isOver;
+  // Finished: "See results" replaces Hints, and Restart becomes a glowing "Play again".
+  var see = els.btnSeeResults;
+  if (see) {
+    see.hidden = !isOver;
+    els.btnHints.hidden = isOver && !state.previewMode;
+    if (state.previewMode) see.hidden = true;
+  }
+  if (els.btnReset) {
+    els.btnReset.classList.toggle('is-play-again', isOver);
+    els.btnReset.setAttribute('aria-label', isOver ? 'Play again' : 'Restart puzzle');
+    var lab = els.btnReset.querySelector('.btn-restart-label');
+    if (lab) lab.textContent = isOver ? 'Play again' : 'Restart';
+  }
 }
 
 export function syncAll() {
@@ -1594,6 +1654,9 @@ export function settleOnWall(id, x, wallRect) {
 /* ── Keyboard controls (bound ONCE on document) ─────────────────── */
 
 export function onKeyDown(ev) {
+  if (ev.key === 'Escape' && els.overlayResults && !els.overlayResults.hidden && (!els.overlayStats || els.overlayStats.hidden)) {
+    ev.preventDefault(); closeResultsOverlay(); return;
+  }
   if (ev.key === 'Escape' && !els.overlayHelp.hidden) {
     closeClueGuide();
     return;
@@ -2563,7 +2626,7 @@ export function showResultsForPuzzle(puzzle, opts) {
     var ankiResult = buildAnkiSearch(puzzle);
     els.btnCopyAnki.hidden = ankiResult.noteCount === 0;
   }
-  showOverlay(els.overlayResults);
+  openResultsOverlay();
   var card = els.overlayResults.querySelector('.results-card');
   if (card) card.scrollTop = 0;
 }
