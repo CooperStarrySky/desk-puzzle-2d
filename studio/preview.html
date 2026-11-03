@@ -32,7 +32,7 @@ body { margin: 0; }
 <div id="results" hidden><p class="results-credit" id="rcredit" hidden></p><div class="results-groups" id="rgroups"></div></div>
 <script type="module">
 import { state, els, mulberry32, hashString } from './src/state.js';
-import { buildPieces, fitPieceLabels, buildResultPlacard, puzzleCreditText } from './src/ui-play.js';
+import { buildPieces, fitPieceLabels, buildResultPlacard, puzzleCreditText, fitResultPieces } from './src/ui-play.js';
 import { loadTextures, pickSkinTexVar } from './src/textures.js';
 
 const PAPER_FAMILY = { corkboard: 1, folder: 1, rx: 1 };
@@ -114,6 +114,9 @@ function drawResults(msg) {
     if (msg.expand || open.has(String(g.tier))) card.setAttribute('aria-expanded', 'true');
     box.appendChild(card);
   });
+  fitResultPieces(box);
+  // Opening a placard here fits its pieces too.
+  box.querySelectorAll('.result-placard-head').forEach((h) => h.addEventListener('click', () => requestAnimationFrame(() => { fitResultPieces(box); sendSize(); })));
 }
 
 function draw(msg) {
@@ -159,7 +162,7 @@ window.addEventListener('resize', () => {
   }, 120);
 });
 // Handwriting fonts and textures arrive late; refit labels (like the game) when they do.
-const refit = () => { if (last && last.view !== 'results') { applyTextures(last.puzzle); fitPieceLabels(); sendSize(); } };
+const refit = () => { if (!last) return; if (last.view !== 'results') { applyTextures(last.puzzle); fitPieceLabels(); } else draw(last); sendSize(); };
 loadTextures(refit);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
 parent.postMessage({ type: 'dp-studio-preview-ready' }, location.origin);

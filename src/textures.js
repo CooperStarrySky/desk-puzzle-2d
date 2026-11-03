@@ -27,8 +27,8 @@ export var TEXTURE_VARS = {
 };
 
 export var TEXTURE_VARIANTS = {
-  // Yellow twice as likely as each other color. sticky-2/-3 retired 2026-11-02 (Thirth: unrealistic AI-made curl).
-  corkboard: ['sticky.webp', 'sticky.webp', 'sticky-pink.webp', 'sticky-green.webp', 'sticky-orange.webp'],
+  // Yellow only (Thirth, 2026-11-02). Pink/green/orange are used only for a sticky the puzzle colors on purpose.
+  corkboard: ['sticky.webp'],
   folder: ['paper.webp', 'paper-2.webp'],
   photo: ['photo.webp', 'photo-2.webp'],
   rx: ['rx.webp', 'rx-2.webp'],

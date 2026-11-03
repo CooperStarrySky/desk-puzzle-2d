@@ -256,11 +256,20 @@ export function buildPieces() {
   state.pieceEls = {};
 
   puzzle.items.forEach(function (item) {
-    var b = document.createElement('button');
-    b.type = 'button';
+    var b = buildPieceEl(item);
+    state.pieceEls[item.id] = b;
+    els.pieceLayer.appendChild(b);
+  });
+}
+
+/** One clue's piece, exactly as the desk draws it. The results screen uses it
+    too (opts.still: a plain, non-interactive element; opts.letter: the slide's letter). */
+export function buildPieceEl(item, opts) {
+    opts = opts || {};
+    var b = document.createElement(opts.still ? 'div' : 'button');
     b.className = 'piece ' + PIECE_CLASS[item.zone];
     b.dataset.itemId = item.id;
-    b.setAttribute('aria-describedby', 'piece-instructions');
+    if (!opts.still) { b.type = 'button'; b.setAttribute('aria-describedby', 'piece-instructions'); }
 
     // Deterministic per-piece seed: handwriting jitter + visual variety.
     var rng = mulberry32(hashString(item.id));
@@ -283,7 +292,7 @@ export function buildPieces() {
       var letter = document.createElement('span');
       letter.className = 'slide-letter';
       letter.setAttribute('aria-hidden', 'true');
-      letter.textContent = state.slideLetters[item.id] || '';
+      letter.textContent = opts.letter != null ? opts.letter : ((state.slideLetters || {})[item.id] || '');
       frost.appendChild(letter);
       b.appendChild(frost);
     } else if (item.zone === 'tubes') {
@@ -346,10 +355,21 @@ export function buildPieces() {
       label.style.setProperty('--ink-size', (0.92 + 0.16 * rng()).toFixed(3));
       b.appendChild(label);
     }
+    return b;
+}
 
-    state.pieceEls[item.id] = b;
-    els.pieceLayer.appendChild(b);
-  });
+/** The texture skin + "textured" class for a piece (same pick as the desk: seeded by the clue id). */
+export function texturePiece(item, el) {
+  if (!state.textures) return;
+  var skinEl = el.querySelector('.piece-skin');
+  if (skinEl && !skinEl.style.getPropertyValue('--skin-tex')) {
+    var tex = pickSkinTexVar(item, mulberry32(hashString(item.id)));
+    if (tex) skinEl.style.setProperty('--skin-tex', tex);
+  }
+  var hasType = PAPER_FAMILY[item.zone]
+    ? !!(skinEl && skinEl.style.getPropertyValue('--skin-tex'))
+    : state.textures.has({ rack: 'slide.webp', tubes: 'film.webp' }[item.zone]);
+  el.classList.toggle('textured', !!hasType);
 }
 
 /** Seeded variety for paper-family pieces (stickies/papers/photos/scripts). */
@@ -846,17 +866,7 @@ export function syncPieces() {
     if (!el) return;
 
     // Textures may arrive after buildPieces — update skin + class then.
-    if (state.textures) {
-      var skinEl = el.querySelector('.piece-skin');
-      if (skinEl && !skinEl.style.getPropertyValue('--skin-tex')) {
-        var tex = pickSkinTexVar(item, mulberry32(hashString(item.id)));
-        if (tex) skinEl.style.setProperty('--skin-tex', tex);
-      }
-      var hasType = PAPER_FAMILY[item.zone]
-        ? !!(skinEl && skinEl.style.getPropertyValue('--skin-tex'))
-        : state.textures.has({ rack: 'slide.webp', tubes: 'film.webp' }[item.zone]);
-      el.classList.toggle('textured', !!hasType);
-    }
+    texturePiece(item, el);
 
     // Legacy printed hint label (idempotent — keeps old in-progress saves readable).
     if (state.desk.labels[id] && !el.querySelector('.hint-label')) {
@@ -1376,6 +1386,7 @@ export function forceEndStaleDrag() {
 }
 
 export function onPointerDown(ev) {
+  document.body.classList.add('pointer-input'); // mouse/touch: hide the keyboard focus ring on pieces
   // Dev layout mode: machines are draggable instead of pieces.
   if (state.layoutMode && state._layoutPointerDown && state._layoutPointerDown(ev)) return;
 
@@ -1403,7 +1414,7 @@ export function onPointerDown(ev) {
   }
 
   ev.preventDefault();
-  pieceEl.focus({ preventScroll: true });
+  pieceEl.focus({ preventScroll: true, focusVisible: false }); // a mouse/touch grab: no keyboard focus ring
   try { pieceEl.setPointerCapture(ev.pointerId); } catch (e) { /* stale pointer id — document handlers still track */ }
 
   var playRect = els.playArea.getBoundingClientRect();
@@ -1658,6 +1669,7 @@ export function settleOnWall(id, x, wallRect) {
 /* ── Keyboard controls (bound ONCE on document) ─────────────────── */
 
 export function onKeyDown(ev) {
+  if (ev.key === 'Tab' || ev.key.indexOf('Arrow') === 0) document.body.classList.remove('pointer-input');
   if (ev.key === 'Escape' && els.overlayResults && !els.overlayResults.hidden && (!els.overlayStats || els.overlayStats.hidden)) {
     ev.preventDefault(); closeResultsOverlay(); return;
   }
@@ -2171,38 +2183,60 @@ var RESULT_ZONE_NAMES = { photo: 'photo', tubes: 'X-ray film', rack: 'slide', rx
 
 /** Draws a clue as the desk object it was: polaroid, lit film, scope
     view, prescription slip, or sticky note. */
-function buildResultThumb(item, i) {
-  var t = document.createElement('div');
-  t.className = 'rthumb';
-  t.style.setProperty('--r', ((i % 2 ? 1 : -1) * (1.5 + (i % 3))) + 'deg');
-  var infoImg = item.info && item.info.image;
-  var scopeImg = item.scope && item.scope.image;
-  if (item.zone === 'photo' && infoImg) {
-    t.classList.add('rthumb-photo');
-    var s = document.createElement('span');
-    s.style.backgroundImage = 'url("' + infoImg + '")';
-    t.appendChild(s);
-  } else if (item.zone === 'tubes') {
-    t.classList.add('rthumb-film');
-    if (infoImg) t.style.backgroundImage = 'url("' + infoImg + '")';
-  } else if (item.zone === 'rack') {
-    t.classList.add('rthumb-scope');
-    if (scopeImg) t.style.backgroundImage = 'url("' + scopeImg + '")';
-  } else if (item.zone === 'rx') {
-    t.classList.add('rthumb-rx');
-    var rx = document.createElement('b');
-    rx.textContent = '℞';
-    var name = document.createElement('i');
-    name.textContent = item.label;
-    t.appendChild(rx);
-    t.appendChild(name);
-  } else {
-    t.classList.add('rthumb-sticky');
-    t.textContent = item.label;
+/* The results screen shows each clue as the very piece from the desk (same
+   texture, writing and image), scaled to fill its spot. A slide also shows its
+   microscope view under it; a film is shown lit, as on the light box. The
+   tilt comes from the clue id, so it is the same every time. */
+function buildResultPiece(item, puzzle) {
+  var box = document.createElement('div');
+  box.className = 'result-piece result-piece-' + item.zone;
+  box.setAttribute('aria-hidden', 'true');
+  box._item = item;
+  var letter = '';
+  if (item.zone === 'rack' && puzzle) {
+    var n = puzzle.items.filter(function (it) { return it.zone === 'rack'; }).map(function (it) { return it.id; }).indexOf(item.id);
+    letter = n >= 0 ? String.fromCharCode(65 + n) : '';
   }
-  return t;
+  var p = buildPieceEl(item, { still: true, letter: letter });
+  var rng = mulberry32(hashString(item.id + ':results'));
+  p.style.setProperty('--rot', (item.zone === 'tubes' || item.zone === 'rack' ? 0 : -3 + 6 * rng()).toFixed(2) + 'deg');
+  texturePiece(item, p);
+  box.appendChild(p);
+  var scopeImg = item.scope && item.scope.image;
+  if (item.zone === 'rack' && scopeImg) {
+    var view = document.createElement('span');
+    view.className = 'result-scope-view';
+    view.style.backgroundImage = 'url("' + scopeImg + '")';
+    box.appendChild(view);
+  }
+  return box;
 }
 
+/** Size the results pieces under root to their spots and fit their writing.
+    Needs layout, so it runs whenever notes open (and the Studio preview draws). */
+export function fitResultPieces(root) {
+  Array.prototype.forEach.call((root || document).querySelectorAll('.result-piece'), function (box) {
+    var p = box.querySelector('.piece');
+    if (!p || !box.offsetWidth) return;
+    p.style.setProperty('--responsive-scale', '1');
+    // Fit the writing first (as on the desk), so a long clue doesn't make its note bigger.
+    var item = box._item || { id: p.dataset.itemId, zone: '' };
+    var cfg = LABEL_FIT_ZONES[item.zone];
+    var t = cfg && p.querySelector(cfg.sel);
+    if (t && t.textContent) fitOneLabel(t, cfg.maxLines, item);
+    // Drawn size at scale 1 (includes the piece type's own size factor and its tilt).
+    var r0 = p.getBoundingClientRect(), w = r0.width, h = r0.height;
+    if (!w || !h) return;
+    var view = box.querySelector('.result-scope-view');
+    var maxW = box.clientWidth - 12, maxH = view ? 90 : box.clientHeight - 16;
+    var k = Math.min(maxW / w, maxH / h, 3);
+    p.style.setProperty('--responsive-scale', k.toFixed(3));
+    if (view) {
+      p.style.top = (h * k / 2 + 8) + 'px';
+      view.style.top = (h * k + 18) + 'px';
+    }
+  });
+}
 /** A clue's own results-screen note (item.note, plain text), or ''. */
 export function itemResultNote(item) {
   return item && typeof item.note === 'string' ? item.note.trim() : '';
@@ -2218,7 +2252,7 @@ function resultTeachingRows(puzzle, g) {
     var item = puzzle.items.find(function (it) { return it.id === id; }) || { id: id, label: id, info: {} };
     var raw = texts[i] || '';
     var m = raw.match(/^<b>([\s\S]*?)<\/b>:\s*([\s\S]*)$/);
-    var row = { item: item, head: m ? m[1] : ((item.info && item.info.title) || item.label), body: m ? m[2] : raw };
+    var row = { item: item, puzzle: puzzle, head: m ? m[1] : ((item.info && item.info.title) || item.label), body: m ? m[2] : raw };
     var note = itemResultNote(item);
     if (note) row.note = note;
     return row;
@@ -2230,7 +2264,7 @@ function resultTeachingRows(puzzle, g) {
 function buildTeachRow(row, i) {
   var r = document.createElement('div');
   r.className = 'result-teach-row';
-  r.appendChild(buildResultThumb(row.item, i));
+  r.appendChild(buildResultPiece(row.item, row.puzzle));
   var copy = document.createElement('div');
   var h4 = document.createElement('h4');
   h4.innerHTML = sanitizeRichHtml(row.head);
@@ -2522,6 +2556,7 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
     head.addEventListener('click', function () {
       var open = card.getAttribute('aria-expanded') === 'true';
       card.setAttribute('aria-expanded', open ? 'false' : 'true');
+      if (!open) requestAnimationFrame(function () { fitResultPieces(card); });
     });
   }
   return card;

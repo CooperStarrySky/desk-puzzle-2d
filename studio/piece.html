@@ -26,12 +26,6 @@ body { margin: 0; }
 #stage .piece.is-writable { cursor: text; }
 #stage [contenteditable] { user-select: text; -webkit-user-select: text; outline: none; cursor: text; min-width: 2ch; caret-color: #1d2f6f; }
 #stage [contenteditable]:empty::before { content: attr(data-ph); opacity: 0.42; pointer-events: none; }
-#stage .piece.is-writable::after {
-  content: ''; position: absolute; inset: -5px; border-radius: 6px;
-  border: 1.5px dashed transparent; pointer-events: none; transition: border-color .15s;
-}
-#stage .piece.is-writable:hover::after { border-color: rgba(60, 70, 110, .35); }
-#stage .piece.is-writable.is-focus::after { border-color: var(--accent, #4b3fbf); }
 /* An empty film's stand-in writing stays on the film. */
 #stage .film-lit { overflow: hidden; }
 #stage .film-lit-label { overflow-wrap: anywhere; font-size: 0.82em; padding-inline: 8%; }
