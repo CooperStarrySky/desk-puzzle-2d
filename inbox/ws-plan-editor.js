@@ -164,19 +164,19 @@ export async function livePlanner(notes) {
     return;
   }
   const id = ED.id;
-  ED.live = true;
-  try {
-    await keepFocus(async () => {
-      await loadPlanner();
-      const d = current();
-      if (!d || ED.id !== id) {
-        if (!d && ED.id === id && !PL.err) { const by = (notes.find((n) => n.t === 'drafts' && n.op === 'delete') || {}).by;
-          toast((by ? person(by).name + ' deleted this draft.' : 'That draft is gone (someone deleted it).'), 6000); location.hash = '#/planner'; }
-        return;
-      }
-      update(d);
-    });
-  } finally { ED.live = false; }
+  await keepFocus(async () => {
+    await loadPlanner();
+    const d = current();
+    if (!d || ED.id !== id) {
+      if (!d && ED.id === id && !PL.err) { const by = (notes.find((n) => n.t === 'drafts' && n.op === 'delete') || {}).by;
+        toast((by ? person(by).name + ' deleted this draft.' : 'That draft is gone (someone deleted it).'), 6000); location.hash = '#/planner'; }
+      return;
+    }
+    // Only this redraw is "live" (it leaves the slot you are editing alone). Set it
+    // after the load, so your own edits during the load still redraw that slot.
+    ED.live = true;
+    try { update(d); } finally { ED.live = false; }
+  });
   const d = current(); if (!d || !$('#editor')) return;
   const mine = (n) => (n.items || []).some((i) => i.d === d.id || i.id === d.id || i.target === d.id);
   if (notes.some((n) => n.t === '*' || (n.t === 'comments' && mine(n)))) {
