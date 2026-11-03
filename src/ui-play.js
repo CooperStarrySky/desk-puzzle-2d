@@ -183,6 +183,7 @@ export function openResultsOverlay() {
   o.classList.remove('is-closing');
   showOverlay(o);
   o.classList.remove('is-opening'); void o.offsetWidth; o.classList.add('is-opening');
+  resultsCloseT = setTimeout(function () { o.classList.remove('is-opening'); }, 380); // settled
   syncHintsBtn();
 }
 export function closeResultsOverlay() {

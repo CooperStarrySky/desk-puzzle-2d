@@ -33,7 +33,7 @@ const show = (P) => P.js(`(() => {
   window.__dp2d.showResultsForPuzzle(p, { won: true, sub: 'Solved in 5 guesses.', solvedGroupIds: new Set(['g0', 'g1', 'g2', 'g3']),
     attempts: [{ itemIds: ['c00', 'c01', 'c02', 'c03'] }] });
   return true;
-})()`);
+})()`).then(() => P.waitFor('!document.getElementById("overlay-results").classList.contains("is-opening")', 3000));
 const placard = (i) => '#results-groups .result-placard:nth-child(' + (i + 1) + ')';
 /** Centre of the first signed label's slide, scrolled into view. */
 const slideBox = (P) => P.js(`(() => { const s = document.querySelector('#results-groups .credit-label .cl-slide'); s.scrollIntoView({ block: 'center' });

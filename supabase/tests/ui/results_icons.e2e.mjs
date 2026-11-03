@@ -27,6 +27,7 @@ async function results(opts, hints) {
   await P.waitFor('!!(window.__dp2d && window.__dp2d.showResultsForPuzzle)');
   await P.js(`(() => { window.__dp2d.showResultsForPuzzle(${JSON.stringify(PUZZLE)}, { won: true, hints: ${JSON.stringify(hints || { labels: true })},
     solvedGroupIds: new Set(['g0', 'g1', 'g2', 'g3']), attempts: [{ itemIds: ['c00', 'c01', 'c02', 'c10'] }, { itemIds: ['c00', 'c01', 'c02', 'c03'] }] }); return true; })()`);
+    await P.waitFor('!document.getElementById("overlay-results").classList.contains("is-opening")', 3000);
   await P.waitFor('!document.getElementById("overlay-results").hidden');
   await P.sleep(700);
   P.live = () => c.live;
@@ -74,8 +75,10 @@ const mouse = (P, p) => P.send('Input.dispatchMouseEvent', { type: 'mouseMoved',
   check('L1 desktop: tiles beside the solve grid, rows line up', lay.side && lay.sameTop && lay.sameBottom, lay);
 
   // Sounds: a gesture first (audio can't start from hover alone), then hover the label.
-  await P.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 3, y: 3, button: 'left', clickCount: 1 });
-  await P.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 3, y: 3, button: 'left', clickCount: 1 });
+  // (Inside the card: a click on the dimmed backdrop now closes the results.)
+  const g = await center(P, '#results-title');
+  await P.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: g.x, y: g.y, button: 'left', clickCount: 1 });
+  await P.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: g.x, y: g.y, button: 'left', clickCount: 1 });
   await P.js(`(async () => { const a = await import('/src/audio.js'); const c = a.audioCtx(); if (c) await c.resume(); return c && c.state; })()`);
   await P.js(`(async () => { const a = await import('/src/audio.js'); const c = a.audio.ctx; window.__osc = 0; window.__src = 0; const o = c.createOscillator.bind(c); c.createOscillator = function () { window.__osc++; return o(); };
     const b = c.createBufferSource.bind(c); c.createBufferSource = function () { window.__src++; return b(); }; return true; })()`);
@@ -134,11 +137,13 @@ for (const [w, h, mobile] of [[1280, 900, false], [390, 844, true]]) {
   check(`K3 ${tag}: every group's teaching notes start collapsed`, col.length === 4 && col.every((x) => x === 'false:none'), col);
   await P.js(`(() => { const p = ${JSON.stringify(PUZZLE)}; p.groups[0].anki = { nids: [1690000000001, 1690000000002] };
     window.__dp2d.showResultsForPuzzle(p, { won: true, solvedGroupIds: new Set(['g0']), attempts: [] }); return true; })()`);
+    await P.waitFor('!document.getElementById("overlay-results").classList.contains("is-opening")', 3000);
   await P.sleep(300);
   const bal2 = await balance(P);
   check(`K4 ${tag}: with Anki cards the button is back, row still centered`, (await P.visible('#btn-copy-anki')) && bal2.n === 5 && bal2.rows === 1 && Math.abs(bal2.left - bal2.right) <= 2, bal2);
   if (process.env.SHOTS && !mobile) {
     await P.js(`window.__dp2d.showResultsForPuzzle(${JSON.stringify(PUZZLE)}, { won: true, hints: { labels: true }, solvedGroupIds: new Set(['g0', 'g1', 'g2', 'g3']), attempts: [{ itemIds: ['c00', 'c01', 'c02', 'c10'] }, { itemIds: ['c00', 'c01', 'c02', 'c03'] }] })`);
+    await P.waitFor('!document.getElementById("overlay-results").classList.contains("is-opening")', 3000);
     await P.sleep(800);
     const fs = await import('node:fs');
     const ht = await P.js(`(() => { const c = document.querySelector('.results-card'); c.style.maxHeight = 'none'; const o = document.getElementById('overlay-results'); o.style.position = 'absolute'; o.style.overflow = 'visible'; return Math.ceil(c.getBoundingClientRect().height + 80); })()`);
