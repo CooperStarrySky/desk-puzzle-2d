@@ -21,7 +21,7 @@ import { initRemoteStats } from './stats-remote.js';
 
 import {
   syncHeader, syncMachines,
-  onShuffle, showClueGuide, closeClueGuide,
+  onShuffle, showClueGuide, closeClueGuide, openResultsOverlay, closeResultsOverlay,
   toggleHintsPanel, closeHintsPanel, toggleSettingsPanel, closeSettingsPanel,
   dismissViewportTip, checkViewportHealth,
   onTraysClick, onShare, onCopyAnki,
@@ -106,12 +106,15 @@ async function init() {
   // Play header.
   els.btnShuffle.addEventListener('click', onShuffle);
   els.btnReset.addEventListener('click', onResetPuzzle);
-  els.btnHelp.addEventListener('click', showClueGuide);
+  els.btnHelp.addEventListener('click', function () { showClueGuide(true); });
   els.btnCloseHelp.addEventListener('click', closeClueGuide);
   if (els.btnHints) {
     els.btnHints.addEventListener('click', function () { toggleHintsPanel(); });
   }
   els.btnMenu.addEventListener('click', goHome);
+  // Finished puzzle: "See results" slides the card back up; a click outside it slides it away.
+  if (els.btnSeeResults) els.btnSeeResults.addEventListener('click', openResultsOverlay);
+  els.overlayResults.addEventListener('click', function (ev) { if (ev.target === els.overlayResults) closeResultsOverlay(); });
 
   // Viewport health tip: dismiss button.
   var viewportTipDismissBtn = document.querySelector('.viewport-tip-dismiss');

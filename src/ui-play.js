@@ -19,7 +19,7 @@ import {
 import { playSound, pieceSound, audio, uiAudioCtx, glassClink } from './audio.js';
 
 import { TEXTURE_VARS, TEXTURE_VARIANTS, pickSkinTexVar } from './textures.js';
-import { classShareLine, renderResultsClass, hideResultsClass } from './stats-class-ui.js';
+import { renderResultsClass, hideResultsClass } from './stats-class-ui.js';
 
 /* ── DOM-layer piece constants ───────────────────────────────────── */
 var PIECE_CLASS = {
@@ -158,11 +158,59 @@ export function showScreen(name) {
 export function showOverlay(el) { el.hidden = false; }
 export function hideOverlay(el) { el.hidden = true; }
 
+var GUIDE_SEEN_KEY = 'dp2d:guide-seen';
+function guideSeen() {
+  try {
+    if (localStorage.getItem(GUIDE_SEEN_KEY)) return true;
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i) || '';
+      // A save from another game (not the one opening now) or any finish.
+      if (k.indexOf('dp2d:first:') === 0) return true;
+      if (k.indexOf('dp2d:save3:') === 0 && !(state.game && k === 'dp2d:save3:' + state.game.puzzle.id)) return true;
+    }
+  } catch (e) { /* storage blocked: show it */ }
+  return false;
+}
+
+/* Results card slides up into view and back down out of it. Clicking outside
+   the card (or Esc) slides it away to show the finished desk; the top bar's
+   "See results" brings it back. */
+var resultsCloseT = 0;
+export function openResultsOverlay() {
+  var o = els.overlayResults;
+  if (!o) return;
+  clearTimeout(resultsCloseT);
+  o.classList.remove('is-closing');
+  showOverlay(o);
+  o.classList.remove('is-opening'); void o.offsetWidth; o.classList.add('is-opening');
+  resultsCloseT = setTimeout(function () { o.classList.remove('is-opening'); }, 380); // settled
+  syncHintsBtn();
+}
+export function closeResultsOverlay() {
+  var o = els.overlayResults;
+  if (!o || o.hidden || o.classList.contains('is-closing')) return;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  o.classList.remove('is-opening');
+  o.classList.add('is-closing');
+  clearTimeout(resultsCloseT);
+  resultsCloseT = setTimeout(function () {
+    o.classList.remove('is-closing');
+    hideOverlay(o);
+    syncHintsBtn();
+    if (els.btnSeeResults && !els.btnSeeResults.hidden) els.btnSeeResults.focus();
+  }, reduce ? 0 : 260);
+}
+
 /** Give every new game a short orientation, while leaving editor and preview
     surfaces uncluttered. The primary button receives focus so the modal is
     immediately usable by keyboard. */
-export function showClueGuide() {
+export function showClueGuide(force) {
   if (state.previewMode || state.editorMode || state.layoutMode) return;
+  if (force === true) { showOverlay(els.overlayHelp); requestAnimationFrame(function () { els.btnCloseHelp.focus(); }); return; }
+  // Only a browser's very first game: anyone who has opened or finished a
+  // puzzle before already knows. The ? button still opens it any time.
+  if (guideSeen()) return;
+  try { localStorage.setItem(GUIDE_SEEN_KEY, '1'); } catch (e) { /* ignore */ }
   showOverlay(els.overlayHelp);
   requestAnimationFrame(function () { els.btnCloseHelp.focus(); });
 }
@@ -392,6 +440,19 @@ export function syncHintsBtn() {
   var phase = state.game ? state.game.phase : null;
   var isOver = phase === 'won' || phase === 'lost';
   els.btnHints.disabled = isOver;
+  // Finished: "See results" replaces Hints, and Restart becomes a glowing "Play again".
+  var see = els.btnSeeResults;
+  if (see) {
+    see.hidden = !isOver;
+    els.btnHints.hidden = isOver && !state.previewMode;
+    if (state.previewMode) see.hidden = true;
+  }
+  if (els.btnReset) {
+    els.btnReset.classList.toggle('is-play-again', isOver);
+    els.btnReset.setAttribute('aria-label', isOver ? 'Play again' : 'Restart puzzle');
+    var lab = els.btnReset.querySelector('.btn-restart-label');
+    if (lab) lab.textContent = isOver ? 'Play again' : 'Restart';
+  }
 }
 
 export function syncAll() {
@@ -1594,6 +1655,9 @@ export function settleOnWall(id, x, wallRect) {
 /* ── Keyboard controls (bound ONCE on document) ─────────────────── */
 
 export function onKeyDown(ev) {
+  if (ev.key === 'Escape' && els.overlayResults && !els.overlayResults.hidden && (!els.overlayStats || els.overlayStats.hidden)) {
+    ev.preventDefault(); closeResultsOverlay(); return;
+  }
   if (ev.key === 'Escape' && !els.overlayHelp.hidden) {
     closeClueGuide();
     return;
@@ -2390,16 +2454,22 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
   }
   text.appendChild(h3);
   text.appendChild(explEl);
-  // Who submitted this category: a signed slide label for a named classmate,
-  // a quiet line for an anonymous one, nothing for house-written groups.
+  // Who submitted this category sits at the right end of the header row: a
+  // signed slide label for a named classmate, a quiet line for an anonymous
+  // one, nothing for house-written groups.
+  var creditBox = null;
   var creditLine = placardCreditText(puzzle, g);
-  if (creditLine) {
-    text.appendChild(buildCreditLabel(creditLine));
-  } else if (isAnonymousCredit(g && g.credit)) {
-    var anonEl = document.createElement('span');
-    anonEl.className = 'result-placard-credit is-anon';
-    anonEl.textContent = 'Category by an anonymous classmate';
-    text.appendChild(anonEl);
+  if (creditLine || isAnonymousCredit(g && g.credit)) {
+    creditBox = document.createElement('span');
+    creditBox.className = 'result-placard-side';
+    if (creditLine) {
+      creditBox.appendChild(buildCreditLabel(creditLine));
+    } else {
+      var anonEl = document.createElement('span');
+      anonEl.className = 'result-placard-credit is-anon';
+      anonEl.textContent = 'Category by an anonymous classmate';
+      creditBox.appendChild(anonEl);
+    }
   }
   if (!isPreview) {
     var more = document.createElement('span');
@@ -2407,24 +2477,10 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
     text.appendChild(more);
   }
 
-  var objs = document.createElement('span');
-  objs.className = 'result-placard-objects';
-  g.itemIds.forEach(function (id, i) {
-    var item = puzzle.items.find(function (it) { return it.id === id; });
-    if (!item) return;
-    var o = document.createElement('span');
-    o.className = 'result-obj';
-    o.appendChild(buildResultThumb(item, i + (index || 0)));
-    var lab = document.createElement('span');
-    lab.className = 'result-obj-label';
-    lab.textContent = item.label;
-    o.appendChild(lab);
-    objs.appendChild(o);
-  });
-
+  // The clue pictures live only in the opened notes (bigger there).
   head.appendChild(band);
   head.appendChild(text);
-  head.appendChild(objs);
+  if (creditBox) head.appendChild(creditBox);
   card.appendChild(head);
 
   // Body: teaching rows (play) or the editable article (editor preview).
@@ -2448,7 +2504,7 @@ export function buildResultPlacard(puzzle, g, solvedGroupIds, index) {
     }
   } else {
     var teach = document.createElement('div');
-    teach.className = 'result-teach';
+    teach.className = 'result-teach layout-grid'; // the four clues side by side, big
     resultTeachingRows(puzzle, g).forEach(function (row, i) {
       teach.appendChild(buildTeachRow(row, i));
     });
@@ -2563,7 +2619,7 @@ export function showResultsForPuzzle(puzzle, opts) {
     var ankiResult = buildAnkiSearch(puzzle);
     els.btnCopyAnki.hidden = ankiResult.noteCount === 0;
   }
-  showOverlay(els.overlayResults);
+  openResultsOverlay();
   var card = els.overlayResults.querySelector('.results-card');
   if (card) card.scrollTop = 0;
 }
@@ -2637,22 +2693,8 @@ export function bindResultsEdit() {
 export function buildShareText() {
   var game = state.game;
   var puzzle = game.puzzle;
+  // Just the grid, the result, and the link (Thirth, 2026-11-02).
   var lines = [];
-  lines.push('Starry Sky Society Puzzle');
-  lines.push(puzzle.title + (puzzle.date ? ', ' + puzzle.date : ''));
-  var won = game.phase === 'won', g = game.mistakes + 1;
-  lines.push((won ? 'Solved in ' + g + ' guess' + (g === 1 ? '' : 'es') : 'Not solved') + (state.settings.casual ? ' (casual)' : ''));
-  var hintEmojis = '';
-  var hints = state.desk.hints || {};
-  if (hints.labels) hintEmojis += '🏷️';
-  if (hints.seeds) hintEmojis += '📌';
-  if (hints.category) hintEmojis += '📝';
-  // Fallback: old saves without hints block but with hintsUsed > 0.
-  if (!hintEmojis && state.desk.hintsUsed > 0) hintEmojis = String(state.desk.hintsUsed);
-  if (hintEmojis) lines.push('Hints: ' + hintEmojis);
-  var classLine = state.previewMode ? '' : classShareLine(puzzle.id);
-  if (classLine) lines.push(classLine);
-  lines.push('');
   game.attempts.forEach(function (attempt) {
     var row = attempt.itemIds.map(function (id) {
       var group = groupOfItem(puzzle, id);
@@ -2660,6 +2702,9 @@ export function buildShareText() {
     }).join('');
     lines.push(row);
   });
+  var won = game.phase === 'won', g = game.mistakes + 1;
+  lines.push((won ? 'Solved in ' + g + ' guess' + (g === 1 ? '' : 'es') : 'Not solved') + (state.settings.casual ? ' (casual)' : ''));
+  lines.push('pathologyconnections.org');
   return lines.join('\n');
 }
 

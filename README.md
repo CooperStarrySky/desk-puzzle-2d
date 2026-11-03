@@ -202,7 +202,7 @@ ignores it and probes from the hardcoded list above.)
 Object textures should be alpha-transparent cutouts (the piece shadow
 follows the cutout); every file is auto-trimmed to its visible pixels at
 load, so margins and resolution don't matter — pieces always render at
-their standard size. Numbered alternates (`sticky-2.webp`, `paper-2.webp`, …)
+their standard size. Numbered alternates (`paper-2.webp`, …)
 join the per-piece variety pool when present. Piece variety otherwise comes
 from a seeded flip/hue-brightness jitter per piece (the corner-fold and tape
 overlay decorations were removed in round 9 — they read as clutter, not

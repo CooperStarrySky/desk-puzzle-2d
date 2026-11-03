@@ -1777,18 +1777,17 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
   from { opacity: 0; transform: rotate(-8deg) scale(2.2); }
   to { opacity: 0.85; transform: rotate(-8deg) scale(1); }
 }
-/* "How you did": Groups found + Hints used stacked on the left, the solve grid
-   on the right (desktop). On phones the two small tiles share a row and the
-   solve grid runs full width under them. No solve path: the tiles share the row. */
+/* "How you did": the Hints used tile on the left, the solve grid on the right
+   (desktop). On phones the solve grid runs full width under the tile. */
 .results-me {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
   gap: 10px;
   align-items: stretch;
 }
 .results-me.no-path { grid-template-columns: minmax(0, 1fr); }
 .results-stats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-.results-me.no-path .results-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.results-me.no-path .results-stats { grid-template-columns: minmax(0, 1fr); }
 .results-stat {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
@@ -1813,7 +1812,7 @@ body.has-textures .piece.textured .piece-skin[style*="--skin-tex"] { opacity: 1;
 .results-path-note.is-bad { color: var(--danger); }
 @media (max-width: 720px) {
   .results-me { grid-template-columns: minmax(0, 1fr); }
-  .results-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .results-stats { grid-template-columns: minmax(0, 1fr); }
   .results-stat { padding: 11px 13px; }
   .results-stat-v { font-size: 1.4rem; }
   .results-sq { width: 32px; height: 32px; }
@@ -3241,4 +3240,74 @@ body.preview-mode .play-header-title p { display: none; }
 @media (max-width: 420px) {
   .results-class { padding: 12px; }
   .rate-btn { font-size: 0.74rem; }
+}
+
+/* ── End of game: "See results", Restart / Play again, results slide ── */
+/* Takes the Hints button's place once the puzzle is over: wider, in eosin pink. */
+.see-results-btn {
+  min-width: 9.5em;
+  background: var(--eosin);
+  border-color: var(--eosin);
+  color: var(--eosin-ink, #fff);
+  font-weight: 700;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--eosin) 45%, transparent);
+}
+.see-results-btn:hover { filter: brightness(1.06); }
+.see-results-btn[hidden] { display: none; }
+/* Restart is a labeled button during play; after the game it reads "Play again" and glows. */
+.play-actions .btn-restart { display: inline-flex; align-items: center; gap: 6px; }
+.btn-restart-label { font-weight: 600; }
+.play-actions .btn-restart.is-play-again {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  animation: play-again-glow 2.4s ease-in-out infinite;
+}
+@keyframes play-again-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent), 0 0 16px 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+}
+/* The results card rises in, and sinks out when you click outside it. */
+#overlay-results.is-opening { animation: results-scrim-in .22s ease-out both; }
+#overlay-results.is-opening .results-card { animation: results-card-in .34s cubic-bezier(.2, .9, .25, 1.05) both; }
+#overlay-results.is-closing { animation: results-scrim-out .26s ease-in both; pointer-events: none; }
+#overlay-results.is-closing .results-card { animation: results-card-out .26s cubic-bezier(.5, 0, .75, .3) both; }
+@keyframes results-scrim-in { from { background-color: transparent; } }
+@keyframes results-scrim-out { to { background-color: transparent; } }
+@keyframes results-card-in { from { opacity: 0; transform: translateY(48px) scale(.985); } }
+@keyframes results-card-out { to { opacity: 0; transform: translateY(64px) scale(.985); } }
+@media (prefers-reduced-motion: reduce) {
+  .play-actions .btn-restart.is-play-again { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+  #overlay-results.is-opening, #overlay-results.is-opening .results-card,
+  #overlay-results.is-closing, #overlay-results.is-closing .results-card { animation: none; }
+}
+
+/* ── Opened notes: the clue pictures, big (four in a row; Thirth picked this layout 2026-11-02) ── */
+.result-teach.layout-grid { display: none; }
+.result-placard[aria-expanded="true"] .result-teach.layout-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; padding: 16px 18px 16px;
+}
+.result-teach.layout-grid .result-teach-row {
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 0; border-top: 0;
+}
+.result-teach.layout-grid .rthumb { width: 100%; max-width: 190px; margin: 0 auto; }
+.result-teach.layout-grid .result-anki-chip { grid-column: 1 / -1; }
+/* Writing on the big sticky notes and prescriptions scales up with them. */
+.result-teach .rthumb-sticky { font-size: 1.6rem !important; line-height: 1.15; padding: 14px 12px; }
+.result-teach .rthumb-rx { padding: 10px; }
+.result-teach .rthumb-rx b { font-size: 1.5rem; }
+.result-teach .rthumb-rx i { font-size: 1.02rem; }
+.result-teach .rthumb-photo { padding: 7px 7px 18px; }
+.result-teach .rthumb-film { border-width: 5px; }
+.result-teach .rthumb-scope { border-width: 5px; }
+@media (max-width: 720px) {
+  .result-placard[aria-expanded="true"] .result-teach.layout-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Credit at the right end of a group's header row (saves a line of height). */
+.result-placard-side { display: flex; align-items: center; justify-content: flex-end; padding: 10px 18px 10px 4px; min-width: 0; }
+.result-placard-side .credit-label { margin-top: 0; align-self: center; transform-origin: right center; }
+.result-placard-side .result-placard-credit.is-anon { max-width: 13em; text-align: right; font-style: italic; }
+@media (max-width: 720px) {
+  .result-placard-side { justify-content: flex-start; padding: 0 14px 10px; }
 }

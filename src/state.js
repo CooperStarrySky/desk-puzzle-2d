@@ -142,7 +142,7 @@ export function cacheEls() {
     'play-area', 'wall-area', 'xray-rack', 'xray-rail', 'desk-surface', 'piece-layer', 'trays',
     'machine-scope', 'scope-stage', 'machine-lightbox', 'lightbox-screen',
     'scope-panel', 'scope-display-wrap', 'scope-canvas', 'tray-hud',
-    'btn-reset',
+    'btn-reset', 'btn-see-results',
     'btn-settings', 'settings-panel',
     'btn-close-settings',
     'overlay-help', 'btn-close-help',

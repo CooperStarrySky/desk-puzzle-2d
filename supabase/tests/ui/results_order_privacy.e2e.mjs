@@ -45,6 +45,7 @@ async function results(opts) {
   await P.js(`(() => { window.__dp2d.showResultsForPuzzle(${JSON.stringify(PUZZLE)}, { won: true, sub: 'Solved in 5 guesses.', hints: { labels: true },
     solvedGroupIds: new Set(['g0', 'g1', 'g2', 'g3']), attempts: [{ itemIds: ['c00', 'c01', 'c02', 'c03'] }] });
     document.getElementById('results-class').hidden = false; document.getElementById('results-class-everyone').hidden = false; return true; })()`);
+    await P.waitFor('!document.getElementById("overlay-results").classList.contains("is-opening")', 3000);
   await P.waitFor('!document.getElementById("overlay-results").hidden');
   await P.sleep(900);
   return P;
@@ -58,7 +59,7 @@ const textRect = (P, sel) => P.js(`(() => { const g = document.createRange(); g.
   const b = g.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; })()`);
 const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
-const SEQ = ['.results-hero', '#results-groups', '.results-numbers', '#results-found', '#results-path', '#results-class', '#results-rate', '.results-actions', '#btn-share', '#btn-play-again'];
+const SEQ = ['.results-hero', '#results-groups', '.results-numbers', '#results-hints', '#results-path', '#results-class', '#results-rate', '.results-actions', '#btn-share', '#btn-play-again'];
 for (const [w, h, mobile] of [[1100, 900, false], [375, 760, true]]) {
   for (const dark of [false, true]) {
     const tag = (mobile ? 'phone ' : 'desktop ') + (dark ? 'dark' : 'light');
@@ -103,6 +104,7 @@ for (const [w, h, mobile, dark] of [[1100, 900, false, false], [375, 760, true, 
     localStorage.setItem('dp2d:counted:${RID}', '1'); localStorage.removeItem('dp2d:rating4:${RID}');
     window.__dp2d.showResultsForPuzzle(p, { won: true, sub: 'Solved in 5 guesses.', solvedGroupIds: new Set(['g0', 'g1', 'g2', 'g3']), attempts: [] });
     (await import('/src/stats-class-ui.js')).renderResultsClass(p); return true; })()`);
+    await P.waitFor('!document.getElementById("overlay-results").classList.contains("is-opening")', 3000);
   await P.waitFor('!document.getElementById("results-rate").hidden', 5000);
   check(`G1 ${tag}: before a vote the class ratings stay hidden (no swaying)`, (await P.js(`document.getElementById('results-rated').hidden`)) && (await P.count('#results-rate .rate-btn')) === 4);
   await P.clickText('#results-rate button', 'Tough');

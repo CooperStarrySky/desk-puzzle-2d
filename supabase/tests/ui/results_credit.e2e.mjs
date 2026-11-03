@@ -33,7 +33,7 @@ const show = (P) => P.js(`(() => {
   window.__dp2d.showResultsForPuzzle(p, { won: true, sub: 'Solved in 5 guesses.', solvedGroupIds: new Set(['g0', 'g1', 'g2', 'g3']),
     attempts: [{ itemIds: ['c00', 'c01', 'c02', 'c03'] }] });
   return true;
-})()`);
+})()`).then(() => P.waitFor('!document.getElementById("overlay-results").classList.contains("is-opening")', 3000));
 const placard = (i) => '#results-groups .result-placard:nth-child(' + (i + 1) + ')';
 /** Centre of the first signed label's slide, scrolled into view. */
 const slideBox = (P) => P.js(`(() => { const s = document.querySelector('#results-groups .credit-label .cl-slide'); s.scrollIntoView({ block: 'center' });
@@ -78,7 +78,7 @@ for (const dark of [false, true]) {
   const sizes = await P.js(`(() => { const r = document.querySelector('${sub} .cl-slide').getBoundingClientRect(); const h = document.querySelector('#home-invite .cl-slide'); h.closest('#home-invite').hidden = false; const q = h.getBoundingClientRect(); return { rw: Math.round(r.width), rh: Math.round(r.height), hw: Math.round(q.width), hh: Math.round(q.height) }; })()`);
   check(`R4 ${tag}: same size as the home page slide`, sizes.rw > 0 && Math.abs(sizes.rw - sizes.hw) <= 1 && Math.abs(sizes.rh - sizes.hh) <= 1, sizes);
   check(`R4 ${tag}: the old link line is gone`, !(await P.count('.credit-cta')));
-  check(`R5 ${tag}: stats, stamp and share still there`, (await P.text('#results-found')) === '4 / 4' && (await P.text('#results-stamp')) === 'Case closed' && (await P.visible('#btn-share')) && (await P.count('#results-path .results-path-row')) === 1);
+  check(`R5 ${tag}: stats, stamp and share still there ("Groups found" removed)`, !(await P.count('#results-found')) && (await P.visible('#results-hints')) && (await P.text('#results-stamp')) === 'Case closed' && (await P.visible('#btn-share')) && (await P.count('#results-path .results-path-row')) === 1);
   // Entrance plays once it is on screen.
   const box = await slideBox(P);
   check(`R6 ${tag}: label flips in when scrolled into view`, await P.waitFor(`document.querySelector('#results-groups .credit-label').classList.contains('is-in')`, 3000));
