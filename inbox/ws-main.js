@@ -67,7 +67,7 @@ async function go() {
   const changedTab = p.tab !== tab || (p.draft || p.sub || '') !== view;
   tab = p.tab; view = p.draft || p.sub || ''; renderTabs();
   if (!(tab === 'planner' && p.draft)) { const sc = $('#sheet-scrim'); if (sc) sc.remove(); document.body.classList.remove('sheet-lock'); }
-  if (changedTab) document.title = TAB_WORDS[tab] + ' · Puzzle workspace · Desk Puzzle';
+  if (changedTab) document.title = TAB_WORDS[tab] + ' · Puzzle workspace · Pathology Connections';
   if (tab === 'activity') await showActivity();
   else if (tab === 'planner') await showPlanner(p.draft);
   else if (tab === 'calendar') await showCalendar();
@@ -126,7 +126,7 @@ async function route() {
       startLive(onLive, where); // quietly does nothing when Realtime isn't available
     }
     renderMe(); show('v-ws');
-    $('#brand-sub').textContent = 'Desk Puzzle · ' + (S.owner ? 'All schools' : schName(S.school));
+    $('#brand-sub').textContent = 'Pathology Connections · ' + (S.owner ? 'All schools' : schName(S.school));
     await go();
     if (needsProfile() && !prompted && !modalOpen()) { prompted = true; openProfile(true, () => go()); }
   } catch (e) {

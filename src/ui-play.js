@@ -522,7 +522,7 @@ export function syncHeader() {
   var puzzle = game.puzzle;
   els.puzzleTitle.textContent = puzzle.title;
   els.puzzleDate.textContent = puzzle.date || '';
-  document.title = puzzle.title + ' : Desk Puzzle';
+  document.title = puzzle.title + ' · Pathology Connections';
 
   els.mistakeTracker.innerHTML = '';
   var box = document.createElement('div');
@@ -1474,13 +1474,7 @@ export function onPointerMove(ev) {
   if (!d || ev.pointerId !== d.pointerId) return;
   ev.preventDefault();
   var p = dragPoint(ev);
-  if (d.isFilm) {
-    var overTray = d.rects.trays.some(function (tray) { return pointIn(tray, p.x, p.y); });
-    if (!overTray) {
-      p.y = d.wallY;
-      p.x = clamp(p.x, d.wallRect.left + d.filmHalfW, d.wallRect.right - d.filmHalfW);
-    }
-  }
+  // Films follow the cursor anywhere too; dropped away from a tray, they go back up onto the rail.
   d.el.style.left = p.x + 'px';
   d.el.style.top = p.y + 'px';
   updateDropHot(p.x, p.y);
@@ -1528,7 +1522,7 @@ export function onPointerCancel(ev) {
  * PURE drop classifier — no DOM, no globals. Given the drop point, the
  * cached target rects, and current occupancy, decide what a drop means.
  * returns: {kind:'slot',box,slot} | {kind:'tray-locked'|'tray-full',box}
- *   | {kind:'scope'|'scope-wrong'|'scope-occupied'}
+ *   | {kind:'scope'|'scope-wrong'}  (an occupied stage still takes the slide)
  *   | {kind:'printer'} | {kind:'desk'}
  */
 export function classifyDrop(input) {
@@ -1548,7 +1542,7 @@ export function classifyDrop(input) {
   }
   if (pointIn(input.rects.stage, input.x, input.y)) {
     if (input.zone !== 'rack') return { kind: 'scope-wrong' };
-    if (input.scope && input.scope !== input.itemId) return { kind: 'scope-occupied' };
+    // An occupied stage takes the new slide; applyDrop moves the old one off.
     return { kind: 'scope' };
   }
   if (pointIn(input.rects.printer, input.x, input.y)) {
@@ -1597,15 +1591,14 @@ export function applyDrop(d, x, y) {
       toast('Tray ' + String.fromCharCode(65 + c.box) + ' is full.');
       break;
     case 'scope':
+      var prev = state.desk.scope;
       state.desk.scope = id;
+      if (prev && prev !== id) bumpOffStage(prev, d.rects.stage, d.rects.desk);
       playSound('dock-glass');
       announce('On the microscope: ' + revealText(item));
       return;
     case 'scope-wrong':
       toast('Only slides go on the microscope stage.');
-      break;
-    case 'scope-occupied':
-      toast('The stage already holds a slide.');
       break;
     case 'printer':
       toast("The printer's out of ink — try the Hints menu.");
@@ -1622,6 +1615,16 @@ export function applyDrop(d, x, y) {
 
   // Rejected drops (locked/full/wrong/occupied) settle back onto the desk.
   settleOnDesk(id, x, y, d.rects.desk);
+}
+
+/** The slide a new one replaced on the microscope: it lands on the desk at a
+    random spot near the microscope (a different one each time). */
+function bumpOffStage(id, stageRect, deskRect) {
+  var cx = (stageRect.left + stageRect.right) / 2, cy = (stageRect.top + stageRect.bottom) / 2;
+  var a = Math.random() * Math.PI * 2, r = 90 + Math.random() * 70;
+  settleOnDesk(id, cx + Math.cos(a) * r, Math.max(deskRect.top + 20, cy + Math.abs(Math.sin(a)) * r), deskRect);
+  state.desk.z[id] = ++state.desk.zTop;
+  pieceSound('rack', 'drop');
 }
 
 /** Park a piece on the desk. Pass x/y = null to keep its stored spot. */

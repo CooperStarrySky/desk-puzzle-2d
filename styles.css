@@ -901,7 +901,8 @@ a.btn.btn-small, a.btn.btn-big { display: inline-flex; align-items: center; just
    where they physically overlap it (clip-path on .film-lit). */
 .machine-lightbox {
   top: 20px;
-  right: 5%;
+  left: 48%; /* the X-ray rail's left end, near the middle of the screen */
+  right: auto;
   z-index: 2;
 }
 .lightbox-screen {
@@ -2957,7 +2958,7 @@ body.preview-mode .play-header-title p { display: none; }
   .play-area { min-height: 46vh; overflow: visible; }
   .wall-area { flex-basis: 230px; min-height: 224px; }
   .xray-rack { left: 3%; right: 3%; top: 18px; height: 132px; }
-  .machine-lightbox { top: 18px; }
+  .machine-lightbox { top: 18px; left: 3%; right: auto; }
   .lightbox-screen { width: 180px; height: 210px; }
 }
 
@@ -2979,7 +2980,7 @@ body.preview-mode .play-header-title p { display: none; }
   .wall-area { flex-basis: 190px; min-height: 184px; }
   .xray-rack { top: 16px; height: 112px; }
   .xray-rack { left: 3%; right: 3%; }
-  .machine-lightbox { top: 16px; right: 3%; }
+  .machine-lightbox { top: 16px; left: 3%; right: auto; }
   .piece { --responsive-scale: clamp(0.72, calc(100vw / 760px), 1); }
   .play-header { gap: 10px; }
   .hints-wrap { margin-left: 0; }

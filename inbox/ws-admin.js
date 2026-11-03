@@ -161,7 +161,7 @@ function addPersonDialog() {
 }
 /* What to tell the new person (nothing is emailed from here). */
 export function invitedDialog(email, role, school) {
-  const msg = 'You’ve been added to the Desk Puzzle workspace as ' + role + ' at ' + school + '. Go to ' + inboxLink() + ', choose “Create account”, use ' + email + ', and enter the code that arrives by email. You pick your own password.';
+  const msg = 'You’ve been added to the Pathology Connections workspace as ' + role + ' at ' + school + '. Go to ' + inboxLink() + ', choose “Create account”, use ' + email + ', and enter the code that arrives by email. You pick your own password.';
   openModal('<div class="stack" style="--gap:12px"><h2 id="modal-h">' + esc(email) + ' can sign up now</h2>' +
     '<p class="muted">Nothing was emailed from here. Send them this note (or just the link):</p><p class="note-box" id="inv-msg">' + esc(msg) + '</p>' +
     '<div class="modal-actions"><button class="btn" type="button" id="inv-copy">Copy note</button><button class="btn primary" type="button" data-dismiss>Done</button></div></div>', (m) => {
