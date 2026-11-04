@@ -259,7 +259,8 @@ export function renderMenu(registry) {
     btn.appendChild(text);
     li.appendChild(btn);
     els.puzzleGrid.appendChild(li);
-  });  fillMenuClassLines(puzzles);
+  });
+  fillMenuClassLines(puzzles.filter(function (e) { return e.id === registry.current; }));
 }
 
 /* ── Save sanitizer ──────────────────────────────────────────────── */
