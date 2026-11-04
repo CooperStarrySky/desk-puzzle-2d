@@ -31,6 +31,10 @@ let PF = PF0();
 const PS = { hits: null, hitQ: '', seq: 0 };
 /* The drag in progress ("lib:<key>" or "slot:<tier>"), for browsers that hide dataTransfer until drop. */
 export const DND = { v: '' };
+/* The element a drag event is over. Some browsers (Firefox) aim drag events at the text node inside a card. */
+export function dragEl(e) { const t = e.target; return t && t.nodeType === 1 ? t : (t && t.parentElement) || document.body; }
+/* Never let a stray drop of one of our cards fall through to the browser, which opens the text in a new tab. */
+document.addEventListener('drop', (e) => { if (DND.v) e.preventDefault(); });
 /* Set by the editor: what "Add to draft…", "Details" and dropping a slot back here do. */
 export const LIB = { draft: null, canEdit: false, onAdd: null, onDetails: null, onRemove: null };
 /* Touch screens get tap-to-choose instead of drag and drop. */
@@ -168,11 +172,11 @@ export function wireLib() {
     }
   });
   lib.addEventListener('dragstart', (e) => {
-    const c = e.target.closest && e.target.closest('.lib-card'); if (!c) return;
+    const c = dragEl(e).closest('.lib-card'); if (!c) return;
     DND.v = 'lib:' + c.dataset.key; c.classList.add('dragging');
     try { e.dataTransfer.setData('text/plain', DND.v); e.dataTransfer.effectAllowed = 'move'; } catch (x) { /* read-only in some browsers */ }
   });
-  lib.addEventListener('dragend', (e) => { const c = e.target.closest && e.target.closest('.lib-card'); if (c) c.classList.remove('dragging'); DND.v = ''; });
+  lib.addEventListener('dragend', (e) => { const c = dragEl(e).closest('.lib-card'); if (c) c.classList.remove('dragging'); DND.v = ''; });
   // Drag a slot back onto the Database to take it out of the draft.
   lib.addEventListener('dragover', (e) => { if (DND.v.startsWith('slot:')) { e.preventDefault(); lib.classList.add('drop-back'); } });
   lib.addEventListener('dragleave', (e) => { if (!lib.contains(e.relatedTarget)) lib.classList.remove('drop-back'); });
@@ -180,8 +184,9 @@ export function wireLib() {
     lib.classList.remove('drop-back');
     let v = ''; try { v = e.dataTransfer.getData('text/plain'); } catch (x) { /* */ }
     v = v || DND.v; DND.v = '';
+    e.preventDefault();
     if (!v.startsWith('slot:')) return;
-    e.preventDefault(); if (LIB.onRemove) LIB.onRemove(Number(v.slice(5)));
+    if (LIB.onRemove) LIB.onRemove(Number(v.slice(5)));
   });
   wirePeek(lib);
   libRefresh();
