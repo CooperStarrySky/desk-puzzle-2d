@@ -6,7 +6,7 @@
 import { $, $$, esc, busy, toast, toastAct, openModal, fillImages, person, menuHtml, onMenu, TIER_WORDS, STATUS_WORDS } from './ws-core.js';
 import { contentHtml } from './ws-clues.js';
 import { slotsOf, itemByKey, tierOfKey, placeItem, moveSlot, removeSlot, restoreSlot, votesFor } from './ws-plan-data.js';
-import { LIB, DND, alsoFlags, libItems, TOUCH, libSheet } from './ws-plan-lib.js';
+import { LIB, DND, dragEl, alsoFlags, libItems, TOUCH, libSheet } from './ws-plan-lib.js';
 import { addPart, refresh, current, readOnly, ED, SLOT_HOOKS } from './ws-plan-editor.js';
 import { editing, editorHtml, badgeHtml, startEdit, stopEdit } from './ws-plan-adapt.js';
 import { wireAdapt } from './ws-plan-adapt-pick.js';
@@ -166,15 +166,15 @@ function mount(d) {
   });
   wireAdapt(el, () => { const c = current(); if (c) render(c); });
   el.addEventListener('dragstart', (e) => {
-    const b = e.target.closest && e.target.closest('[data-from]'); if (!b) return;
+    const b = dragEl(e).closest('[data-from]'); if (!b) return;
     DND.v = 'slot:' + b.dataset.from; b.classList.add('dragging');
     try { e.dataTransfer.setData('text/plain', DND.v); e.dataTransfer.effectAllowed = 'move'; } catch (x) { /* */ }
   });
-  el.addEventListener('dragend', (e) => { const b = e.target.closest && e.target.closest('[data-from]'); if (b) b.classList.remove('dragging'); DND.v = ''; });
-  el.addEventListener('dragover', (e) => { const sl = e.target.closest('.slot'); if (!sl || readOnly(current())) return; e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch (x) { /* */ } sl.classList.add('over'); });
-  el.addEventListener('dragleave', (e) => { const sl = e.target.closest('.slot'); if (sl && !sl.contains(e.relatedTarget)) sl.classList.remove('over'); });
+  el.addEventListener('dragend', (e) => { const b = dragEl(e).closest('[data-from]'); if (b) b.classList.remove('dragging'); DND.v = ''; });
+  el.addEventListener('dragover', (e) => { const sl = dragEl(e).closest('.slot'); if (!sl || readOnly(current())) return; e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch (x) { /* */ } sl.classList.add('over'); });
+  el.addEventListener('dragleave', (e) => { const sl = dragEl(e).closest('.slot'); if (sl && !sl.contains(e.relatedTarget)) sl.classList.remove('over'); });
   el.addEventListener('drop', (e) => {
-    const sl = e.target.closest('.slot'); if (!sl) return;
+    const sl = dragEl(e).closest('.slot'); if (!sl) return;
     e.preventDefault(); sl.classList.remove('over');
     const v = readDrag(e), t = Number(sl.dataset.t); DND.v = '';
     if (v.startsWith('lib:')) place(v.slice(4), t); else if (v.startsWith('slot:')) swap(Number(v.slice(5)), t);

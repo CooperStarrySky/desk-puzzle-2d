@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || '4820';
-const SUITES = ['catdb_admin.e2e.mjs', 'catdb_roles.e2e.mjs', 'catdb_layout.e2e.mjs', 'plan_admin.e2e.mjs', 'plan_roles.e2e.mjs', 'plan_layout.e2e.mjs', 'plan_layout_a.e2e.mjs',
+const SUITES = ['catdb_admin.e2e.mjs', 'catdb_roles.e2e.mjs', 'catdb_layout.e2e.mjs', 'plan_admin.e2e.mjs', 'plan_roles.e2e.mjs', 'plan_layout.e2e.mjs', 'plan_layout_a.e2e.mjs', 'plan_drop.e2e.mjs',
   'cards_b2.e2e.mjs', 'studio.e2e.mjs', 'admin_owner.e2e.mjs', 'admin_roles.e2e.mjs', 'orphans.e2e.mjs', 'live_sync.e2e.mjs',
   'catdb_clues.e2e.mjs', 'results_credit.e2e.mjs', 'results_order_privacy.e2e.mjs', 'results_icons.e2e.mjs', 'admin_motion.e2e.mjs', 'home_hero.e2e.mjs'];
 // SUITES=a.e2e.mjs,b.e2e.mjs runs just those.
