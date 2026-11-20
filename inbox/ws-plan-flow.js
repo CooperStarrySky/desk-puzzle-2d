@@ -2,7 +2,7 @@
    pass) -> Scheduled (a release moment, default Thursday 6:00 AM Eastern) ->
    Published. "Publish now" sits under the draft's ⋯ menu with a specific
    warning (who it goes live to, which puzzle it replaces). It only asks: it adds a publish_jobs row that the
-   publisher (the "Publish puzzles" GitHub workflow, every 10 minutes) picks up.
+   publisher (the "Publish puzzles" GitHub workflow, started at once by the database) picks up.
    The job's progress shows here (Queued -> Publishing (step) -> Live, or the
    failed step with its reason and "Try again"), checked every 20 s while it is
    open. The banner says when the database moved this draft back (a category
@@ -15,7 +15,7 @@ import { etParts, etToIso, nextThursday, releaseLabel, weekOf, todayEt, shortDay
 
 const openJob = (j) => !!j && (j.state === 'queued' || j.state === 'running');
 const btn = (id, label, cls, off) => '<button type="button" class="btn small ' + (cls || '') + '" id="' + id + '"' + (off ? ' disabled' : '') + '>' + label + '</button>';
-const SOON = 'usually within 10 minutes';
+const SOON = 'usually within 2 minutes';
 const STAGES = ['Queued', 'Publishing', 'Live'];
 
 function jobHtml(j, d) {
@@ -138,7 +138,7 @@ async function publishDialog(d) {
   const hit = losers(d), back = { scheduled: 'goes back to Ready', ready: 'goes back to Planning', planning: 'stays in Planning' }, live = livePuzzle(d.school);
   openModal('<div class="stack" style="--gap:12px"><h2 id="modal-h">Publish “' + esc(d.title) + '” now?</h2>' +
     '<p class="pub-warn" id="pub-warn">Goes live to all ' + esc(schFull(d.school)) + ' players immediately; ' + (live ? 'replaces ' + esc(live.title) + '.' : 'nothing is live for them yet.') + '</p>' +
-    '<p class="muted">“Immediately” means the next publisher run, <b>usually within 10 minutes</b>' + (d.status === 'scheduled' ? ', instead of waiting for ' + esc(releaseLabel(d.target_release)) : '') + '.</p>' +
+    '<p class="muted">“Immediately” means the publisher starts right away and the puzzle is live <b>usually within 2 minutes</b>' + (d.status === 'scheduled' ? ', instead of waiting for ' + esc(releaseLabel(d.target_release)) : '') + '.</p>' +
     '<h3 class="pub-h">What happens at release</h3><ol class="steps">' + STEPS.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ol>' +
     (hit.length ? '<div class="note-box"><b>Other drafts lose categories:</b><ul class="losers">' + hit.map((x) => '<li>‘' + esc(x.name) + '’ from ' + esc(x.o.title) + ' (' + esc(DSTATUS[x.o.status]) + ', ' + back[x.o.status] + ')</li>').join('') + '</ul></div>'
       : '<p class="muted">No other draft uses these categories.</p>') +
