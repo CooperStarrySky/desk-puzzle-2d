@@ -75,6 +75,15 @@ check('L8 double-click resets the Database width', (await kv()) === 340 && /Data
 await P.click('#pv-strip'); await P.sleep(600);
 check('L4 Live preview rail opens too', (await ed('pv')) === 'open' && (await P.visible('#pv-frame')));
 check('L4 both open: tiers keep at least 460 px', (await width('.center')) >= 460, await width('.center'));
+// The mouse wheel over the Live preview (frame or heading) scrolls the page when the rail has nothing of its own to scroll.
+for (const sel of ['#pv-frame', '#pv-h']) {
+  await P.js('scrollTo(0, 0)'); await P.sleep(100);
+  const [wx, wy] = await P.js(`(() => { const r = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return [Math.round(r.left + 20), Math.round(Math.min(r.top + 10, innerHeight - 20))]; })()`);
+  for (let i = 0; i < 3; i++) { await P.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: wx, y: wy, deltaX: 0, deltaY: 120 }); await P.sleep(60); }
+  await P.sleep(300);
+  check('L4 wheel over ' + sel + ' scrolls the page', (await P.js('scrollY')) > 0, await P.js('scrollY'));
+}
+await P.js('scrollTo(0, 0)'); await P.sleep(100);
 await P.js('document.getElementById("pv-handle").focus()'); const pv0 = Number(await P.attr('#pv-handle', 'aria-valuenow'));
 await P.key('Home', 'Home', 36); await P.key('ArrowLeft', 'ArrowLeft', 37);
 check('L7 preview bar: ArrowLeft widens the right rail', Number(await P.attr('#pv-handle', 'aria-valuenow')) === 316, [pv0, await P.attr('#pv-handle', 'aria-valuenow')]);

@@ -51,7 +51,7 @@
 .editor[data-db="open"] .rail-l > .lib, .editor[data-db="over"] .rail-l > .lib { display: flex; width: var(--dbw, 340px); }
 .editor[data-pv="open"] .rail-r > .pv-col, .editor[data-pv="over"] .rail-r > .pv-col { display: flex; width: var(--pvw, 380px); }
 .editor[data-db="open"] #db-strip, .editor[data-pv="open"] #pv-strip { display: none; }
-.rail .lib, .rail .pv-col { flex-direction: column; max-height: calc(100vh - 124px); overflow-y: auto; overscroll-behavior: contain; }
+.rail .lib, .rail .pv-col { flex-direction: column; max-height: calc(100vh - 124px); overflow-y: auto; }
 /* A small window: the one open rail floats over the tiers instead of squeezing them. */
 .editor[data-db="over"] .rail-l > .lib { position: absolute; left: 0; top: 0; z-index: 30; max-width: calc(100vw - 40px); box-shadow: 0 14px 40px var(--shadow); }
 .editor[data-pv="over"] .rail-r > .pv-col { position: absolute; right: 0; top: 0; z-index: 30; max-width: calc(100vw - 40px); box-shadow: 0 14px 40px var(--shadow); }
