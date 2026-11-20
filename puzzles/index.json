@@ -1,6 +1,14 @@
 {
-  "current": "trick-or-toxin-2026-10-30",
+  "current": "name-rings-a-bell-2026-11-20",
   "puzzles": [
+    {
+      "id": "name-rings-a-bell-2026-11-20",
+      "title": "Name Rings a Bell",
+      "date": "2026-11-20",
+      "file": "name-rings-a-bell-2026-11-20.json",
+      "thumb": "puzzles/thumbs/name-rings-a-bell-2026-11-20.webp",
+      "school": "cmsru"
+    },
     {
       "id": "trick-or-toxin-2026-10-30",
       "title": "Trick or Toxin",

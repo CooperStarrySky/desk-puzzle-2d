@@ -1,0 +1,303 @@
+{
+  "id": "name-rings-a-bell-2026-11-20",
+  "title": "Name Rings a Bell",
+  "date": "2026-11-20",
+  "machines": [
+    "lightbox",
+    "scope"
+  ],
+  "groups": [
+    {
+      "id": "g-potential-causes-of-shock",
+      "name": "Potential causes of shock",
+      "tier": 1,
+      "explanation": "One of each of the four main causes of shock: hypovolemic, cardiogenic, obstructive, and distributive",
+      "article": [
+        {
+          "type": "text",
+          "text": "<i>Images: https://radiopaedia.org/articles/tension-pneumothorax; https://www.wikidoc.org/index.php/Papillary_muscle_rupture; https://www.amboss.com/us/knowledge/penetrating-trauma</i>"
+        }
+      ],
+      "credit": {
+        "name": "Jacob"
+      },
+      "itemIds": [
+        "sepsis",
+        "tension-pneumothorax",
+        "papillary-muscle-rupture",
+        "penetrating-trauma"
+      ]
+    },
+    {
+      "id": "g-wilson-disease",
+      "name": "Wilson Disease",
+      "tier": 2,
+      "explanation": "Associated with diagnosis or treatment of Wilson Disease",
+      "article": [
+        {
+          "type": "text",
+          "text": "<i>Images: https://encyclopedia.pub/entry/26244; https://www.webpathology.com/images/gastrointestinal/liver/inherited-metabolic-and-develop-disorders/42901; https://radiopaedia.org/articles/hepatomegaly</i>"
+        }
+      ],
+      "credit": {
+        "anonymous": true
+      },
+      "itemIds": [
+        "low-ceruloplasmin",
+        "steatosis",
+        "hepatomegaly-on-x-ray",
+        "zinc-acetate"
+      ]
+    },
+    {
+      "id": "g-things-with-hallmark-signs-related-to-rings",
+      "name": "Things with hallmark signs related to rings",
+      "tier": 3,
+      "explanation": "All of these conditions, Wilson's disease, Bronchiectasis, Toxoplasmosis, Gastric adenocarcinoma have a hallmark sign that is associated with rings",
+      "article": [
+        {
+          "type": "text",
+          "text": "<i>Images: Adobe Stock Images; Curious clinicians; Radiopaedia; Neuroradiology</i>"
+        }
+      ],
+      "credit": {
+        "name": "Jacob + Liz",
+        "line": "MS2"
+      },
+      "itemIds": [
+        "signet-rings-in-gastric-adenocarcinoma",
+        "kayser-fleischer-rings",
+        "signet-rings-in-bronchiectasis",
+        "ring-enhancing-lesions-on-ct"
+      ]
+    },
+    {
+      "id": "g-cells-named-after-people",
+      "name": "Cells named after people",
+      "tier": 4,
+      "explanation": "Each clue points to a cell that carries someone's name.",
+      "anki": {
+        "nids": [
+          1481335636086,
+          1472058685014,
+          1486776332176,
+          1503252725841
+        ]
+      },
+      "article": [
+        {
+          "type": "text",
+          "text": "All four are cells with a person's name attached, and each one points to a specific disease or organ."
+        },
+        {
+          "type": "text",
+          "text": "CD15+ and CD30+: the immunostain profile of the Reed-Sternberg cell (named for Dorothy Reed and Carl Sternberg). It is the large binucleate owl-eye cell of classical Hodgkin lymphoma; the nodular lymphocyte-predominant type lacks classic Reed-Sternberg cells."
+        },
+        {
+          "type": "text",
+          "text": "Heart slide: Anitschkow cells (Nikolai Anitschkow), activated macrophages whose chromatin bunches into a wavy bar, the caterpillar nucleus. They sit inside Aschoff bodies, the granulomas of rheumatic myocarditis after group A strep pharyngitis."
+        },
+        {
+          "type": "text",
+          "text": "Liver slide, iron stain: a Kupffer cell (Karl von Kupffer), the resident macrophage lining the hepatic sinusoids. It has eaten iron, which the Prussian blue stain shows as blue granules."
+        },
+        {
+          "type": "text",
+          "text": "Langhans giant cell (Theodor Langhans): macrophages fused into one large cell with nuclei arranged in a horseshoe at the edge. It is typical of granulomas, especially caseating granulomas in tuberculosis. Not to be confused with Langerhans cells of the skin."
+        },
+        {
+          "type": "text",
+          "text": "<i>Images: Wikimedia Commons, \"Anitschkow Myocytes in an Aschoff Body, Rheumatic Myocarditis\", Ed Uthman, MD, CC BY-SA 2.0; Wikimedia Commons, \"Kupffer cell with hemosiderin and hepatocyte with lipofuscin, iron stain, original\", Mikael Häggström, MD, CC0</i>"
+        }
+      ],
+      "credit": {
+        "anonymous": true
+      },
+      "itemIds": [
+        "cd15-and-cd30",
+        "heart-h-e",
+        "liver-iron-stain",
+        "langhans-giant-cell"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "sepsis",
+      "label": "Sepsis",
+      "zone": "corkboard",
+      "info": {
+        "title": "Sepsis",
+        "text": ""
+      },
+      "note": "Sepsis is a frequent etiology of distributive shock"
+    },
+    {
+      "id": "tension-pneumothorax",
+      "label": "Tension pneumothorax",
+      "zone": "tubes",
+      "info": {
+        "title": "Tension pneumothorax",
+        "text": "",
+        "image": "puzzles/name-rings-a-bell-2026-11-20/tension-pneumothorax-info.webp"
+      },
+      "note": "One of the complications of a tension pneumothorax is obstructive shock"
+    },
+    {
+      "id": "papillary-muscle-rupture",
+      "label": "Papillary muscle rupture",
+      "zone": "photo",
+      "info": {
+        "title": "Papillary muscle rupture",
+        "text": "",
+        "image": "puzzles/name-rings-a-bell-2026-11-20/papillary-muscle-rupture-info.webp"
+      },
+      "note": "Papillary muscle rupture can lead to acute mitral regurgitation and cardiogenic shock"
+    },
+    {
+      "id": "penetrating-trauma",
+      "label": "Penetrating trauma",
+      "zone": "photo",
+      "info": {
+        "title": "Penetrating trauma",
+        "text": "",
+        "image": "puzzles/name-rings-a-bell-2026-11-20/penetrating-trauma-info.webp"
+      },
+      "note": "Penetrating trauma is a common cause of hypovolemic/hemorrhagic shock"
+    },
+    {
+      "id": "low-ceruloplasmin",
+      "label": "Low ceruloplasmin",
+      "zone": "folder",
+      "info": {
+        "title": "Low ceruloplasmin",
+        "text": ""
+      },
+      "note": "Usually evident in late childhood or early adolescence, these rings develop due to excess copper deposition on the inner surface of the cornea within the Descemet membrane"
+    },
+    {
+      "id": "steatosis",
+      "label": "Steatosis",
+      "zone": "rack",
+      "info": {
+        "title": "Steatosis",
+        "text": ""
+      },
+      "scope": {
+        "image": "puzzles/name-rings-a-bell-2026-11-20/steatosis-scope.webp"
+      }
+    },
+    {
+      "id": "hepatomegaly-on-x-ray",
+      "label": "Hepatomegaly on X-Ray",
+      "zone": "tubes",
+      "info": {
+        "title": "Hepatomegaly on X-Ray",
+        "text": "",
+        "image": "puzzles/name-rings-a-bell-2026-11-20/hepatomegaly-on-x-ray-info.webp"
+      }
+    },
+    {
+      "id": "zinc-acetate",
+      "label": "Zinc acetate",
+      "zone": "rx",
+      "info": {
+        "title": "Zinc acetate",
+        "text": ""
+      },
+      "note": "Zinc (such as zinc acetate or Galzin) blocks the intestines from absorbing copper from your food. It is commonly used for maintenance treatment after initial copper levels have been safely lowered, or for asymptomatic patients."
+    },
+    {
+      "id": "signet-rings-in-gastric-adenocarcinoma",
+      "label": "Signet Rings in gastric adenocarcinoma",
+      "zone": "rack",
+      "info": {
+        "title": "Signet Rings in gastric adenocarcinoma",
+        "text": ""
+      },
+      "scope": {
+        "image": "puzzles/name-rings-a-bell-2026-11-20/signet-rings-in-gastric-adenocarcinoma-scope.webp"
+      },
+      "note": "\"signet rings\" on H&E stain is the hallmark sign of an aggressive diffuse-type of adenocarcinoma of the stomach, the ring appearance due to the mucin pushing the nucleus to the periphery"
+    },
+    {
+      "id": "kayser-fleischer-rings",
+      "label": "Kayser-Fleischer Rings",
+      "zone": "photo",
+      "info": {
+        "title": "Kayser-Fleischer Rings",
+        "text": "",
+        "image": "puzzles/name-rings-a-bell-2026-11-20/kayser-fleischer-rings-info.webp"
+      },
+      "note": "Kayser-Fleischer rings are characteristic of Wilson's disease and are due to deposits of copper within Descemet's membrane"
+    },
+    {
+      "id": "signet-rings-in-bronchiectasis",
+      "label": "Signet rings in bronchiectasis",
+      "zone": "tubes",
+      "info": {
+        "title": "Signet rings in bronchiectasis",
+        "text": "",
+        "image": "puzzles/name-rings-a-bell-2026-11-20/signet-rings-in-bronchiectasis-info.webp"
+      },
+      "note": "Signet rings on CT scan can be a classic sign of bronchiectasis"
+    },
+    {
+      "id": "ring-enhancing-lesions-on-ct",
+      "label": "Ring-enhancing lesions on CT",
+      "zone": "tubes",
+      "info": {
+        "title": "Ring-enhancing lesions on CT",
+        "text": "",
+        "image": "puzzles/name-rings-a-bell-2026-11-20/ring-enhancing-lesions-on-ct-info.webp"
+      },
+      "note": "Cerebral toxoplasmosis is the most common cause of intracranial ring-enhancing lesions in immunocompromised patients"
+    },
+    {
+      "id": "cd15-and-cd30",
+      "label": "CD15+ and CD30+",
+      "zone": "corkboard",
+      "info": {
+        "title": "CD15+ and CD30+",
+        "text": ""
+      },
+      "note": "Reed-Sternberg cell, the owl-eye cell of Hodgkin lymphoma."
+    },
+    {
+      "id": "heart-h-e",
+      "label": "Heart, H&E",
+      "zone": "rack",
+      "info": {
+        "title": "Heart, H&E",
+        "text": ""
+      },
+      "scope": {
+        "image": "puzzles/name-rings-a-bell-2026-11-20/heart-h-e-scope.webp"
+      },
+      "note": "Anitschkow cell: the caterpillar nucleus, inside Aschoff bodies of rheumatic myocarditis."
+    },
+    {
+      "id": "liver-iron-stain",
+      "label": "Liver, iron stain",
+      "zone": "rack",
+      "info": {
+        "title": "Liver, iron stain",
+        "text": ""
+      },
+      "scope": {
+        "image": "puzzles/name-rings-a-bell-2026-11-20/liver-iron-stain-scope.webp"
+      },
+      "note": "Kupffer cell, the resident macrophage of the liver sinusoids. Iron stain turns the hemosiderin it has eaten blue."
+    },
+    {
+      "id": "langhans-giant-cell",
+      "label": "Langhans giant cell",
+      "zone": "corkboard",
+      "info": {
+        "title": "Langhans giant cell",
+        "text": ""
+      },
+      "note": "Named for Theodor Langhans. Horseshoe of nuclei, found in granulomas such as TB."
+    }
+  ]
+}
