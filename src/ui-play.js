@@ -291,6 +291,12 @@ export function buildPieceEl(item, opts) {
       var glass = document.createElement('span'); // the clear glass area (lift blur + glint live here)
       glass.className = 'slide-glass';
       glass.setAttribute('aria-hidden', 'true');
+      var strip = document.createElement('span'); // the bench seen through tilted glass (only while held, non-Chromium)
+      strip.className = 'slide-refract-strip';
+      var refract = document.createElement('span');
+      refract.className = 'slide-refract';
+      strip.appendChild(refract);
+      glass.appendChild(strip);
       var stain = document.createElement('span');
       stain.className = 'slide-stain';
       setSlideStain(stain.style, item.id);
@@ -1488,6 +1494,15 @@ export function onPointerDown(ev) {
   // animate at slot-scale while flying across the board.
   pieceEl.style.removeProperty('--slot-scale');
   pieceEl.style.setProperty('--rot', '0deg');
+  if (item.zone === 'rack') {
+    var dk = state.drag.rects.desk;
+    useBackdropRefraction();
+    pieceEl._rfShift = null;
+    setRefraction(pieceEl, 0);
+    pieceEl.style.setProperty('--rf-w', dk.width + 'px');
+    pieceEl.style.setProperty('--rf-h', dk.height + 'px');
+    setRefractOrigin(pieceEl, dk, cx, cy);
+  }
   pieceEl.style.zIndex = String(10 + state.desk.z[id]);
   pieceEl.style.left = cx + 'px';
   pieceEl.style.top = cy + 'px';
@@ -1520,6 +1535,7 @@ export function onPointerMove(ev) {
   // swings a little with sideways speed, like one held by its edge.
   if (d.isSlide) {
     if (d.playRect.width) d.el.style.setProperty('--gx', clamp(p.x / d.playRect.width, 0, 1).toFixed(3));
+    setRefractOrigin(d.el, d.rects.desk, p.x, p.y);
     if (d.lastX != null) d.swingTo = clamp((ev.clientX - d.lastX) * 0.5, -10, 10);
     d.lastX = ev.clientX;
     if (!d.swingLoop) startSwing(d);
@@ -1538,8 +1554,65 @@ function startSwing(d) {
     d.swing += (d.swingTo - d.swing) * 0.25;
     d.swingTo *= 0.85;
     d.el.style.setProperty('--rot', d.swing.toFixed(2) + 'deg');
+    setRefraction(d.el, d.swing);
     requestAnimationFrame(step);
   })();
+}
+
+/* Fake refraction through the tilted glass. The swing angle stands in for the
+   glass's tilt, and a thin plate shifts what is behind it sideways by
+   thickness * sin(angle) * (1 - 1/n) (Snell's law, small-angle form; n = 1.52
+   for slide glass). A real slide is 1 mm thick, which would shift nothing you
+   could see, so REFRACT_DEPTH is an exaggerated "thickness" in pixels: about
+   6 px at the full 10 degree swing. The shift moves .slide-refract, a copy of
+   the bench drawn inside the glass and lined up with the real one, so the
+   bench seen through the slide jumps sideways at the glass edges. Level glass
+   (swing 0) shows no copy at all. One number per frame, no per-pixel work. */
+var GLASS_N = 1.52, REFRACT_DEPTH = 110;
+export function refractShift(deg) {
+  return REFRACT_DEPTH * Math.sin(deg * Math.PI / 180) * (1 - 1 / GLASS_N);
+}
+function setRefraction(el, deg) {
+  var sh = refractShift(deg), txt = sh.toFixed(2);
+  if (txt === el._rfShift) return; // nothing changed this frame
+  el._rfShift = txt;
+  el.style.setProperty('--rf-shift', txt + 'px');
+  el.style.setProperty('--rf-a', Math.min(1, Math.abs(sh) / 1.5).toFixed(3));
+  el.style.setProperty('--rf-bl', Math.max(0, sh).toFixed(2) + 'px');
+  el.style.setProperty('--rf-br', Math.max(0, -sh).toFixed(2) + 'px');
+  if (refractOffset) refractOffset.setAttribute('dx', txt);
+}
+
+/* Chromium can run an SVG filter on the backdrop (backdrop-filter: url()), so
+   there the glass shifts what is really behind it (bench, trays, other pieces)
+   with one feOffset whose dx is the shift; the unshifted backdrop fills the
+   strip the shift uncovers, which leaves the doubled edge real glass shows.
+   Other browsers get the bench copy instead, kept to that edge strip so it
+   never hides a piece under the slide. */
+var refractOffset = null;
+function useBackdropRefraction() {
+  if (refractOffset) return true;
+  var ua = navigator.userAgentData;
+  if (!ua || !ua.brands || !ua.brands.some(function (b) { return b.brand === 'Chromium'; })) return false;
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('width', '0'); svg.setAttribute('height', '0');
+  svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+  svg.innerHTML = '<filter id="slide-refract-f" color-interpolation-filters="sRGB">'
+    + '<feOffset in="SourceGraphic" dx="0" dy="0" result="shifted"/>'
+    + '<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="shifted"/></feMerge></filter>';
+  document.body.appendChild(svg);
+  refractOffset = svg.querySelector('feOffset');
+  document.documentElement.classList.add('rf-svg');
+  return true;
+}
+/** Lines the bench copy up with the real bench for a slide centered at (x, y) in play-area pixels. */
+function setRefractOrigin(el, desk, x, y) {
+  el.style.setProperty('--rf-l', (desk.left - x).toFixed(1) + 'px');
+  el.style.setProperty('--rf-t', (desk.top - y).toFixed(1) + 'px');
+  el.style.setProperty('--rf-ox', (x - desk.left).toFixed(1) + 'px');
+  el.style.setProperty('--rf-oy', (y - desk.top).toFixed(1) + 'px');
 }
 
 export function updateDropHot(x, y) {

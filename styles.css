@@ -822,12 +822,17 @@ a.btn.btn-small, a.btn.btn-big { display: inline-flex; align-items: center; just
   min-height: 0;
   border-radius: 16px;
   border: 1px solid var(--desk-edge);
-  /* Slate lab bench: faint stone streaks + a cool overhead light pool. */
+}
+/* Slate lab bench: faint stone streaks + a cool overhead light pool. The held
+   slide's .slide-refract draws the same bench, so keep these two together. */
+.desk-surface, .slide-refract {
   background-image:
     radial-gradient(ellipse at 50% 30%, rgba(230, 236, 255, 0.10) 0, transparent 60%),
     repeating-linear-gradient(94deg,
       rgba(0, 0, 0, 0.035) 0 3px, transparent 3px 13px),
     linear-gradient(160deg, var(--desk-hi), var(--desk-mid) 55%, var(--desk-lo));
+}
+.desk-surface {
   box-shadow:
     inset 0 0 0 1px rgba(0, 0, 0, 0.15),
     inset 0 2px 6px rgba(255, 255, 255, 0.08),
@@ -3307,4 +3312,44 @@ body.preview-mode .play-header-title p { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .piece-slide, .piece-slide.is-dragging { transition: none; }
+}
+
+/* ── Held slide: what is behind tilted glass shifts sideways ──────────
+   ui-play.js sets --rf-shift from the swing angle (thin-plate Snell shift),
+   --rf-a (0 level, 1 tilted) and --rf-bl / --rf-br (the strip the shift
+   uncovers on each side). In Chromium (html.rf-svg) the glass's own backdrop
+   filter shifts the real view behind it. Elsewhere .slide-refract, a
+   bench-sized copy lined up with the real bench (it undoes the slide's turn
+   and scale, then slides by --rf-shift), shows only in that edge strip, so a
+   piece under the slide is never hidden. Never with reduced motion. */
+.slide-refract, .slide-refract-strip { display: none; }
+html:not(.rf-svg) .piece-slide.textured.is-dragging .slide-refract {
+  display: block; position: absolute; pointer-events: none;
+  left: calc(50% + var(--rf-l, 0px)); top: calc(50% + var(--rf-t, 0px));
+  width: var(--rf-w, 0px); height: var(--rf-h, 0px);
+  transform-origin: var(--rf-ox, 0px) var(--rf-oy, 0px);
+  transform: translateX(var(--rf-shift, 0px)) rotate(calc(var(--rot, 0deg) * -1))
+    scale(calc(1 / (var(--pc-scale, 1) * var(--type-scale, 1) * var(--responsive-scale, 1))));
+  opacity: calc(var(--rf-a, 0) * .6);
+}
+/* .slide-refract-strip fills the glass and masks the copy down to the edge strip. */
+html:not(.rf-svg) .piece-slide.textured.is-dragging .slide-refract-strip {
+  display: block; position: absolute; inset: 0; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(var(--rf-bl, 0px) * 1.5), transparent calc(var(--rf-bl, 0px) * 1.5) calc(100% - var(--rf-br, 0px) * 1.5), #000 calc(100% - var(--rf-br, 0px) * 1.5));
+  mask-image: linear-gradient(to right, #000 calc(var(--rf-bl, 0px) * 1.5), transparent calc(var(--rf-bl, 0px) * 1.5) calc(100% - var(--rf-br, 0px) * 1.5), #000 calc(100% - var(--rf-br, 0px) * 1.5));
+}
+.rf-svg .piece-slide.textured.is-dragging .slide-glass {
+  -webkit-backdrop-filter: url(#slide-refract-f) blur(calc(var(--lift) * 1.1px)) brightness(calc(1 + var(--lift) * .04));
+  backdrop-filter: url(#slide-refract-f) blur(calc(var(--lift) * 1.1px)) brightness(calc(1 + var(--lift) * .04));
+}
+.piece-slide.textured.is-dragging .slide-glass::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  box-shadow: inset calc(var(--rf-shift, 0px) * -.5) 0 2px -1px rgba(255, 255, 255, calc(var(--rf-a, 0) * .55));
+}
+@media (prefers-reduced-motion: reduce) {
+  .piece-slide.textured.is-dragging .slide-refract, .piece-slide.textured.is-dragging .slide-glass::before { display: none; }
+  .rf-svg .piece-slide.textured.is-dragging .slide-glass {
+    -webkit-backdrop-filter: blur(calc(var(--lift) * 1.1px)) brightness(calc(1 + var(--lift) * .04));
+    backdrop-filter: blur(calc(var(--lift) * 1.1px)) brightness(calc(1 + var(--lift) * .04));
+  }
 }
